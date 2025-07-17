@@ -35,4 +35,4 @@ export const PaymentRequestSchema = Type.Object({
 
 export type PaymentRequestSchemaDTO = Static<typeof PaymentRequestSchema>;
 export type PaymentResponseSchemaDTO = Static<typeof PaymentResponseSchema>;
-export type CreatePaymentRequest = Static<typeof CreatePaymentRequestSchema>;
+export type CreatePaymentRequestDTO = Static<typeof CreatePaymentRequestSchema>;
