@@ -269,7 +269,14 @@ console.log('status-handler');
     const billingAddress = cart.billingAddress;
     return billingAddress;
   }
-  
+
+public async createPaymentt(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
+  return {
+    paymentReference: request.interfaceId || 'mock-id',
+  };
+}
+	
+
   /**
    * Create payment
    *
