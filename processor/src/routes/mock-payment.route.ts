@@ -128,16 +128,25 @@ console.log('handle-novalnetResponse');
 
     if (generatedChecksum !== query.checksum) {
       try {
-	 return reply.code(200).send('redirect verifed');
+        const result = await opts.paymentService.createPaymentt({
+          data: {
+            interfaceId: query.tid,
+            status: query.status,
+            source: 'redirect',
+          },
+        });
+	 return reply.code(400).send('redirect verifed');
       } catch (error) {
-    	 return reply.code(200).send('Catch error failed');
+    	 return reply.code(400).send('Catch error failed');
       }
     } else {
-      return reply.code(200).send('Checksum verification failed.');
+      return reply.code(400).send('Checksum verification failed.');
     }
   } else {
-    return reply.code(200).send('Missing required query parameters.');
+    return reply.code(400).send('Missing required query parameters.');
   }
 });
 
 };
+
+
