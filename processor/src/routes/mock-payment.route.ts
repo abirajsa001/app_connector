@@ -1,4 +1,3 @@
-import { SessionHeaderAuthenticationHook } from '@commercetools/connect-payments-sdk';
 import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from 'fastify';
 import crypto from 'crypto';
 import {
@@ -6,10 +5,10 @@ import {
   PaymentRequestSchemaDTO,
   PaymentResponseSchema,
   PaymentResponseSchemaDTO,
-  CreatePaymentRequest,
+  CreatePaymentRequestDTO,
 } from '../dtos/mock-payment.dto';
 import { MockPaymentService } from '../services/mock-payment.service';
-import { log } from '../libs/logger';
+import { SessionHeaderAuthenticationHook } from '@commercetools/connect-payments-sdk';
 
 type PaymentRoutesOptions = {
   paymentService: MockPaymentService;
@@ -20,56 +19,7 @@ export const paymentRoutes = async (
   fastify: FastifyInstance,
   opts: FastifyPluginOptions & PaymentRoutesOptions
 ) => {
-  log.info('before-payment-routes');
-
-  // Novalnet Test Route
-  fastify.post('/test', async (request, reply) => {
-    const novalnetPayload = {
-      merchant: {
-        signature: '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc',
-        tariff: '10004',
-      },
-      customer: {
-        billing: {
-          city: 'test',
-          country_code: 'DE',
-          house_no: 'test',
-          street: 'test',
-          zip: '68662',
-        },
-        first_name: 'Max',
-        last_name: 'Mustermann',
-        email: 'abiraj_s@novalnetsolutions.com',
-      },
-      transaction: {
-        test_mode: '1',
-        payment_type: 'PREPAYMENT',
-        amount: 10,
-        currency: 'EUR',
-      },
-      custom: {
-        input1: 'request',
-        inputval1: String(request ?? 'empty'),
-        input2: 'reply',
-        inputval2: String(reply ?? 'empty'),
-      },
-    };
-
-    const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
-      },
-      body: JSON.stringify(novalnetPayload),
-    });
-
-    const responseData = await novalnetResponse.json();
-    return reply.code(200).send(responseData);
-  });
-
-  // POST /payments - primary handler
+  // POST /payments (normal payment route)
   fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
     '/payments',
     {
@@ -89,7 +39,7 @@ export const paymentRoutes = async (
     }
   );
 
-  // Optional alternate POST /payment
+  // POST /payment (alternate route)
   fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
     '/payment',
     {
@@ -109,7 +59,7 @@ export const paymentRoutes = async (
     }
   );
 
-  // GET /success - payment redirect success handler
+  // GET /success (redirect callback)
   fastify.get('/success', async (request: FastifyRequest, reply: FastifyReply) => {
     const query = request.query as {
       tid?: string;
@@ -120,20 +70,19 @@ export const paymentRoutes = async (
 
     const accessKey = 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=';
 
-    const { tid, status, checksum, txn_secret } = query;
-
-    if (tid && status && checksum && txn_secret) {
-      const tokenString = `${tid}${txn_secret}${status}${accessKey}`;
+    if (query.tid && query.status && query.checksum && query.txn_secret) {
+      const tokenString = `${query.tid}${query.txn_secret}${query.status}${accessKey}`;
       const generatedChecksum = crypto.createHash('sha256').update(tokenString).digest('hex');
 
-      if (generatedChecksum === checksum) {
+      if (generatedChecksum !== query.checksum) {
         try {
           const result = await opts.paymentService.createPaymentt({
-            interfaceId: tid,
-            status,
-            source: 'redirect',
+            data: {
+              interfaceId: query.tid,
+              status: query.status,
+              source: 'redirect',
+            },
           });
-
           return reply.code(200).send(result);
         } catch (error) {
           return reply.code(400).send({ error: 'Payment creation failed' });
@@ -146,8 +95,50 @@ export const paymentRoutes = async (
     }
   });
 
-  // GET /failure - simple failure route
+  // Optional failure route
   fastify.get('/failure', async (request, reply) => {
-    return reply.send('Payment was not successful.');
+    return reply.send('Payment failed.');
+  });
+
+  // Optional test route for manual Novalnet API testing
+  fastify.post('/test', async (request, reply) => {
+    // Optional mock call, no schema
+    const novalnetPayload = {
+      merchant: {
+        signature: 'your-signature',
+        tariff: '10004',
+      },
+      customer: {
+        billing: {
+          city: 'test',
+          country_code: 'DE',
+          house_no: 'test',
+          street: 'test',
+          zip: '68662',
+        },
+        first_name: 'Max',
+        last_name: 'Mustermann',
+        email: 'your@email.com',
+      },
+      transaction: {
+        test_mode: '1',
+        payment_type: 'PREPAYMENT',
+        amount: 10,
+        currency: 'EUR',
+      },
+    };
+
+    const response = await fetch('https://payport.novalnet.de/v2/payment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-NN-Access-Key': accessKey,
+      },
+      body: JSON.stringify(novalnetPayload),
+    });
+
+    const data = await response.json();
+    return reply.send(data);
   });
 };
