@@ -129,11 +129,7 @@ console.log('handle-novalnetResponse');
     if (generatedChecksum !== query.checksum) {
       try {
         const result = await opts.paymentService.createPaymentt({
-          data: {
-            interfaceId: query.tid,
-            status: query.status,
-            source: 'redirect',
-          },
+          data: query.tid ?? '',
         });
 	 return reply.code(400).send('redirect verifed');
       } catch (error) {
