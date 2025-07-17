@@ -1,26 +1,38 @@
-import { Type, Static } from '@sinclair/typebox';
+import { Static, Type } from '@sinclair/typebox';
 
-// Payment Request
-export const PaymentRequestSchema = Type.Object({
-  amountPlanned: Type.Number(),
-  currency: Type.String(),
-  paymentMethod: Type.String(),
+export enum PaymentOutcome {
+  AUTHORIZED = 'Authorized',
+  REJECTED = 'Rejected',
+}
+
+export enum PaymentMethodType {
+  CARD = 'card',
+  INVOICE = 'invoice',
+  PREPAYMENT = 'prepayment',
+  IDEAL = 'ideal',
+}
+
+export const PaymentResponseSchema = Type.Object({
+  paymentReference: Type.String(),
 });
 
-export type PaymentRequestSchemaDTO = Static<typeof PaymentRequestSchema>;
+export const PaymentOutcomeSchema = Type.Enum(PaymentOutcome);
 
-// Redirect Request
+export const PaymentRequestSchema = Type.Object({
+  paymentMethod: Type.Object({
+    type: Type.String(),
+    poNumber: Type.Optional(Type.String()),
+    invoiceMemo: Type.Optional(Type.String()),
+  }),
+  paymentOutcome: Type.Enum(PaymentOutcome),
+});
+
 export const CreatePaymentRequestSchema = Type.Object({
   interfaceId: Type.String(),
   status: Type.String(),
   source: Type.String(),
 });
 
-export type CreatePaymentRequestDTO = Static<typeof CreatePaymentRequestSchema>;
-
-// Payment Response
-export const PaymentResponseSchema = Type.Object({
-  paymentReference: Type.String(),
-});
-
+export type PaymentRequestSchemaDTO = Static<typeof PaymentRequestSchema>;
 export type PaymentResponseSchemaDTO = Static<typeof PaymentResponseSchema>;
+export type CreatePaymentRequestDTO = Static<typeof CreatePaymentRequestSchema>;
