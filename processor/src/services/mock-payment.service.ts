@@ -272,9 +272,10 @@ console.log('status-handler');
 
 public async createPaymentt(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
   return {
-    paymentReference: request.interfaceId || 'mock-id',
+    paymentReference: 'mock-id',
   };
 }
+
 	
 
   /**
