@@ -270,8 +270,8 @@ console.log('status-handler');
     return billingAddress;
   }
 
- public async createPaymentt(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
-    return { paymentReference: 'mock-id'};
+  public async createPaymentt(request: CreatePaymentRequestDTO): Promise<PaymentResponseSchemaDTO> {    
+	return { paymentReference: 'mock-id'};
   }	
 	
   /**
@@ -283,8 +283,8 @@ console.log('status-handler');
    * @param request - contains paymentType defined in composable commerce
    * @returns Promise with mocking data containing operation status and PSP reference
    */
-  public async createPayment(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
-    const ctCart = await this.ctCartService.getCart({
+  public async createPayment(request: { data: PaymentRequestSchemaDTO }): Promise<PaymentResponseSchemaDTO> {    
+     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
     const deliveryAddress = await this.ctcc(ctCart);
@@ -427,7 +427,7 @@ console.log('status-handler');
    * @param request - contains paymentType defined in composable commerce
    * @returns Promise with mocking data containing operation status and PSP reference
    */
-  public async createPayments(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
+  public async createPayments(request: { data: PaymentRequestSchemaDTO }): Promise<PaymentResponseSchemaDTO> {
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
