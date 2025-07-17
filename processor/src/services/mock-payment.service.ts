@@ -270,6 +270,11 @@ console.log('status-handler');
     return billingAddress;
   }
 
+  public async createPaymentt({ data }: { data: any }) {
+    console.log('Creating payment with:', data);
+    return { success: true, id: 'mock-id' };
+  }	
+	
   /**
    * Create payment
    *
