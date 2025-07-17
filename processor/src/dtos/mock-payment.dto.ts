@@ -16,12 +16,6 @@ export const PaymentResponseSchema = Type.Object({
   paymentReference: Type.String(),
 });
 
-export const CreatePaymentRequestSchema = Type.Object({
-  interfaceId: Type.String(),
-  status: Type.String(),
-  source: Type.String(),
-});
-
 export const PaymentOutcomeSchema = Type.Enum(PaymentOutcome);
 
 export const PaymentRequestSchema = Type.Object({
@@ -35,4 +29,3 @@ export const PaymentRequestSchema = Type.Object({
 
 export type PaymentRequestSchemaDTO = Static<typeof PaymentRequestSchema>;
 export type PaymentResponseSchemaDTO = Static<typeof PaymentResponseSchema>;
-export type CreatePaymentRequestDTO = Static<typeof CreatePaymentRequestSchema>;
