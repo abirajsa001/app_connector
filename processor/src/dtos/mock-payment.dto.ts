@@ -12,12 +12,21 @@ export enum PaymentMethodType {
   IDEAL = 'ideal',
 }
 
+// Response schema for any payment response
 export const PaymentResponseSchema = Type.Object({
   paymentReference: Type.String(),
 });
+export type PaymentResponseSchemaDTO = Static<typeof PaymentResponseSchema>;
 
-export const PaymentOutcomeSchema = Type.Enum(PaymentOutcome);
+// Schema for incoming payment creation requests
+export const CreatePaymentRequestSchema = Type.Object({
+  interfaceId: Type.String(),
+  status: Type.String(),
+  source: Type.String(),
+});
+export type CreatePaymentRequestDTO = Static<typeof CreatePaymentRequestSchema>;
 
+// Schema for original POST /payments body (used in /payments route)
 export const PaymentRequestSchema = Type.Object({
   paymentMethod: Type.Object({
     type: Type.String(),
@@ -26,13 +35,9 @@ export const PaymentRequestSchema = Type.Object({
   }),
   paymentOutcome: Type.Enum(PaymentOutcome),
 });
-
-export const CreatePaymentRequestSchema = Type.Object({
-  interfaceId: Type.String(),
-  status: Type.String(),
-  source: Type.String(),
-});
-
 export type PaymentRequestSchemaDTO = Static<typeof PaymentRequestSchema>;
-export type PaymentResponseSchemaDTO = Static<typeof PaymentResponseSchema>;
-export type CreatePaymentRequestDTO = Static<typeof CreatePaymentRequestSchema>;
+
+// Optional: If your service method accepts an object with "data" key:
+export type CreatePaymentRequest = {
+  data: CreatePaymentRequestDTO;
+};
