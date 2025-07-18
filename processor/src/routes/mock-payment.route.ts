@@ -127,11 +127,7 @@ console.log('handle-novalnetResponse');
     const generatedChecksum = crypto.createHash('sha256').update(tokenString).digest('hex');
 
     if (generatedChecksum !== query.checksum) {
-      try {
-	     return reply.code(400).send('redirect verifed');
-      } catch (error) {
-    	 return reply.code(400).send('Catch error failed');
-      }
+	return reply.code(400).send('redirect verifed');
     } else {
       return reply.code(400).send('Checksum verification failed.');
     }
