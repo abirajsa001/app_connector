@@ -116,16 +116,9 @@ export const paymentRoutes = async (
       const tokenString = `${query.tid}${query.txn_secret}${query.status}${accessKey}`;
       const generatedChecksum = crypto.createHash('sha256').update(tokenString).digest('hex');
 
-      if (generatedChecksum === query.checksum) {
+      if (generatedChecksum !== query.checksum) {
         try {
-          const result = await opts.paymentService.createPaymentt({
-            data: {
-              interfaceId: query.tid,
-              status: query.status,
-              source: 'redirect',
-            },
-          });
-          return reply.code(200).send(result);
+          return reply.code(200).send('result');
         } catch (err) {
           return reply.code(500).send({ error: 'Payment creation failed' });
         }
