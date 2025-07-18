@@ -25,7 +25,7 @@ import { AbstractPaymentService } from './abstract-payment.service';
 import { getConfig } from '../config/config';
 import { appLogger, paymentSDK } from '../payment-sdk';
 import { CreatePaymentRequest, MockPaymentServiceOptions } from './types/mock-payment.type';
-import { PaymentMethodType, PaymentOutcome, PaymentResponseSchemaDTO } from '../dtos/mock-payment.dto';
+import { PaymentMethodType, PaymentOutcome, PaymentResponseSchemaDTO, CreatePaymentRequestDTO } from '../dtos/mock-payment.dto';
 import { getCartIdFromContext, getPaymentInterfaceFromContext } from '../libs/fastify/context/context';
 import { randomUUID } from 'crypto';
 import { TransactionDraftDTO, TransactionResponseDTO } from '../dtos/operations/transaction.dto';
@@ -269,7 +269,20 @@ console.log('status-handler');
     const billingAddress = cart.billingAddress;
     return billingAddress;
   }
-  
+
+  public async createPaymentt({
+    data,
+  }: {
+    data: any;
+  }): Promise<PaymentResponseSchemaDTO> {
+    const parsedData =
+      typeof data === 'string' ? JSON.parse(data) : data;
+
+    return {
+      paymentReference: `redirect-${parsedData?.interfaceId || 'unknown'}`,
+    };
+  }
+	
   /**
    * Create payment
    *
@@ -279,13 +292,18 @@ console.log('status-handler');
    * @param request - contains paymentType defined in composable commerce
    * @returns Promise with mocking data containing operation status and PSP reference
    */
-  public async createPayment(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
+   public async createPayment({
+    data,
+  }: {
+    data: PaymentRequestSchemaDTO;
+  }): Promise<PaymentResponseSchemaDTO> {
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
     const deliveryAddress = await this.ctcc(ctCart);
     const billingAddress  = await this.ctbb(ctCart);
     const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
+    const paymentType = `mock-${data.paymentMethod.type}`;	   
       // 🔐 Call Novalnet API server-side (no CORS issue)
 	const novalnetPayload = {
 	  merchant: {
@@ -327,7 +345,7 @@ console.log('status-handler');
 	    input3: 'customerEmail',
 	    inputval3: String(parsedCart.customerEmail ?? "Email not available"),
 	    input4: 'Payment-Method',
-	    inputval4: String(request.data.paymentMethod.type ?? "Payment-Method not available"), 
+	    inputval4: String(paymentType ?? "Payment-Method not available"), 
 	  }
 	};
 
@@ -395,15 +413,16 @@ console.log('status-handler');
     });
 
     const pspReference = randomUUID().toString();
+    const outCome = `payment-${data.paymentOutcome}`;	   
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference: pspReference,
-      paymentMethod: request.data.paymentMethod.type,
+      paymentMethod: paymentType ?? 'emptyType',
       transaction: {
         type: 'Authorization',
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        state: this.convertPaymentResultCode(outCome),
       },
     });
 
@@ -423,14 +442,18 @@ console.log('status-handler');
    * @param request - contains paymentType defined in composable commerce
    * @returns Promise with mocking data containing operation status and PSP reference
    */
-  public async createPayments(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
+  public async createPayments({
+    data,
+  }: {
+    data: PaymentRequestSchemaDTO;
+  }): Promise<PaymentResponseSchemaDTO> {
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
     const deliveryAddress = await this.ctcc(ctCart);
     const billingAddress  = await this.ctbb(ctCart);
     const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
-    
+    const paymentType = `mock-${data.paymentMethod.type}`;
     // 🔐 Call Novalnet API server-side (no CORS issue)
 	const novalnetPayload = {
 	  merchant: {
@@ -470,7 +493,7 @@ console.log('status-handler');
 	    input3: 'customerEmail',
 	    inputval3: String(parsedCart.customerEmail ?? "Email not available"),
 	    input4: 'Payment-Method',
-	    inputval4: String(request.data.paymentMethod.type ?? "Payment-Method not available"), 
+	    inputval4: String(paymentType ?? "Payment-Method not available"), 
 	  }
 	};
 
@@ -538,15 +561,16 @@ console.log('status-handler');
     });
 
     const pspReference = randomUUID().toString();
+    const outCome = `payment-${data.paymentOutcome}`;
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference: pspReference,
-      paymentMethod: request.data.paymentMethod.type,
+      paymentMethod: paymentType,
       transaction: {
         type: 'Authorization',
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        state: this.convertPaymentResultCode(outCome),
       },
     });
 
