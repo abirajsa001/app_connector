@@ -279,7 +279,7 @@ console.log('status-handler');
       typeof data === 'string' ? JSON.parse(data) : data;
 
     return {
-      paymentReference: `redirect-${parsedData?.interfaceId || 'unknown'}`,
+      paymentReference: 'test',
     };
   }
 	
