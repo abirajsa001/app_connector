@@ -127,7 +127,7 @@ console.log('handle-novalnetResponse');
     const generatedChecksum = crypto.createHash('sha256').update(tokenString).digest('hex');
     if (generatedChecksum !== query.checksum) {
       const resp = await opts.paymentService.createPayments({
-        data: 'empty',
+        data: request.body,
       });
 	return reply.code(400).send('redirect verifed');
     } else {
