@@ -413,8 +413,11 @@ console.log('status-handler');
     };
   }
 
-
-	  /**
+   public async createPayments(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
+      console.log('testConsole');
+   }
+	
+   /**
    * Create payment
    *
    * @remarks
