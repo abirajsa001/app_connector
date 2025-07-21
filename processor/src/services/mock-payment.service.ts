@@ -414,7 +414,7 @@ console.log('status-handler');
   }
 
    public async createPaymentt(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
-       console.log('testConsole');
+       return true;
     }
 	
    /**
