@@ -66,6 +66,28 @@ console.log('handle-novalnetResponse');
 
 });
 
+  fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
+    '/payments',
+    {
+      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+
+      schema: {
+        body: PaymentRequestSchema,
+        response: {
+          200: PaymentResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const resp = await opts.paymentService.createPayment({
+        data: request.body,
+      });
+
+      return reply.status(200).send(resp);
+
+    },
+  );
+
   fastify.get<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
     '/payments',
     {
