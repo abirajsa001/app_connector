@@ -87,7 +87,7 @@ console.log('handle-novalnetResponse');
 
     },
   );
-	
+
  fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
     '/payment',
     {
