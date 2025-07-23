@@ -27,12 +27,12 @@ fastify.post('/test', async (request, reply) => {
       tariff: '10004',
     },
     customer: {
-  	  billing: {
-    		city         : 'test',
-    		country_code : 'DE',
-    		house_no     : 'test',
-    		street       : 'test',
-    		zip          : '68662',
+  	  billing : {
+    		city          : 'test',
+    		country_code  : 'DE',
+    		house_no      : 'test',
+    		street        : 'test',
+    		zip           : '68662',
   	  },
       first_name: 'Max',
       last_name: 'Mustermann',
@@ -66,11 +66,8 @@ console.log('handle-novalnetResponse');
 
 });
 
- fastify.route({
-  method: ['GET', 'POST'],
-  url: '/payments',
-  handler: async (request, reply) => {
-    if (request.method === 'GET') {
+  fastify.get<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
+    '/payments',
     {
       preHandler: [opts.sessionHeaderAuthHook.authenticate()],
 
@@ -89,29 +86,7 @@ console.log('handle-novalnetResponse');
       return reply.status(200).send(resp);
 
     },
-    } else if (request.method === 'POST') {
-     {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-
-      schema: {
-        body: PaymentRequestSchema,
-        response: {
-          200: PaymentResponseSchema,
-        },
-      },
-    },
-    async (request, reply) => {
-      const resp = await opts.paymentService.createPayment({
-        data: request.body,
-      });
-
-      return reply.status(200).send(resp);
-
-    },
-    }
-  }
-});
-
+  );
 
  fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
     '/payment',
@@ -150,10 +125,22 @@ console.log('handle-novalnetResponse');
   if (query.tid && query.status && query.checksum && query.txn_secret) {
     const tokenString = `${query.tid}${query.txn_secret}${query.status}${accessKey}`;
     const generatedChecksum = crypto.createHash('sha256').update(tokenString).digest('hex');
+
     if (generatedChecksum !== query.checksum) {
-	return reply.code(400).send('redirect-verifed');
+      try {
+        const result = await opts.paymentService.createPaymentt({
+          data: {
+            interfaceId: query.tid,
+            status: query.status,
+            source: 'redirect',
+          },
+        });
+	 return reply.code(400).send(result);
+      } catch (error) {
+    	 return reply.code(400).send('Catch error failed');
+      }
     } else {
-      return reply.code(400).send('Checksum-verification-failed.');
+      return reply.code(400).send('Checksum verification failed.');
     }
   } else {
     return reply.code(400).send('Missing required query parameters.');
