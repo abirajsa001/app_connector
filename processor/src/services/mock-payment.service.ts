@@ -433,10 +433,10 @@ public async createPaymentt({ data }: { data: any }) {
       },
     });
 
-    return {
-      // paymentReference: updatedPayment.id,
-      paymentReference: parsedResponse?.result?.redirect_url ?? 'null',
-    };
+	return {
+	  redirectUrl: parsedResponse?.result?.redirect_url ?? null,
+	  paymentReference: updatedPayment.id,
+	};
   }
 
 
