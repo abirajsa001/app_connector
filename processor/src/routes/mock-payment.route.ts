@@ -66,8 +66,11 @@ console.log('handle-novalnetResponse');
 
 });
 
-  fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
-    '/payments',
+ fastify.route({
+  method: ['GET', 'POST'],
+  url: '/payments',
+  handler: async (request, reply) => {
+    if (request.method === 'GET') {
     {
       preHandler: [opts.sessionHeaderAuthHook.authenticate()],
 
@@ -86,11 +89,8 @@ console.log('handle-novalnetResponse');
       return reply.status(200).send(resp);
 
     },
-  );
-
-fastify.get<{Querystring: { paymentId: string }; Reply: PaymentResponseSchemaDTO }>(
-  '/payments',
-  {
+    } else if (request.method === 'POST') {
+     {
       preHandler: [opts.sessionHeaderAuthHook.authenticate()],
 
       schema: {
@@ -108,7 +108,10 @@ fastify.get<{Querystring: { paymentId: string }; Reply: PaymentResponseSchemaDTO
       return reply.status(200).send(resp);
 
     },
-  );
+    }
+  }
+});
+
 
  fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
     '/payment',
