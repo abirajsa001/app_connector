@@ -101,7 +101,7 @@ console.log('handle-novalnetResponse');
   async (request, reply) => {
     const mockPaymentData: PaymentRequestSchemaDTO = {
       paymentMethod: {
-        type: 'ideal', // or any default type
+        type: 'ideal',
       },
       paymentOutcome: 'AUTHORIZED',
     };
