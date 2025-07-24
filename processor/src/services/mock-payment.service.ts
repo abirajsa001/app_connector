@@ -434,7 +434,7 @@ public async createPaymentt({ data }: { data: any }) {
     });
 
 	return {
-	  // redirectUrl: parsedResponse?.result?.redirect_url ?? null,
+	  redirectUrl: parsedResponse?.result?.redirect_url ?? null,
 	  paymentReference: updatedPayment.id,
 	};
   }
