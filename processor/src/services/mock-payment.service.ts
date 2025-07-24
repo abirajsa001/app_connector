@@ -138,7 +138,7 @@ console.log('status-handler');
           type: PaymentMethodType.PREPAYMENT,
         },
         {
-          type: PaymentMethodType.IDEAL,
+          type: PaymentMethodType.,
         },
       ],
     };
@@ -339,7 +339,7 @@ public async createPaymentt({ data }: { data: any }) {
 	  },
 	  transaction: {
 	    test_mode: '1',
-	    payment_type: 'IDEAL',
+	    payment_type: 'PAYPAL',
 	    amount: '123',
 	    currency: 'EUR',
 	    return_url: 'https://service-gxj31ubdem0d5a3yfzvyd735.europe-west1.gcp.sandbox.commercetools.app/payments',
