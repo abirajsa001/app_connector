@@ -82,9 +82,9 @@ console.log('handle-novalnetResponse');
       const resp = await opts.paymentService.createPayment({
         data: request.body,
       });
-        // if (resp.redirectUrl) {
-	  //  void reply.redirect(302, resp.redirectUrl);
- 	 // }
+        if (resp.redirectUrl) {
+	   void reply.redirect(302, resp.redirectUrl);
+ 	 }
       return reply.status(200).send(resp);
 
     },
