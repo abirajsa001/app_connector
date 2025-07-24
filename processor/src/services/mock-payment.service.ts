@@ -339,7 +339,7 @@ public async createPaymentt({ data }: { data: any }) {
 	  },
 	  transaction: {
 	    test_mode: '1',
-	    payment_type: 'PAYPAL',
+	    payment_type: 'EPS',
 	    amount: '123',
 	    currency: 'EUR',
 	    return_url: 'https://service-gxj31ubdem0d5a3yfzvyd735.europe-west1.gcp.sandbox.commercetools.app/payments',
