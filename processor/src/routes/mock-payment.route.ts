@@ -147,6 +147,31 @@ console.log('handle-novalnetResponse');
   }
 });
 
+
+fastify.get<{ 
+  Querystring: PaymentRequestSchemaDTO; 
+  Reply: PaymentResponseSchemaDTO 
+}>(
+  '/payments',
+  {
+    preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+    schema: {
+      querystring: PaymentRequestSchema, 
+      response: {
+        200: PaymentResponseSchema,
+      },
+    },
+  },
+  async (request, reply) => {
+    const resp = await opts.paymentService.createPayment({
+      data: request.query,
+    });
+
+    return reply.status(200).send(resp);
+  }
+);
+
+	
 };
 
 
