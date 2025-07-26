@@ -135,7 +135,11 @@ console.log('handle-novalnetResponse');
             source: 'redirect',
           },
         });
-	 return reply.code(400).send(result);
+	 reply.redirect(
+	  302,
+	  'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=c52dc5f2-f1ad-4e9c-9dc7-e60bf80d4a52'
+	);
+	 // return reply.code(400).send(result);
       } catch (error) {
     	 return reply.code(400).send('Catch error failed');
       }
@@ -166,8 +170,11 @@ fastify.get<{
     const resp = await opts.paymentService.createPayment({
       data: request.query,
     });
-
-    return reply.status(200).send(resp);
+	reply.redirect(
+	  302,
+	  'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=c52dc5f2-f1ad-4e9c-9dc7-e60bf80d4a52'
+	);
+    // return reply.status(200).send(resp);
   }
 );
 
