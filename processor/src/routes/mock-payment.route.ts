@@ -135,10 +135,8 @@ console.log('handle-novalnetResponse');
             source: 'redirect',
           },
         });
-	 reply.redirect(
-	  302,
-	  'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=c52dc5f2-f1ad-4e9c-9dc7-e60bf80d4a52'
-	);
+	
+	return reply.redirect(302, 'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=c52dc5f2-f1ad-4e9c-9dc7-e60bf80d4a52');
 	 // return reply.code(400).send(result);
       } catch (error) {
     	 return reply.code(400).send('Catch error failed');
