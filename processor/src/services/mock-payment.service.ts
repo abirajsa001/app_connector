@@ -31,7 +31,7 @@ import { randomUUID } from 'crypto';
 import { TransactionDraftDTO, TransactionResponseDTO } from '../dtos/operations/transaction.dto';
 import { log } from '../libs/logger';
 import * as Context from '../libs/fastify/context/context';
-import fetch from 'node-fetch';
+
 
 export class MockPaymentService extends AbstractPaymentService {
   constructor(opts: MockPaymentServiceOptions) {
@@ -273,7 +273,7 @@ console.log('status-handler');
   }
 
 
-public async createPaymentt({ data }: { data: any }): Promise<{ success: any; novalnetResponse: any }> {
+public async createPaymentt({ data }: { data: any }) {
   const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
   const novalnetPayload = {
@@ -294,7 +294,7 @@ public async createPaymentt({ data }: { data: any }): Promise<{ success: any; no
   });
 
   // Step 2: Parse response safely
-  let responseString: string = '';
+  let responseString = '';
   let responseData: any = {};
   try {
     responseData = await novalnetResponse.json();
@@ -305,36 +305,34 @@ public async createPaymentt({ data }: { data: any }): Promise<{ success: any; no
 
   const transactiondetails = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? 'N/A'}\nTest Order`;
 
-  // Step 3: Get cart from Commercetools context
+  // Step 3: Get cart from context
   const ctCart = await this.ctCartService.getCart({
     id: getCartIdFromContext(),
   });
 
-  // Step 4: Create payment in Commercetools
+  // Step 4: Create CT Payment
   const ctPayment = await this.ctPaymentService.createPayment({
     amountPlanned: await this.ctCartService.getPaymentAmount({ cart: ctCart }),
     paymentMethodInfo: {
-      paymentInterface: getPaymentInterfaceFromContext() ?? 'mock',
+      paymentInterface: getPaymentInterfaceFromContext() || 'mock',
     },
     paymentStatus: {
       interfaceCode: transactiondetails,
       interfaceText: responseString,
     },
-    ...(ctCart.customerId
-      ? {
-          customer: {
-            typeId: 'customer',
-            id: ctCart.customerId,
-          },
-        }
-      : ctCart.anonymousId
-      ? {
-          anonymousId: ctCart.anonymousId,
-        }
-      : {}),
+    ...(ctCart.customerId && {
+      customer: {
+        typeId: 'customer',
+        id: ctCart.customerId,
+      },
+    }),
+    ...(!ctCart.customerId &&
+      ctCart.anonymousId && {
+        anonymousId: ctCart.anonymousId,
+      }),
   });
 
-  // Step 5: Attach payment to cart
+  // Step 5: Link payment to cart
   await this.ctCartService.addPayment({
     resource: {
       id: ctCart.id,
@@ -343,8 +341,8 @@ public async createPaymentt({ data }: { data: any }): Promise<{ success: any; no
     paymentId: ctPayment.id,
   });
 
-  // Step 6: Create PSP transaction
-  const pspReference = randomUUID();
+  // Step 6: Create PSP reference & add transaction
+  const pspReference = randomUUID().toString();
   await this.ctPaymentService.updatePayment({
     id: ctPayment.id,
     pspReference,
@@ -356,7 +354,6 @@ public async createPaymentt({ data }: { data: any }): Promise<{ success: any; no
     },
   });
 
-  // Final result
   return {
     success: parsedData ?? 'empty-response',
     novalnetResponse: responseData,
