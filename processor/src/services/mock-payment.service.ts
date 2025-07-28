@@ -330,14 +330,6 @@ console.log('status-handler');
         }),
     });
 
-    // Step 5: Link payment to cart
-    await this.ctCartService.addPayment({
-      resource: {
-        id: ctCart.id,
-        version: ctCart.version,
-      },
-      paymentId: ctPayment.id,
-    });
 
     // Step 6: Create PSP reference & add transaction
     const pspReference = randomUUID();
