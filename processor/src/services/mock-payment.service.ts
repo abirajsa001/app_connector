@@ -288,7 +288,7 @@ public async createPaymentt({ data }: { data: any }) {
     },
     body: JSON.stringify(novalnetPayload),
   });
-  const responseData = await novalnetResponse.json();
+
 
 	let responseString = '';
 	try {
