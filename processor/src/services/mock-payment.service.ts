@@ -273,7 +273,7 @@ console.log('status-handler');
   }
 
 
-export async function createPaymentt({ data }: { data: any }) {
+public async function createPaymentt({ data }: { data: any }) {
   const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
   const novalnetPayload = {
