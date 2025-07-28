@@ -294,14 +294,14 @@ console.log('status-handler');
 
     // Step 2: Parse response safely
     let responseString = '';
-    let responseData = '';
+
     try {
-      responseData = await novalnetResponse.json();
+      const responseData = await novalnetResponse.json();
       responseString = JSON.stringify(responseData);
     } catch (err) {
       responseString = 'Unable to parse Novalnet response';
     }
-
+    const parsedResponse = JSON.parse(responseString);
     const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid}
 	Test Order`;
 
