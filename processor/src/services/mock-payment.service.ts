@@ -273,7 +273,7 @@ console.log('status-handler');
   }
 
 
-public async createPaymentt({ data }: { data: any }) {
+export async function createPaymentt({ data }: { data: any }) {
   const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
   const novalnetPayload = {
@@ -282,81 +282,48 @@ public async createPaymentt({ data }: { data: any }) {
     },
   };
 
-  // Step 1: Call Novalnet API
-  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/transaction/details', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
-    },
-    body: JSON.stringify(novalnetPayload),
-  });
-
-  // Step 2: Parse response safely
   let responseString = '';
   let responseData: any = {};
+
   try {
+    const novalnetResponse = await fetch('https://payport.novalnet.de/v2/transaction/details', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+      },
+      body: JSON.stringify(novalnetPayload),
+    });
+
     responseData = await novalnetResponse.json();
     responseString = JSON.stringify(responseData);
   } catch (err) {
     responseString = 'Unable to parse Novalnet response';
   }
 
-  const transactiondetails = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? 'N/A'}\nTest Order`;
-
-  // Step 3: Get cart from context
-  const ctCart = await this.ctCartService.getCart({
-    id: getCartIdFromContext(),
-  });
-
-  // Step 4: Create CT Payment
-  const ctPayment = await this.ctPaymentService.createPayment({
-    amountPlanned: await this.ctCartService.getPaymentAmount({ cart: ctCart }),
-    paymentMethodInfo: {
-      paymentInterface: getPaymentInterfaceFromContext() || 'mock',
-    },
-    paymentStatus: {
-      interfaceCode: transactiondetails,
-      interfaceText: responseString,
-    },
-    ...(ctCart.customerId && {
-      customer: {
-        typeId: 'customer',
-        id: ctCart.customerId,
-      },
-    }),
-    ...(!ctCart.customerId &&
-      ctCart.anonymousId && {
-        anonymousId: ctCart.anonymousId,
-      }),
-  });
-
-  // Step 5: Link payment to cart
-  await this.ctCartService.addPayment({
-    resource: {
-      id: ctCart.id,
-      version: ctCart.version,
-    },
-    paymentId: ctPayment.id,
-  });
-
-  // Step 6: Create PSP reference & add transaction
-  const pspReference = randomUUID().toString();
-  await this.ctPaymentService.updatePayment({
-    id: ctPayment.id,
-    pspReference,
-    transaction: {
-      type: 'Authorization',
-      amount: ctPayment.amountPlanned,
-      interactionId: pspReference,
-      state: 'Success',
-    },
-  });
+  // Optional: Save transaction details in custom fields
+  const redirectUrl = `https://poc-novalnetpayments.frontend.site/thank-you?orderId=${parsedData?.interfaceId ?? ''}`;
+  const transactionDetails = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? 'N/A'}\nTest Order`;
 
   return {
-    success: parsedData ?? 'empty-response',
-    novalnetResponse: responseData,
+    actions: [
+      {
+        action: 'setCustomField',
+        name: 'novalnetTransactionDetails',
+        value: transactionDetails,
+      },
+      {
+        action: 'setCustomField',
+        name: 'novalnetResponse',
+        value: responseString,
+      },
+      {
+        action: 'setCustomField',
+        name: 'redirectUrl',
+        value: redirectUrl,
+      },
+    ],
   };
 }
 	
