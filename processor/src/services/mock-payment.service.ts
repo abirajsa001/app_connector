@@ -273,57 +273,27 @@ console.log('status-handler');
   }
 
 
-public async function createPaymentt({ data }: { data: any }) {
+public async createPaymentt({ data }: { data: any }) {
   const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
-
   const novalnetPayload = {
     transaction: {
       tid: parsedData?.interfaceId ?? '',
     },
   };
 
-  let responseString = '';
-  let responseData: any = {};
-
-  try {
-    const novalnetResponse = await fetch('https://payport.novalnet.de/v2/transaction/details', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
-      },
-      body: JSON.stringify(novalnetPayload),
-    });
-
-    responseData = await novalnetResponse.json();
-    responseString = JSON.stringify(responseData);
-  } catch (err) {
-    responseString = 'Unable to parse Novalnet response';
-  }
-
-  // Optional: Save transaction details in custom fields
-  const redirectUrl = `https://poc-novalnetpayments.frontend.site/thank-you?orderId=${parsedData?.interfaceId ?? ''}`;
-  const transactionDetails = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? 'N/A'}\nTest Order`;
-
+  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/transaction/details', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+    },
+    body: JSON.stringify(novalnetPayload),
+  });
+  const responseData = await novalnetResponse.json();
   return {
-    actions: [
-      {
-        action: 'setCustomField',
-        name: 'novalnetTransactionDetails',
-        value: transactionDetails,
-      },
-      {
-        action: 'setCustomField',
-        name: 'novalnetResponse',
-        value: responseString,
-      },
-      {
-        action: 'setCustomField',
-        name: 'redirectUrl',
-        value: redirectUrl,
-      },
-    ],
+    success: parsedData ?? 'empty-response',
+    novalnetResponse: responseData,
   };
 }
 	
