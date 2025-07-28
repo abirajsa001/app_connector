@@ -271,104 +271,92 @@ console.log('status-handler');
   }
 
 
-public async createPaymentt({
-  data,
-}: {
-  data: string | Record<string, any>;
-}): Promise<{ success: any; novalnetResponse: any }> {
-  const parsedData =
-    typeof data === 'string' ? JSON.parse(data) : data;
+  public async createPaymentt({ data }: { data: any }) {
+    const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
 
-  const novalnetPayload = {
-    transaction: {
-      tid: parsedData?.interfaceId ?? '',
-    },
-  };
+    const novalnetPayload = {
+      transaction: {
+        tid: parsedData?.interfaceId ?? '',
+      },
+    };
 
-  // Perform Novalnet API call
-  const novalnetResponse = await fetch(
-    'https://payport.novalnet.de/v2/transaction/details',
-    {
+    // Step 1: Call Novalnet API
+    const novalnetResponse = await fetch('https://payport.novalnet.de/v2/transaction/details', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        'X-NN-Access-Key':
-          'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+        'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
       },
       body: JSON.stringify(novalnetPayload),
+    });
+
+    // Step 2: Parse response safely
+    let responseString = '';
+    let responseData: any = {};
+    try {
+      responseData = await novalnetResponse.json();
+      responseString = JSON.stringify(responseData);
+    } catch (err) {
+      responseString = 'Unable to parse Novalnet response';
     }
-  );
 
-  const ctCart = await this.ctCartService.getCart({
-    id: getCartIdFromContext(),
-  });
+    const transactiondetails = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? 'N/A'}\nTest Order`;
 
-  let responseData: any;
-  let responseString = '';
+    // Step 3: Get cart from context
+    const ctCart = await this.ctCartService.getCart({
+      id: getCartIdFromContext(),
+    });
 
-  try {
-    responseData = await novalnetResponse.json();
-    responseString = JSON.stringify(responseData);
-  } catch (err) {
-    responseString = 'Unable to parse Novalnet response';
-    responseData = null;
-  }
-
-  const parsedResponse = responseData || {};
-  const transactiondetails = `Novalnet Transaction ID: ${
-    parsedResponse.transaction?.tid ?? ''
-  }\nTest Order`;
-
-  const ctPayment = await this.ctPaymentService.createPayment({
-    amountPlanned: await this.ctCartService.getPaymentAmount({
-      cart: ctCart,
-    }),
-    paymentMethodInfo: {
-      paymentInterface:
-        getPaymentInterfaceFromContext() || 'mock',
-    },
-    paymentStatus: {
-      interfaceCode: transactiondetails,
-      interfaceText: responseString,
-    },
-    ...(ctCart.customerId && {
-      customer: {
-        typeId: 'customer',
-        id: ctCart.customerId,
+    // Step 4: Create CT Payment
+    const ctPayment = await this.ctPaymentService.createPayment({
+      amountPlanned: await this.ctCartService.getPaymentAmount({ cart: ctCart }),
+      paymentMethodInfo: {
+        paymentInterface: getPaymentInterfaceFromContext() || 'mock',
       },
-    }),
-    ...(!ctCart.customerId &&
-      ctCart.anonymousId && {
-        anonymousId: ctCart.anonymousId,
+      paymentStatus: {
+        interfaceCode: transactiondetails,
+        interfaceText: responseString,
+      },
+      ...(ctCart.customerId && {
+        customer: {
+          typeId: 'customer',
+          id: ctCart.customerId,
+        },
       }),
-  });
+      ...(!ctCart.customerId &&
+        ctCart.anonymousId && {
+          anonymousId: ctCart.anonymousId,
+        }),
+    });
 
-  await this.ctCartService.addPayment({
-    resource: {
-      id: ctCart.id,
-      version: ctCart.version,
-    },
-    paymentId: ctPayment.id,
-  });
+    // Step 5: Link payment to cart
+    await this.ctCartService.addPayment({
+      resource: {
+        id: ctCart.id,
+        version: ctCart.version,
+      },
+      paymentId: ctPayment.id,
+    });
 
-  const pspReference = randomUUID();
-  await this.ctPaymentService.updatePayment({
-    id: ctPayment.id,
-    pspReference,
-    transaction: {
-      type: 'Authorization',
-      amount: ctPayment.amountPlanned,
-      interactionId: pspReference,
-      // If needed, add state: 'Success' etc.
-    },
-  });
+    // Step 6: Create PSP reference & add transaction
+    const pspReference = randomUUID();
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: ctPayment.id,
+      pspReference: pspReference,
+      transaction: {
+        type: 'Authorization',
+        amount: ctPayment.amountPlanned,
+        interactionId: pspReference,
+      },
+    });
 
-  return {
-    success: parsedData ?? 'empty-response',
-    novalnetResponse: responseData,
-  };
-}
+    // Final return
+    return {
+      success: parsedData ?? 'empty-response',
+      novalnetResponse: responseData,
+    };
+  }
 	
   /**
    * Create payment
