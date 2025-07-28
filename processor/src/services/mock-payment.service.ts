@@ -288,7 +288,9 @@ public async createPaymentt({ data }: { data: any }) {
     },
     body: JSON.stringify(novalnetPayload),
   });
-
+    const ctCart = await this.ctCartService.getCart({
+      id: getCartIdFromContext(),
+    });
 
 	let responseString = '';
 	try {
