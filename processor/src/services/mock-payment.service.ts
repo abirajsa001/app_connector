@@ -289,6 +289,60 @@ public async createPaymentt({ data }: { data: any }) {
     body: JSON.stringify(novalnetPayload),
   });
   const responseData = await novalnetResponse.json();
+
+	let responseString = '';
+	try {
+	  const responseData = await novalnetResponse.json(); 
+	  responseString = JSON.stringify(responseData);
+	} catch (err) {
+	  responseString = 'Unable to parse Novalnet response';
+	}
+	const parsedResponse = JSON.parse(responseString); // convert JSON string to object
+	const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid}
+	Test Order`;
+  
+      const ctPayment = await this.ctPaymentService.createPayment({
+      amountPlanned: await this.ctCartService.getPaymentAmount({
+        cart: ctCart,
+      }),
+      paymentMethodInfo: {
+        paymentInterface: getPaymentInterfaceFromContext() || 'mock',
+      },
+    paymentStatus: { 
+        interfaceCode:  transactiondetails,
+        interfaceText: responseString,
+      },
+      ...(ctCart.customerId && {
+        customer: {
+          typeId: 'customer',
+          id: ctCart.customerId,
+        },
+      }),
+      ...(!ctCart.customerId &&
+        ctCart.anonymousId && {
+          anonymousId: ctCart.anonymousId,
+        }),
+    });
+
+    await this.ctCartService.addPayment({
+      resource: {
+        id: ctCart.id,
+        version: ctCart.version,
+      },
+      paymentId: ctPayment.id,
+    });
+
+    const pspReference = randomUUID().toString();
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: ctPayment.id,
+      pspReference: pspReference,
+      transaction: {
+        type: 'Authorization',
+        amount: ctPayment.amountPlanned,
+        interactionId: pspReference,
+      },
+    });
+
   return {
     success: parsedData ?? 'empty-response',
     novalnetResponse: responseData,
