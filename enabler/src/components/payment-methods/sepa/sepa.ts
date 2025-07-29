@@ -46,20 +46,6 @@ export class Sepa extends BaseComponent {
   }
 
   async submit() {
-
-  document.addEventListener('DOMContentLoaded', () => {
-  const form = document.getElementById('purchaseOrderForm') as HTMLFormElement;
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const accountHolder = (document.getElementById('sepaForm-accountHolder') as HTMLInputElement)?.value.trim();
-      const iban = (document.getElementById('sepaForm-iban') as HTMLInputElement)?.value.trim();
-      console.log('Account Holder:', accountHolder);
-      console.log('IBAN:', iban);
-    });
-  }
- });
-
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
     console.log('submit-triggered');
