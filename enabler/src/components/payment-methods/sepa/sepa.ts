@@ -54,7 +54,7 @@ export class Sepa extends BaseComponent {
  
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
-          type: "SEPA",
+          type: "DIRECT_DEBIT_SEPA",
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
