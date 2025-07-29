@@ -51,7 +51,15 @@ export class Sepa extends BaseComponent {
     console.log('submit-triggered');
     try {
       // start original
- 
+     const accountHolderInput = document.getElementById('purchaseOrderForm-poNumber') as HTMLInputElement;
+    const ibanInput = document.getElementById('purchaseOrderForm-invoiceMemo') as HTMLInputElement;
+
+    const accountHolder = accountHolderInput?.value.trim();
+    const iban = ibanInput?.value.trim();
+
+    console.log('Account Holder:', accountHolder);
+    console.log('IBAN:', iban);
+     
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: "DIRECT_DEBIT_SEPA",
