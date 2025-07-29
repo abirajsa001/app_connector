@@ -98,7 +98,7 @@ private _getTemplate() {
       <form class="${styles.paymentForm}" id="purchaseOrderForm">
         <div class="inputContainer">
           <label class="inputLabel" for="purchaseOrderForm-poNumber">
-            PO Number <span aria-hidden="true"> *</span>
+            Acoount Holder <span aria-hidden="true"> *</span>
           </label>
           <input class="inputField" type="text" id="purchaseOrderForm-poNumber" name="poNumber" value="">
           <span class="hidden errorField">Invalid PO number</span>
@@ -106,7 +106,7 @@ private _getTemplate() {
 
         <div class="inputContainer">
           <label class="inputLabel" for="purchaseOrderForm-invoiceMemo">
-            Invoice memo
+            IBAN
           </label>
           <input class="inputField" type="text" id="purchaseOrderForm-invoiceMemo" name="invoiceMemo" value="">
           <span class="hidden errorField">Invalid Invoice memo</span>
