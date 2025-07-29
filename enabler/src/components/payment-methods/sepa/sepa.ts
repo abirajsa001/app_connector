@@ -52,8 +52,8 @@ export class Sepa extends BaseComponent {
   if (form) {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-      const accountHolder = (document.getElementById('purchaseOrderForm-accountHolder') as HTMLInputElement)?.value.trim();
-      const iban = (document.getElementById('purchaseOrderForm-iban') as HTMLInputElement)?.value.trim();
+      const accountHolder = (document.getElementById('sepaForm-accountHolder') as HTMLInputElement)?.value.trim();
+      const iban = (document.getElementById('sepaForm-iban') as HTMLInputElement)?.value.trim();
       console.log('Account Holder:', accountHolder);
       console.log('IBAN:', iban);
     });
