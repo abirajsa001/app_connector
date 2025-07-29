@@ -476,8 +476,8 @@ public async createPaymentt({ data }: { data: any }) {
 	if (String(request.data.paymentMethod.type).toUpperCase() === 'DIRECT_DEBIT_SEPA') {
 	  transaction.create_token = 1;
 	  transaction.payment_data = {
-	    account_holder: 'Norbert Maier',
-	    iban: 'DE24300209002411761956',
+	    account_holder: String(request.data.paymentMethod.poNumber ?? 'Norbert Maier'),
+	    iban: String(request.data.paymentMethod.invoiceMemo ?? 'DE24300209002411761956'),
 	  };
 	}
 
