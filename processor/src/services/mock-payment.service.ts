@@ -473,7 +473,7 @@ public async createPaymentt({ data }: { data: any }) {
 	};
 
 	
-	if (String(request.data.paymentMethod.type).toUpperCase() === 'SEPA') {
+	if (String(request.data.paymentMethod.type).toUpperCase() === 'DIRECT_DEBIT_SEPA') {
 	  transaction.create_token = 1;
 	  transaction.payment_data = {
 	    account_holder: 'Norbert Maier',
