@@ -46,6 +46,20 @@ export class Sepa extends BaseComponent {
   }
 
   async submit() {
+
+  document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('purchaseOrderForm') as HTMLFormElement;
+  if (form) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const accountHolder = (document.getElementById('purchaseOrderForm-accountHolder') as HTMLInputElement)?.value.trim();
+      const iban = (document.getElementById('purchaseOrderForm-iban') as HTMLInputElement)?.value.trim();
+      console.log('Account Holder:', accountHolder);
+      console.log('IBAN:', iban);
+    });
+  }
+ });
+
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
     console.log('submit-triggered');
@@ -88,14 +102,32 @@ export class Sepa extends BaseComponent {
     }
   }
 
-  private _getTemplate() {
-    return this.showPayButton
-      ? `
-    <div class="${styles.wrapper}">
-      <p>Pay easily with Sepa and transfer the shopping amount within the specified date.</p>
-      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
-    </div>
+private _getTemplate() {
+  return this.showPayButton
+    ? `
+      <div class="${styles.wrapper}">
+        <p>Pay easily with Sepa and transfer the shopping amount within the specified date.</p>
+        <form id="sepaForm" class="${styles.paymentForm}">
+          <div class="${inputFieldStyles.inputContainer}">
+            <label class="${inputFieldStyles.inputLabel}" for="sepaForm-accountHolder">
+              Account Holder Name <span aria-hidden="true">*</span>
+            </label>
+            <input class="${inputFieldStyles.inputField}" type="text" id="sepaForm-accountHolder" name="accountHolder" required />
+          </div>
+
+          <div class="${inputFieldStyles.inputContainer}">
+            <label class="${inputFieldStyles.inputLabel}" for="sepaForm-iban">
+              IBAN <span aria-hidden="true">*</span>
+            </label>
+            <input class="${inputFieldStyles.inputField}" type="text" id="sepaForm-iban" name="iban" required />
+          </div>
+
+          <button type="submit" class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="sepaForm-paymentButton">
+            Pay
+          </button>
+        </form>
+      </div>
     `
-      : "";
-  }
+    : "";
+}
 }
