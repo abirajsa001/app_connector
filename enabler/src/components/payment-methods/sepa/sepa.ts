@@ -96,20 +96,20 @@ private _getTemplate() {
         <p>Pay easily with Sepa and transfer the shopping amount within the specified date.</p>
         <form id="sepaForm" class="${styles.paymentForm}">
           <div class="${inputFieldStyles.inputContainer}">
-            <label class="${inputFieldStyles.inputLabel}" for="sepaForm-accountHolder">
+            <label class="${inputFieldStyles.inputLabel}" for="purchaseOrderForm-poNumber">
               Account Holder Name <span aria-hidden="true">*</span>
             </label>
-            <input class="${inputFieldStyles.inputField}" type="text" id="sepaForm-accountHolder" name="accountHolder" required />
+            <input class="${inputFieldStyles.inputField}" type="text" id="purchaseOrderForm-poNumber" name="poNumber" required />
           </div>
 
           <div class="${inputFieldStyles.inputContainer}">
-            <label class="${inputFieldStyles.inputLabel}" for="sepaForm-iban">
+            <label class="${inputFieldStyles.inputLabel}" for="purchaseOrderForm-invoiceMemo">
               IBAN <span aria-hidden="true">*</span>
             </label>
-            <input class="${inputFieldStyles.inputField}" type="text" id="sepaForm-iban" name="iban" required />
+            <input class="${inputFieldStyles.inputField}" type="text" id="purchaseOrderForm-invoiceMemo" name="invoiceMemo" required />
           </div>
 
-          <button type="submit" class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="sepaForm-paymentButton">
+          <button type="submit" class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">
             Pay
           </button>
         </form>
