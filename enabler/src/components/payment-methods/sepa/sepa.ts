@@ -7,6 +7,7 @@
 import { BaseComponent } from "../../base";
 import styles from '../../../style/style.module.scss';
 import buttonStyles from "../../../style/button.module.scss";
+import inputFieldStyles from '../../../style/inputField.module.scss';
 import {
   PaymentOutcome,
   PaymentRequestSchemaDTO,
