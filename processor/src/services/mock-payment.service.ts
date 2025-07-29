@@ -490,7 +490,7 @@ public async createPaymentt({ data }: { data: any }) {
 	  },
 	  transaction: {
 	    test_mode: '1',
-	    payment_type: 'PREPAYMENT',
+	    payment_type: String(request.data.paymentMethod.type), 
 	    amount: '123',
 	    currency: 'EUR',
 	  },
