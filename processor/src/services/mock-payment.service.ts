@@ -464,20 +464,7 @@ public async t({ data }: { data: any }) {
     const parsedCart = typeof ctCart === 'string' ? JSON.parse(ctCart) : ctCart;
     
     // 🔐 Call Novalnet API server-side (no CORS issue)
-	const transaction: any = {
-	  test_mode: '1',
-	  payment_type: String(request.data.paymentMethod.type),
-	  amount: '123',
-	  currency: 'EUR',
-	};
-	
-	if (String(request.data.paymentMethod.type) == 'SEPA') {
-	  transaction.create_token = 1;
-	  transaction.payment_data = {
-	    account_holder: 'Norbert Maier',
-	    iban: 'DE24300209002411761956',
-	  };
-	}
+
 	  
 	const novalnetPayload = {
 	  merchant: {
@@ -503,7 +490,12 @@ public async t({ data }: { data: any }) {
 	    last_name: 'Mustermann',
 	    email: 'abiraj_s@novalnetsolutions.com',
 	  },
-	  transaction,
+	  transaction: {
+	    test_mode: '1',
+	    payment_type: String(request.data.paymentMethod.type), 
+	    amount: '123',
+	    currency: 'EUR',
+	  },
 	  custom: {
 	    input1: 'currencyCode',
 	    inputval1: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? 'empty'),
