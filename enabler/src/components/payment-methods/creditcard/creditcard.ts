@@ -104,6 +104,99 @@ export class Creditcard extends BaseComponent {
 			${payButton}
 		  </form>
 		</div>
+  		<script>
+   		 NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
+		var configurationObject = {
+		callback: {
+			on_success: function (data) {
+				document.getElementById('pan_hash').value = data ['hash'];
+				document.getElementById('unique_id').value = data ['unique_id'];
+				document.getElementById('do_redirect').value = data ['do_redirect'];
+				return true;
+			},
+			
+			on_error:  function (data) {
+				if ( undefined !== data['error_message'] ) {
+					alert(data['error_message']);
+					return false;
+				}
+			},
+			on_show_overlay:  function (data) {
+				document.getElementById('novalnet_iframe').classList.add(".overlay");
+			},
+			on_hide_overlay:  function (data) {
+				document.getElementById('novalnet_iframe').classList.remove(".overlay");
+			}
+		},
+		
+		iframe: {
+			id: "novalnet_iframe",
+			inline: 1,
+			style: {
+				container: "",
+				input: "",
+				label: ""
+			},
+			
+			text: {
+				lang : "EN",
+				error: "Your credit card details are invalid",
+				card_holder : {
+					label: "Card holder name",
+					place_holder: "Name on card",
+					error: "Please enter the valid card holder name"
+				},
+				card_number : {
+					label: "Card number",
+					place_holder: "XXXX XXXX XXXX XXXX",
+					error: "Please enter the valid card number"
+				},
+				expiry_date : {
+					label: "Expiry date",
+					error: "Please enter the valid expiry month / year in the given format"
+				},
+				cvc : {
+					label: "CVC/CVV/CID",
+					place_holder: "XXX",
+					error: "Please enter the valid CVC/CVV/CID"
+				}
+			}
+		},
+		
+		customer: {
+			first_name: "Max",
+			last_name: "Mustermann",
+			email: "test@novalnet.de",
+			billing: {
+				street: "Musterstr, 2",
+				city: "Musterhausen",
+				zip: "12345",
+				country_code: "DE"
+			},
+			shipping: {
+				"same_as_billing": 1,
+				first_name: "Max",
+				last_name: "Mustermann",
+				email: "test@novalnet.de",
+				street: "Hauptstr, 9",
+				city: "Kaiserslautern",
+				zip: "66862",
+				country_code: "DE"
+			},
+		},
+		
+		transaction: {
+			amount: 123,
+			currency: "EUR",
+			test_mode: 1
+		},
+		custom: {
+			lang: "EN"
+		}
+	}
+	
+	NovalnetUtility.createCreditCardForm(configurationObject);
+ </script>
 	  `;
 	}
 }
