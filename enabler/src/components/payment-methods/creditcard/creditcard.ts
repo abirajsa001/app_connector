@@ -71,28 +71,23 @@ export class Creditcard extends BaseComponent {
     }
   }
 
-  private _getTemplate() {
-    const payButtonHtml = this.showPayButton
-      ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
-      : "";
+	private _getTemplate() {
+	  const payButton = this.showPayButton
+		? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
+		  : "";
 
-    return `
-      <script 
-        src="https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js" 
-        integrity="sha384-wRpaQDgV62dqZ/HthwD84Gs9Mgxg5u5PrND0zS9L5rjOdWE8nTDLq+fdsCxbnj6K" 
-        crossorigin="anonymous">
-      </script>
-
-      <div class="${styles.wrapper}">
-       <form class="${styles.paymentForm}" id="purchaseOrderForm">
-          <iframe id="novalnet_iframe" frameborder="0" scrolling="no" style="width: 100%; height: auto;"></iframe>
-          <input type="hidden" id="pan_hash" name="pan_hash" />
-          <input type="hidden" id="unique_id" name="unique_id" />
-          <input type="hidden" id="do_redirect" name="do_redirect" />
-          
-          ${payButtonHtml}
-        </form>
-      </div>
-    `;
-  }
+	  return `
+	   <script src="https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js" integrity="sha384-wRpaQDgV62dqZ/HthwD84Gs9Mgxg5u5PrND0zS9L5rjOdWE8nTDLq+fdsCxbnj6K"  crossorigin="anonymous"></script>
+		<div class="${styles.wrapper}">
+		  <form class="${styles.paymentForm}" id="purchaseOrderForm">
+			<iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
+			<input type="hidden" id="pan_hash" name="pan_hash"/>
+			<input type="hidden" id="unique_id" name="unique_id"/>
+			<input type="hidden" id="do_redirect" name="do_redirect"/>
+			<input type="submit" name="submit" id="submit" value="submit">
+			${payButton}
+		  </form>
+		</div>
+	  `;
+	}
 }
