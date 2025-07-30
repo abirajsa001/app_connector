@@ -78,7 +78,7 @@ export class MockPaymentEnabler implements PaymentEnabler {
       prepayment: PrepaymentBuilder,
       ideal: IdealBuilder,
       sepa: SepaBuilder,
-      creditcard: CreditBuilder,
+      creditcard: CreditcardBuilder,
     };
 
     if (!Object.keys(supportedMethods).includes(type)) {
