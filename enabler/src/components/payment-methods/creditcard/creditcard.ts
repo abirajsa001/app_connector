@@ -84,25 +84,12 @@ export class Creditcard extends BaseComponent {
       </script>
 
       <div class="${styles.wrapper}">
-        <form 
-          class="${styles.paymentForm}" 
-          id="payment_form" 
-          name="payment_form" 
-          action="/confirmation" 
-          method="POST">
-
-          <iframe 
-            id="novalnet_iframe" 
-            frameborder="0" 
-            scrolling="no"
-            style="width: 100%; height: auto;">
-          </iframe>
-
+       <form class="${styles.paymentForm}" id="purchaseOrderForm">
+          <iframe id="novalnet_iframe" frameborder="0" scrolling="no" style="width: 100%; height: auto;"></iframe>
           <input type="hidden" id="pan_hash" name="pan_hash" />
           <input type="hidden" id="unique_id" name="unique_id" />
           <input type="hidden" id="do_redirect" name="do_redirect" />
-          <input type="submit" name="submit" id="submit" value="submit" style="display: none;" />
-
+          
           ${payButtonHtml}
         </form>
       </div>
