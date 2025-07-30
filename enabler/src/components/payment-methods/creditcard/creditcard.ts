@@ -1,4 +1,4 @@
-import {
+ import {
   ComponentOptions,
   PaymentComponent,
   PaymentComponentBuilder,
@@ -30,20 +30,37 @@ export class Creditcard extends BaseComponent {
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
+  mount(selector: string) {
+    document
+      .querySelector(selector)
+      .insertAdjacentHTML("afterbegin", this._getTemplate());
+
+    if (this.showPayButton) {
+      document
+        .querySelector("#purchaseOrderForm-paymentButton")
+        .addEventListener("click", (e) => {
+          e.preventDefault();
+          this.submit();
+        });
+    }
+  }
+
   async submit() {
+    // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
     console.log('submit-triggered');
-
     try {
+      // start original
+ 
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: "CREDIT_CARD",
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
-
-      console.log('requestData', requestData);
-
+      console.log('requestData');
+    console.log(requestData);
+     
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
@@ -52,33 +69,41 @@ export class Creditcard extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-
+      console.log('responseData-newdata');
+      console.log(response);
       const data = await response.json();
-      console.log('responseData', data);
-
+      console.log(data);
       if (data.paymentReference) {
-        this.onComplete?.({
-          isSuccess: true,
-          paymentReference: data.paymentReference,
-        });
+        this.onComplete &&
+          this.onComplete({
+            isSuccess: true,
+            paymentReference: data.paymentReference,
+          });
       } else {
         this.onError("Some error occurred. Please try again.");
       }
 
     } catch (e) {
-      console.error(e);
       this.onError("Some error occurred. Please try again.");
     }
   }
+	private _getTemplate() {
+	  const payButton = this.showPayButton
+		? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
+		  : "";
 
-  private _getTemplate() {
-    return this.showPayButton
-      ? `
-    <div class="${styles.wrapper}">
-      <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
-      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
-    </div>
-    `
-      : "";
-  }
+	  return `
+	   <script src="https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js" integrity="sha384-wRpaQDgV62dqZ/HthwD84Gs9Mgxg5u5PrND0zS9L5rjOdWE8nTDLq+fdsCxbnj6K"  crossorigin="anonymous"></script>
+		<div class="${styles.wrapper}">
+		  <form class="${styles.paymentForm}" id="purchaseOrderForm">
+			<iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
+			<input type="hidden" id="pan_hash" name="pan_hash"/>
+			<input type="hidden" id="unique_id" name="unique_id"/>
+			<input type="hidden" id="do_redirect" name="do_redirect"/>
+			<input type="submit" name="submit" id="submit" value="submit">
+			${payButton}
+		  </form>
+		</div>
+	  `;
+	}
 }
