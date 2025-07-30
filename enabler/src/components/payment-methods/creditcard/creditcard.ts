@@ -79,10 +79,6 @@ private _getTemplate() {
   return `
     <div class="${styles.wrapper}">
       <form class="${styles.paymentForm}" id="purchaseOrderForm">
-      
-        <input type="hidden" id="pan_hash" name="pan_hash" />
-        <input type="hidden" id="unique_id" name="unique_id" />
-        <input type="hidden" id="do_redirect" name="do_redirect" />
 
         ${payButton}
       </form>
