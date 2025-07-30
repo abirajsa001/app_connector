@@ -79,7 +79,8 @@ private _getTemplate() {
   return `
     <div class="${styles.wrapper}">
       <form class="${styles.paymentForm}" id="purchaseOrderForm">
-
+        <div class="inputContainer">
+        </div>
         ${payButton}
       </form>
     </div>
