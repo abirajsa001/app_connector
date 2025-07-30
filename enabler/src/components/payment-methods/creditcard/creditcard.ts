@@ -71,19 +71,14 @@ export class Creditcard extends BaseComponent {
     }
   }
 
-private _getTemplate() {
-  const payButton = this.showPayButton
-    ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
-      : "";
-
-  return `
+  private _getTemplate() {
+    return this.showPayButton
+      ? `
     <div class="${styles.wrapper}">
-      <form class="${styles.paymentForm}" id="purchaseOrderForm">
-        <div class="inputContainer">
-        </div>
-        ${payButton}
-      </form>
+      <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
+      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
     </div>
-  `;
-}
+    `
+      : "";
+  }
 }
