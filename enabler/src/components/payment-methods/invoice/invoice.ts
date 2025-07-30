@@ -53,7 +53,7 @@ export class Invoice extends BaseComponent {
       // start original
       const requestDatas: PaymentRequestSchemaDTO = {
         paymentMethod: {
-          type: this.paymentMethod,
+          type: 'INVOICE',
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
@@ -72,7 +72,7 @@ export class Invoice extends BaseComponent {
       
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
-          type: this.paymentMethod,
+          type: 'INVOICE',
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
