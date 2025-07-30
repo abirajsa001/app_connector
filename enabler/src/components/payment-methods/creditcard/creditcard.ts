@@ -88,14 +88,22 @@ export class Creditcard extends BaseComponent {
     }
   }
 
-  private _getTemplate() {
-    return this.showPayButton
-      ? `
-    <div class="${styles.wrapper}">
-      <p>Pay easily with Creditcard and transfer the shopping amount within the specified date.</p>
-      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
-    </div>
-    `
-      : "";
-  }
+	private _getTemplate() {
+	  const payButton = this.showPayButton
+		? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
+		  : "";
+
+	  return `
+		<div class="${styles.wrapper}">
+		  <form class="${styles.paymentForm}" id="payment_form" name="payment_form" action="/confirmation" method="POST">
+			<iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
+			<input type="hidden" id="pan_hash" name="pan_hash"/>
+			<input type="hidden" id="unique_id" name="unique_id"/>
+			<input type="hidden" id="do_redirect" name="do_redirect"/>
+			<input type="submit" name="submit" id="submit" value="submit">
+			${payButton}
+		  </form>
+		</div>
+	  `;
+	}
 }
