@@ -66,7 +66,7 @@ export class Creditcard extends BaseComponent {
  
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
-          type: "CREDIT_CARD",
+          type: "CREDITCARD",
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
