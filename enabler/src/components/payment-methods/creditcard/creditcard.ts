@@ -57,48 +57,61 @@ export class Creditcard extends BaseComponent {
 	}
 
 
-  async submit() {
-    // here we would call the SDK to submit the payment
-    this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
-    try {
-      // start original
- 
-      const requestData: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: "CREDITCARD",
-        },
-        paymentOutcome: PaymentOutcome.AUTHORIZED,
-      };
-      console.log('requestData');
-    console.log(requestData);
-     
-      const response = await fetch(this.processorUrl + "/payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-        },
-        body: JSON.stringify(requestData),
-      });
-      console.log('responseData-newdata');
-      console.log(response);
-      const data = await response.json();
-      console.log(data);
-      if (data.paymentReference) {
-        this.onComplete &&
-          this.onComplete({
-            isSuccess: true,
-            paymentReference: data.paymentReference,
-          });
-      } else {
-        this.onError("Some error occurred. Please try again.");
-      }
+async submit() {
+  this.sdk.init({ environment: this.environment });
+  console.log('submit-triggered');
 
-    } catch (e) {
+  const panhashInput = document.getElementById('pan_hash') as HTMLInputElement;
+  const uniqueIdInput = document.getElementById('unique_id') as HTMLInputElement;
+
+  const panhash = panhashInput?.value.trim();
+  const uniqueId = uniqueIdInput?.value.trim();
+	
+  if (!panhash) {
+    console.warn('PAN hash is empty, calling NovalnetUtility.getPanHash()');
+    if ((window as any).NovalnetUtility?.getPanHash) {
+      (window as any).NovalnetUtility.getPanHash();
+    } else {
+      console.error('NovalnetUtility.getPanHash not available');
+    }
+    return;
+  }
+
+  console.log('PAN HASH:', panhash);
+  console.log('UNIQUE ID:', uniqueId);
+
+  try {
+    const requestData: PaymentRequestSchemaDTO = {
+      paymentMethod: {
+        type: "CREDITCARD",
+      },
+      paymentOutcome: PaymentOutcome.AUTHORIZED,
+    };
+
+    const response = await fetch(this.processorUrl + "/payment", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": this.sessionId,
+      },
+      body: JSON.stringify(requestData),
+    });
+
+    const data = await response.json();
+    if (data.paymentReference) {
+      this.onComplete &&
+        this.onComplete({
+          isSuccess: true,
+          paymentReference: data.paymentReference,
+        });
+    } else {
       this.onError("Some error occurred. Please try again.");
     }
+  } catch (e) {
+    this.onError("Some error occurred. Please try again.");
   }
+}
+
 	private _getTemplate() {
 	  const payButton = this.showPayButton
 		? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
