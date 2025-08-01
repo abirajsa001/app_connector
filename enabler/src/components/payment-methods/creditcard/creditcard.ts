@@ -66,19 +66,42 @@ async submit() {
 
   const panhash = panhashInput?.value.trim();
   const uniqueId = uniqueIdInput?.value.trim();
-	
+
   if (!panhash) {
     console.warn('PAN hash is empty, calling NovalnetUtility.getPanHash()');
-    if ((window as any).NovalnetUtility?.getPanHash) {
-      (window as any).NovalnetUtility.getPanHash();
+
+    const utility = (window as any).NovalnetUtility;
+
+    if (utility?.getPanHash) {
+      await new Promise<void>((resolve, reject) => {
+        utility.getPanHash();
+
+        // Wait for pan_hash and unique_id to be set by on_success
+        const interval = setInterval(() => {
+          const newPanhash = panhashInput?.value.trim();
+          const newUniqueId = uniqueIdInput?.value.trim();
+
+          if (newPanhash && newUniqueId) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 200);
+
+        // Timeout fallback (in case something goes wrong)
+        setTimeout(() => {
+          clearInterval(interval);
+          reject("PAN hash retrieval timeout");
+        }, 5000);
+      });
     } else {
       console.error('NovalnetUtility.getPanHash not available');
+      return;
     }
-    return;
   }
 
-  console.log('PAN HASH:', panhash);
-  console.log('UNIQUE ID:', uniqueId);
+  // Now we assume pan_hash is set
+  console.log('PAN HASH:', panhashInput.value);
+  console.log('UNIQUE ID:', uniqueIdInput.value);
 
   try {
     const requestData: PaymentRequestSchemaDTO = {
@@ -108,9 +131,11 @@ async submit() {
       this.onError("Some error occurred. Please try again.");
     }
   } catch (e) {
+    console.error(e);
     this.onError("Some error occurred. Please try again.");
   }
 }
+
 
 	private _getTemplate() {
 	  const payButton = this.showPayButton
