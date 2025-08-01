@@ -49,17 +49,19 @@ export class Creditcard extends BaseComponent {
       });
     }
 
-    const form = document.getElementById('purchaseOrderForm');
-    if (form) {
-      form.onsubmit = async (e) => {
-        const panhashInput = document.getElementById('pan_hash') as HTMLInputElement;
-        if (panhashInput && panhashInput.value === '') {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          await (window as any).NovalnetUtility?.getPanHash();
-        }
-      };
+form.addEventListener('submit', async (e) => {
+  const panhashInput = document.getElementById('pan_hash') as HTMLInputElement;
+  if (panhashInput && panhashInput.value === '') {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    try {
+      await (window as any).NovalnetUtility?.getPanHash();
+    } catch (err) {
+      console.error("getPanHash failed", err);
     }
+  }
+});
+
 
     this._loadNovalnetScriptOnce()
       .then(() => this._initNovalnetCreditCardForm(payButton))
