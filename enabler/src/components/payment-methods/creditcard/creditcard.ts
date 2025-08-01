@@ -55,6 +55,7 @@ export class Creditcard extends BaseComponent {
         if (panhashInput?.value === '') {
           e.preventDefault();
           e.stopImmediatePropagation();
+          NovalnetUtility.getPanHash();
         }
       };
     }
@@ -66,7 +67,7 @@ export class Creditcard extends BaseComponent {
 
   async submit() {
     this.sdk.init({ environment: this.environment });
-
+    NovalnetUtility.getPanHash();
     const panhashInput = document.getElementById('pan_hash') as HTMLInputElement;
     const uniqueIdInput = document.getElementById('unique_id') as HTMLInputElement;
 
