@@ -73,11 +73,6 @@ export class Creditcard extends BaseComponent {
     const panhash = panhashInput?.value.trim();
     const uniqueId = uniqueIdInput?.value.trim();
 
-    if (!panhash || !uniqueId) {
-      this.onError("Card details are not yet processed. Please wait.");
-      return;
-    }
-
     console.log('PAN HASH:', panhash);
     console.log('UNIQUE ID:', uniqueId);
 
