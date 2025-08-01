@@ -39,16 +39,13 @@ export class Creditcard extends BaseComponent {
 
   mount(selector: string): void {
     const root = document.querySelector(selector);
-    if (!root) {
-      console.error('Mount selector not found:', selector);
-      return;
-    }
-
-    root.insertAdjacentHTML('afterbegin', this._getTemplate());
+    if (!root) return;
+    root.innerHTML = this._getTemplate();
 
     const payButton = document.querySelector(
       '#purchaseOrderForm-paymentButton'
     ) as HTMLButtonElement | null;
+
     if (this.showPayButton && payButton) {
       payButton.disabled = true;
       payButton.addEventListener('click', (e) => {
@@ -59,43 +56,34 @@ export class Creditcard extends BaseComponent {
 
     this._loadNovalnetScriptOnce()
       .then(() => this._initNovalnetCreditCardForm(payButton))
-      .catch((err) => console.error('Failed to load Novalnet SDK:', err));
+      .catch(() => {});
   }
 
   async submit(): Promise<void> {
-    this.sdk.init({ environment: this.environment });
-
     const panhashInput = document.getElementById('pan_hash') as HTMLInputElement;
     const uniqueIdInput = document.getElementById('unique_id') as HTMLInputElement;
 
-    const panhash = panhashInput?.value.trim();
-    const uniqueId = uniqueIdInput?.value.trim();
-
-    if (!panhash) {
+    if (!panhashInput?.value) {
       const utility = window.NovalnetUtility;
       if (utility?.getPanHash) {
         try {
           await new Promise<void>((resolve, reject) => {
             utility.getPanHash();
-
-            const interval = setInterval(() => {
+            const check = setInterval(() => {
               if (panhashInput.value && uniqueIdInput.value) {
-                clearInterval(interval);
+                clearInterval(check);
                 resolve();
               }
             }, 200);
-
             setTimeout(() => {
-              clearInterval(interval);
-              reject('PAN hash retrieval timeout');
+              clearInterval(check);
+              reject('Timeout');
             }, 5000);
           });
-        } catch (error) {
-          console.error(error);
+        } catch {
           return;
         }
       } else {
-        console.error('NovalnetUtility.getPanHash not available');
         return;
       }
     }
@@ -122,11 +110,10 @@ export class Creditcard extends BaseComponent {
           paymentReference: data.paymentReference,
         });
       } else {
-        this.onError('Some error occurred. Please try again.');
+        this.onError?.('Error during payment processing');
       }
-    } catch (error) {
-      console.error(error);
-      this.onError('Some error occurred. Please try again.');
+    } catch {
+      this.onError?.('Error during payment processing');
     }
   }
 
@@ -174,14 +161,11 @@ export class Creditcard extends BaseComponent {
 
   private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null): void {
     const NovalnetUtility = window.NovalnetUtility;
-    if (!NovalnetUtility) {
-      console.warn('NovalnetUtility not available.');
-      return;
-    }
+    if (!NovalnetUtility) return;
 
     NovalnetUtility.setClientKey('88fcbbceb1948c8ae106c3fe2ccffc12');
 
-    const configurationObject = {
+    const config = {
       callback: {
         on_success: (data: any) => {
           (document.getElementById('pan_hash') as HTMLInputElement).value = data.hash;
@@ -193,12 +177,6 @@ export class Creditcard extends BaseComponent {
           if (data?.error_message) alert(data.error_message);
           if (payButton) payButton.disabled = true;
         },
-        on_show_overlay: () => {
-          document.getElementById('novalnet_iframe')?.classList.add('overlay');
-        },
-        on_hide_overlay: () => {
-          document.getElementById('novalnet_iframe')?.classList.remove('overlay');
-        },
       },
       iframe: {
         id: 'novalnet_iframe',
@@ -206,25 +184,25 @@ export class Creditcard extends BaseComponent {
         style: { container: '', input: '', label: '' },
         text: {
           lang: 'EN',
-          error: 'Your credit card details are invalid',
+          error: 'Invalid credit card details',
           card_holder: {
             label: 'Card holder name',
             place_holder: 'Name on card',
-            error: 'Please enter the valid card holder name',
+            error: 'Enter valid name',
           },
           card_number: {
             label: 'Card number',
             place_holder: 'XXXX XXXX XXXX XXXX',
-            error: 'Please enter the valid card number',
+            error: 'Enter valid card number',
           },
           expiry_date: {
             label: 'Expiry date',
-            error: 'Please enter the valid expiry month / year in the given format',
+            error: 'Enter valid expiry date',
           },
           cvc: {
             label: 'CVC/CVV/CID',
             place_holder: 'XXX',
-            error: 'Please enter the valid CVC/CVV/CID',
+            error: 'Enter valid code',
           },
         },
       },
@@ -259,6 +237,6 @@ export class Creditcard extends BaseComponent {
       },
     };
 
-    NovalnetUtility.createCreditCardForm(configurationObject);
+    NovalnetUtility.createCreditCardForm(config);
   }
 }
