@@ -55,7 +55,6 @@ export class Creditcard extends BaseComponent {
         if (panhashInput?.value === '') {
           e.preventDefault();
           e.stopImmediatePropagation();
-          NovalnetUtility.getPanHash();
         }
       };
     }
