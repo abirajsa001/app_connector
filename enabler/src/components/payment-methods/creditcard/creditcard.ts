@@ -3,7 +3,7 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-  BaseOptions
+  BaseOptions,
 } from '../../../payment-enabler/payment-enabler';
 import { BaseComponent } from '../../base';
 import styles from '../../../style/style.module.scss';
@@ -46,7 +46,9 @@ export class Creditcard extends BaseComponent {
 
     root.insertAdjacentHTML('afterbegin', this._getTemplate());
 
-    const payButton = document.querySelector('#purchaseOrderForm-paymentButton') as HTMLButtonElement | null;
+    const payButton = document.querySelector(
+      '#purchaseOrderForm-paymentButton'
+    ) as HTMLButtonElement | null;
     if (this.showPayButton && payButton) {
       payButton.disabled = true;
       payButton.addEventListener('click', (e) => {
@@ -62,6 +64,7 @@ export class Creditcard extends BaseComponent {
 
   async submit(): Promise<void> {
     this.sdk.init({ environment: this.environment });
+
     const panhashInput = document.getElementById('pan_hash') as HTMLInputElement;
     const uniqueIdInput = document.getElementById('unique_id') as HTMLInputElement;
 
