@@ -49,18 +49,6 @@ export class Creditcard extends BaseComponent {
       });
     }
 
-    const form = document.getElementById('purchaseOrderForm');
-    if (form) {
-      form.onsubmit = async (e) => {
-        const panhashInput = document.getElementById('pan_hash') as HTMLInputElement;
-        if (panhashInput && panhashInput.value === '') {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          await (window as any).NovalnetUtility?.getPanHash();
-        }
-      };
-    }
-
     this._loadNovalnetScriptOnce()
       .then(() => this._initNovalnetCreditCardForm(payButton))
       .catch((err) => console.error("Failed to load Novalnet SDK:", err));
@@ -121,13 +109,11 @@ export class Creditcard extends BaseComponent {
 
     return `
       <div class="${styles.wrapper}">
-        <form class="${styles.paymentForm}" id="purchaseOrderForm">
           <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
           <input type="hidden" id="pan_hash" name="pan_hash"/>
           <input type="hidden" id="unique_id" name="unique_id"/>
           <input type="hidden" id="do_redirect" name="do_redirect"/>
           ${payButton}
-        </form>
       </div>
     `;
   }
@@ -251,6 +237,17 @@ export class Creditcard extends BaseComponent {
       },
     };
     NovalnetUtility.createCreditCardForm(configurationObject);
+    const reviewOrderButton = document.querySelector('[data-ctc-selector="confirmMethod"]');
+    console.log('reviewOrderButton', reviewOrderButton);
+    if (reviewOrderButton) {
+      console.log('reviewOrderButton-if', reviewOrderButton);
+      reviewOrderButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        await (window as any).NovalnetUtility?.getPanHash();
+      });
+    } else {
+      console.warn('Review order button not found.');
+    }
     console.log('configurationObject', configurationObject);
   }
 }
