@@ -485,9 +485,12 @@ public async createPaymentt({ data }: { data: any }) {
 	}
 
 	if (String(request.data.paymentMethod.type).toUpperCase() == 'CREDITCARD') {
+	  const processorURL = Context.getProcessorUrlFromContext();	
+	  transaction.return_url = `${processorURL}/success`;
+          transaction.error_return_url = `${processorURL}/payments`;
 	  transaction.payment_data = {
-		pan_hash: String(request.data.paymentMethod.pan_hash ?? ''),
-		unique_id: String(request.data.paymentMethod.unique_id ?? ''),
+		pan_hash: String(request.data.paymentMethod.panHash ?? ''),
+		unique_id: String(request.data.paymentMethod.uniqueId ?? ''),
 	  };
 	}
 	  
