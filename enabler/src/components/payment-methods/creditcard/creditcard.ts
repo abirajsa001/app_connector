@@ -30,31 +30,43 @@ export class Creditcard extends BaseComponent {
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
-  mount(selector: string) {
-    const root = document.querySelector(selector);
-    if (!root) {
-      console.error("Mount selector not found:", selector);
-      return;
-    }
-
-    root.insertAdjacentHTML("afterbegin", this._getTemplate());
-
-    const payButton = document.querySelector("#purchaseOrderForm-paymentButton") as HTMLButtonElement | null;
-    if (this.showPayButton && payButton) {
-      payButton.disabled = true;
-      payButton.addEventListener("click", async (e) => {
-        e.preventDefault();
-        await (window as any).NovalnetUtility?.getPanHash();
-        this.submit();
-      });
-    }
-
-    this._loadNovalnetScriptOnce()
-      .then(() => this._initNovalnetCreditCardForm(payButton))
-      .catch((err) => console.error("Failed to load Novalnet SDK:", err));
-
-
+mount(selector: string) {
+  const root = document.querySelector(selector);
+  if (!root) {
+    console.error("Mount selector not found:", selector);
+    return;
   }
+
+  root.insertAdjacentHTML("afterbegin", this._getTemplate());
+
+  const payButton = document.querySelector("#purchaseOrderForm-paymentButton") as HTMLButtonElement | null;
+  if (this.showPayButton && payButton) {
+    payButton.disabled = true;
+    payButton.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        const result = await (window as any).NovalnetUtility?.getPanHash();
+        console.log("getPanHash result:", result);
+
+        const panhash = (document.getElementById('pan_hash') as HTMLInputElement)?.value;
+        if (!panhash) {
+          alert("PAN hash generation failed. Please check card details.");
+          return;
+        }
+
+        this.submit(); // Only call submit after successful pan_hash
+      } catch (err) {
+        console.error("Error getting pan hash:", err);
+        alert("Payment failed due to technical error. Please try again.");
+      }
+    });
+  }
+
+  this._loadNovalnetScriptOnce()
+    .then(() => this._initNovalnetCreditCardForm(payButton))
+    .catch((err) => console.error("Failed to load Novalnet SDK:", err));
+}
+
 
   async submit() {
     this.sdk.init({ environment: this.environment });
@@ -146,109 +158,98 @@ export class Creditcard extends BaseComponent {
     await loadPromise;
   }
 
-  private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
-    const NovalnetUtility = (window as any).NovalnetUtility;
-    if (!NovalnetUtility) {
-      console.warn("NovalnetUtility not available.");
-      return;
-    }
+private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
+  const NovalnetUtility = (window as any).NovalnetUtility;
+  if (!NovalnetUtility) {
+    console.warn("NovalnetUtility not available.");
+    return;
+  }
 
-    NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
+  NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
 
-    const configurationObject = {
-      callback: {
-        on_success: (data: any) => {
-          (document.getElementById("pan_hash") as HTMLInputElement).value = data["hash"];
-          (document.getElementById("unique_id") as HTMLInputElement).value = data["unique_id"];
-          (document.getElementById("do_redirect") as HTMLInputElement).value = data["do_redirect"];
-          if (payButton) payButton.disabled = false;
-          return true;
+  const config = {
+    callback: {
+      on_success: (data: any) => {
+        console.log("on_success:", data);
+        (document.getElementById("pan_hash") as HTMLInputElement).value = data["hash"];
+        (document.getElementById("unique_id") as HTMLInputElement).value = data["unique_id"];
+        (document.getElementById("do_redirect") as HTMLInputElement).value = data["do_redirect"];
+        if (payButton) payButton.disabled = false;
+        return true;
+      },
+      on_error: (data: any) => {
+        console.error("on_error:", data);
+        alert(data?.error_message || "Card error");
+        if (payButton) payButton.disabled = true;
+        return false;
+      },
+      on_show_overlay: () => {
+        document.getElementById("novalnet_iframe")?.classList.add("overlay");
+      },
+      on_hide_overlay: () => {
+        document.getElementById("novalnet_iframe")?.classList.remove("overlay");
+      },
+    },
+    iframe: {
+      id: "novalnet_iframe",
+      inline: 1,
+      style: { container: "", input: "", label: "" },
+      text: {
+        lang: "EN",
+        error: "Your credit card details are invalid",
+        card_holder: {
+          label: "Card holder name",
+          place_holder: "Name on card",
+          error: "Please enter the valid card holder name",
         },
-        on_error: (data: any) => {
-          if (data?.error_message) {
-            alert(data.error_message);
-          }
-          if (payButton) payButton.disabled = true;
-          return false;
+        card_number: {
+          label: "Card number",
+          place_holder: "XXXX XXXX XXXX XXXX",
+          error: "Please enter the valid card number",
         },
-        on_show_overlay: () => {
-          document.getElementById("novalnet_iframe")?.classList.add("overlay");
+        expiry_date: {
+          label: "Expiry date",
+          error: "Please enter the valid expiry month / year in the given format",
         },
-        on_hide_overlay: () => {
-          document.getElementById("novalnet_iframe")?.classList.remove("overlay");
+        cvc: {
+          label: "CVC/CVV/CID",
+          place_holder: "XXX",
+          error: "Please enter the valid CVC/CVV/CID",
         },
       },
-      iframe: {
-        id: "novalnet_iframe",
-        inline: 1,
-        style: { container: "", input: "", label: "" },
-        text: {
-          lang: "EN",
-          error: "Your credit card details are invalid",
-          card_holder: {
-            label: "Card holder name",
-            place_holder: "Name on card",
-            error: "Please enter the valid card holder name",
-          },
-          card_number: {
-            label: "Card number",
-            place_holder: "XXXX XXXX XXXX XXXX",
-            error: "Please enter the valid card number",
-          },
-          expiry_date: {
-            label: "Expiry date",
-            error: "Please enter the valid expiry month / year in the given format",
-          },
-          cvc: {
-            label: "CVC/CVV/CID",
-            place_holder: "XXX",
-            error: "Please enter the valid CVC/CVV/CID",
-          },
-        },
+    },
+    customer: {
+      first_name: "Max",
+      last_name: "Mustermann",
+      email: "test@novalnet.de",
+      billing: {
+        street: "Musterstr, 2",
+        city: "Musterhausen",
+        zip: "12345",
+        country_code: "DE",
       },
-      customer: {
+      shipping: {
+        same_as_billing: 1,
         first_name: "Max",
         last_name: "Mustermann",
         email: "test@novalnet.de",
-        billing: {
-          street: "Musterstr, 2",
-          city: "Musterhausen",
-          zip: "12345",
-          country_code: "DE",
-        },
-        shipping: {
-          same_as_billing: 1,
-          first_name: "Max",
-          last_name: "Mustermann",
-          email: "test@novalnet.de",
-          street: "Hauptstr, 9",
-          city: "Kaiserslautern",
-          zip: "66862",
-          country_code: "DE",
-        },
+        street: "Hauptstr, 9",
+        city: "Kaiserslautern",
+        zip: "66862",
+        country_code: "DE",
       },
-      transaction: {
-        amount: 123,
-        currency: "EUR",
-        test_mode: 1,
-      },
-      custom: {
-        lang: "EN",
-      },
-    };
-    NovalnetUtility.createCreditCardForm(configurationObject);
-    const reviewOrderButton = document.querySelector('[data-ctc-selector="confirmMethod"]');
-    console.log('reviewOrderButton', reviewOrderButton);
-    
-    if (reviewOrderButton) {
-      console.log('reviewOrderButton-if', reviewOrderButton);
-    
-      reviewOrderButton.addEventListener('click', async (event) => {
-        await this.NovalnetUtility?.getPanHash();
-      });
-    } else {
-      console.warn('Review order button not found.');
-    }
-    console.log('configurationObject', configurationObject);
-  }
+    },
+    transaction: {
+      amount: 123,
+      currency: "EUR",
+      test_mode: 1,
+    },
+    custom: {
+      lang: "EN",
+    },
+  };
+
+  NovalnetUtility.createCreditCardForm(config);
+}
+
 }
