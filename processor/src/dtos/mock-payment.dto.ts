@@ -25,6 +25,9 @@ export const PaymentRequestSchema = Type.Object({
     type: Type.String(),
     poNumber: Type.Optional(Type.String()),
     invoiceMemo: Type.Optional(Type.String()),
+    panHash: Type.Optional(Type.String()),
+    uniqueId: Type.Optional(Type.String()),
+    doRedirect: Type.Optional(Type.String()),
   }),
   paymentOutcome: PaymentOutcomeSchema,
 });
