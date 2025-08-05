@@ -83,10 +83,16 @@ export class Creditcard extends BaseComponent {
     try {
       const panhashInput = document.getElementById("pan_hash") as HTMLInputElement;
       const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement;
-
+      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement;
+      
       const panhash = panhashInput?.value.trim();
       const uniqueId = uniqueIdInput?.value.trim();
+      const doRedirect = doRedirectInput?.value.trim();
 
+      console.log("PAN HASH:", panhash);
+      console.log("UNIQUE ID:", uniqueId);
+      console.log("DO REDIRECT:", doRedirect);
+      
       if (!panhash || !uniqueId) {
         this.onError("Credit card information is missing or invalid.");
         return;
@@ -95,6 +101,9 @@ export class Creditcard extends BaseComponent {
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: "CREDITCARD",
+          panHash: panhash,
+          uniqueId: uniqueId,
+          doRedirect: doRedirect,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
