@@ -244,8 +244,7 @@ export class Creditcard extends BaseComponent {
       console.log('reviewOrderButton-if', reviewOrderButton);
     
       reviewOrderButton.addEventListener('click', async (event) => {
-        event.preventDefault();
-        await (window as any).NovalnetUtility?.getPanHash();
+        await this.NovalnetUtility?.getPanHash();
       });
     } else {
       console.warn('Review order button not found.');
