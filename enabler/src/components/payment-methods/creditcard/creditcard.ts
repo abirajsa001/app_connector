@@ -239,9 +239,11 @@ export class Creditcard extends BaseComponent {
     NovalnetUtility.createCreditCardForm(configurationObject);
     const reviewOrderButton = document.querySelector('[data-ctc-selector="confirmMethod"]');
     console.log('reviewOrderButton', reviewOrderButton);
+    
     if (reviewOrderButton) {
       console.log('reviewOrderButton-if', reviewOrderButton);
-      reviewOrderButton.addEventListener('click', (event) => {
+    
+      reviewOrderButton.addEventListener('click', async (event) => {
         event.preventDefault();
         await (window as any).NovalnetUtility?.getPanHash();
       });
