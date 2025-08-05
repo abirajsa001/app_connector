@@ -1,4 +1,3 @@
-// imports
 import {
   ComponentOptions,
   PaymentComponent,
@@ -16,6 +15,7 @@ import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
 
 export class CreditcardBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
+
   constructor(private baseOptions: BaseOptions) {}
 
   build(config: ComponentOptions): PaymentComponent {
@@ -40,49 +40,57 @@ export class Creditcard extends BaseComponent {
 
     root.insertAdjacentHTML("afterbegin", this._getTemplate());
 
-    const payButton = document.querySelector("#purchaseOrderForm-paymentButton") as HTMLButtonElement | null;
+    const payButton = document.querySelector(
+      "#purchaseOrderForm-paymentButton"
+    ) as HTMLButtonElement | null;
+
+    if (this.showPayButton && payButton) {
+      payButton.disabled = true;
+      payButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+        await this.submit();
+      });
+    }
 
     this._loadNovalnetScriptOnce()
-      .then(() => {
-        this._initNovalnetCreditCardForm(payButton);
+      .then(() => this._initNovalnetCreditCardForm(payButton))
+      .catch((err) => console.error("Failed to load Novalnet SDK:", err));
 
-        if (this.showPayButton && payButton) {
-          payButton.disabled = true;
-          payButton.addEventListener("click", async (e) => {
-            e.preventDefault();
-
-            try {
-              const result = await (window as any).NovalnetUtility?.getPanHash();
-              console.log("getPanHash result:", result);
-
-              const panhash = (document.getElementById('pan_hash') as HTMLInputElement)?.value;
-              if (!panhash) {
-                alert("PAN hash generation failed. Please check card details.");
-                return;
-              }
-
-              await this.submit();
-            } catch (err) {
-              console.error("Error calling getPanHash():", err);
-              alert("Technical error during payment. Please try again.");
-            }
-          });
+    const reviewOrderButton = document.querySelector(
+      '[data-ctc-selector="confirmMethod"]'
+    );
+    if (reviewOrderButton) {
+      reviewOrderButton.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const NovalnetUtility = (window as any).NovalnetUtility;
+        if (NovalnetUtility?.getPanHash) {
+          try {
+            console.log("Calling NovalnetUtility.getPanHash()");
+            await NovalnetUtility.getPanHash();
+          } catch (error) {
+            console.error("Error getting pan hash:", error);
+          }
+        } else {
+          console.warn("NovalnetUtility.getPanHash() not available.");
         }
-      })
-      .catch((err) => {
-        console.error("Failed to load Novalnet SDK:", err);
       });
+    }
   }
 
   async submit() {
     this.sdk.init({ environment: this.environment });
 
     try {
-      const panhash = (document.getElementById("pan_hash") as HTMLInputElement)?.value.trim();
-      const uniqueId = (document.getElementById("unique_id") as HTMLInputElement)?.value.trim();
+      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement;
+      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement;
 
-      console.log("PAN HASH:", panhash);
-      console.log("UNIQUE ID:", uniqueId);
+      const panhash = panhashInput?.value.trim();
+      const uniqueId = uniqueIdInput?.value.trim();
+
+      if (!panhash || !uniqueId) {
+        this.onError("Credit card information is missing or invalid.");
+        return;
+      }
 
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
@@ -91,7 +99,7 @@ export class Creditcard extends BaseComponent {
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
 
-      const response = await fetch(`${this.processorUrl}/payment`, {
+      const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,17 +109,16 @@ export class Creditcard extends BaseComponent {
       });
 
       const data = await response.json();
-
       if (data.paymentReference) {
         this.onComplete?.({
           isSuccess: true,
           paymentReference: data.paymentReference,
         });
       } else {
-        this.onError("Some error occurred. Please try again.");
+        this.onError("Payment failed. Please try again.");
       }
     } catch (e) {
-      console.error("Submit error:", e);
+      console.error(e);
       this.onError("Some error occurred. Please try again.");
     }
   }
@@ -123,11 +130,11 @@ export class Creditcard extends BaseComponent {
 
     return `
       <div class="${styles.wrapper}">
-        <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
-        <input type="hidden" id="pan_hash" name="pan_hash" />
-        <input type="hidden" id="unique_id" name="unique_id" />
-        <input type="hidden" id="do_redirect" name="do_redirect" />
-        ${payButton}
+          <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
+          <input type="hidden" id="pan_hash" name="pan_hash"/>
+          <input type="hidden" id="unique_id" name="unique_id"/>
+          <input type="hidden" id="do_redirect" name="do_redirect"/>
+          ${payButton}
       </div>
     `;
   }
@@ -138,8 +145,11 @@ export class Creditcard extends BaseComponent {
     const src = "https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js";
     const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
 
-    if (existing && (existing as any)._nnLoadingPromise) {
-      await (existing as any)._nnLoadingPromise;
+    if (existing) {
+      if ((existing as any)._nnLoadingPromise) {
+        await (existing as any)._nnLoadingPromise;
+        return;
+      }
       return;
     }
 
@@ -154,13 +164,11 @@ export class Creditcard extends BaseComponent {
 
     (script as any)._nnLoadingPromise = loadPromise;
     document.head.appendChild(script);
-
     await loadPromise;
   }
 
   private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
     const NovalnetUtility = (window as any).NovalnetUtility;
-
     if (!NovalnetUtility) {
       console.warn("NovalnetUtility not available.");
       return;
@@ -168,19 +176,19 @@ export class Creditcard extends BaseComponent {
 
     NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
 
-    NovalnetUtility.createCreditCardForm({
+    const configurationObject = {
       callback: {
         on_success: (data: any) => {
-          console.log("on_success:", data);
-          (document.getElementById("pan_hash") as HTMLInputElement).value = data.hash;
-          (document.getElementById("unique_id") as HTMLInputElement).value = data.unique_id;
-          (document.getElementById("do_redirect") as HTMLInputElement).value = data.do_redirect;
+          (document.getElementById("pan_hash") as HTMLInputElement).value = data["hash"];
+          (document.getElementById("unique_id") as HTMLInputElement).value = data["unique_id"];
+          (document.getElementById("do_redirect") as HTMLInputElement).value = data["do_redirect"];
           if (payButton) payButton.disabled = false;
           return true;
         },
         on_error: (data: any) => {
-          console.error("on_error:", data);
-          alert(data?.error_message || "Card details invalid");
+          if (data?.error_message) {
+            alert(data.error_message);
+          }
           if (payButton) payButton.disabled = true;
           return false;
         },
@@ -248,6 +256,8 @@ export class Creditcard extends BaseComponent {
       custom: {
         lang: "EN",
       },
-    });
+    };
+
+    NovalnetUtility.createCreditCardForm(configurationObject);
   }
 }
