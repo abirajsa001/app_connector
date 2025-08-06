@@ -397,7 +397,7 @@ public async createPaymentt({ data }: { data: any }) {
 		Please use the following payment reference for your money transfer, as only through this way your payment is matched and assigned to the order:
 		Payment Reference 1: ${parsedResponse.transaction.tid}`;
 	}
-
+if(parsedResponse?.result?.redirect_url) {
     const ctPayment = await this.ctPaymentService.createPayment({
       amountPlanned: await this.ctCartService.getPaymentAmount({
         cart: ctCart,
@@ -441,7 +441,7 @@ public async createPaymentt({ data }: { data: any }) {
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
       },
     });
-
+}
     return {
       // paymentReference: updatedPayment.id,
       paymentReference: parsedResponse?.result?.redirect_url ?? 'null',
