@@ -560,8 +560,8 @@ public async createPaymentt({ data }: { data: any }) {
 	    inputval4: String(request.data.paymentMethod.type ?? "Payment-Method not available"), 
             input5: 'order-number',
 	    inputval5: String(Context.getFutureOrderNumberFromContext() ?? 'order number not available'),
-	    input6: 'merchant-url-context',
-	    inputval6: String(Context.getMerchantReturnUrlFromContext() ?? 'merchant url not available'),
+	    input6: 'cart-id-from-context',
+	    inputval6: String(Context.getCartIdFromContext() ?? 'cart id not available'),
 	  }
 	};
 
