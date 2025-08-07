@@ -426,49 +426,49 @@ public async createPaymentt({ data }: { data: any }) {
 		Payment Reference 1: ${parsedResponse.transaction.tid}`;
 	}
 
-    // const ctPayment = await this.ctPaymentService.createPayment({
-    //   amountPlanned: await this.ctCartService.getPaymentAmount({
-    //     cart: ctCart,
-    //   }),
-    //   paymentMethodInfo: {
-    //     paymentInterface: getPaymentInterfaceFromContext() || 'mock',
-    //   },
-    // paymentStatus: { 
-    //     interfaceCode:  transactiondetails + '\n' + bankDetails,
-    //     interfaceText: responseString,
-    //   },
-    //   ...(ctCart.customerId && {
-    //     customer: {
-    //       typeId: 'customer',
-    //       id: ctCart.customerId,
-    //     },
-    //   }),
-    //   ...(!ctCart.customerId &&
-    //     ctCart.anonymousId && {
-    //       anonymousId: ctCart.anonymousId,
-    //     }),
-    // });
+    const ctPayment = await this.ctPaymentService.createPayment({
+      amountPlanned: await this.ctCartService.getPaymentAmount({
+        cart: ctCart,
+      }),
+      paymentMethodInfo: {
+        paymentInterface: getPaymentInterfaceFromContext() || 'mock',
+      },
+    paymentStatus: { 
+        interfaceCode:  transactiondetails + '\n' + bankDetails,
+        interfaceText: responseString,
+      },
+      ...(ctCart.customerId && {
+        customer: {
+          typeId: 'customer',
+          id: ctCart.customerId,
+        },
+      }),
+      ...(!ctCart.customerId &&
+        ctCart.anonymousId && {
+          anonymousId: ctCart.anonymousId,
+        }),
+    });
 
-    // await this.ctCartService.addPayment({
-    //   resource: {
-    //     id: ctCart.id,
-    //     version: ctCart.version,
-    //   },
-    //   paymentId: ctPayment.id,
-    // });
+    await this.ctCartService.addPayment({
+      resource: {
+        id: ctCart.id,
+        version: ctCart.version,
+      },
+      paymentId: ctPayment.id,
+    });
 
-    // const pspReference = randomUUID().toString();
-    // const updatedPayment = await this.ctPaymentService.updatePayment({
-    //   id: ctPayment.id,
-    //   pspReference: pspReference,
-    //   paymentMethod: request.data.paymentMethod.type,
-    //   transaction: {
-    //     type: 'Authorization',
-    //     amount: ctPayment.amountPlanned,
-    //     interactionId: pspReference,
-    //     state: this.convertPaymentResultCode(request.data.paymentOutcome),
-    //   },
-    // });
+    const pspReference = randomUUID().toString();
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: ctPayment.id,
+      pspReference: pspReference,
+      paymentMethod: request.data.paymentMethod.type,
+      transaction: {
+        type: 'Authorization',
+        amount: ctPayment.amountPlanned,
+        interactionId: pspReference,
+        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+      },
+    });
 
     return {
       // paymentReference: updatedPayment.id,
