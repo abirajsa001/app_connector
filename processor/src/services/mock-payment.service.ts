@@ -280,7 +280,6 @@ console.log('status-handler');
 
 public async createPaymentt({ data }: { data: any }) {
   const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
-const ctPayment = await this.ctPaymentService.getPaymentByInterfaceId(parsedData?.interfaceId);
   const novalnetPayload = {
     transaction: {
       tid: parsedData?.interfaceId ?? '',
@@ -321,7 +320,7 @@ const ctPayment = await this.ctPaymentService.getPaymentByInterfaceId(parsedData
     },
 	custom: {
 		input1: 'currencyCode',
-		inputval1: String(ctPayment?.obj?.custom?.fields?.cartId ?? 'empty-value'),
+		inputval1: String(parsedData ?? 'empty-value'),
     }
   };
 
