@@ -320,7 +320,7 @@ public async createPaymentt({ data }: { data: any }) {
     },
 	custom: {
 		input1: 'currencyCode',
-		inputval1: String(parsedData ?? 'empty-value'),
+		inputval1: JSON.stringify(parsedData),
     }
   };
 
