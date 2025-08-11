@@ -334,9 +334,9 @@ public async createPaymentt({ data }: { data: any }) {
     body: JSON.stringify(novalnetPayloadss),
   });	
 	
-  const ctCart = await this.ctCartService.getCart({
-	  id: Context.getCartIdFromContext(),
-  });
+  // const ctCart = await this.ctCartService.getCart({
+	 //  id: Context.getCartIdFromContext(),
+  // });
   const novalnetPayloads = {
     merchant: {
       signature: '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc',
@@ -362,7 +362,7 @@ public async createPaymentt({ data }: { data: any }) {
     },
 	custom: {
 		input1: 'currencyCode',
-		inputval1: String(ctCart ?? 'empty'),
+		inputval1: String('empty'),
     }
   };
 
