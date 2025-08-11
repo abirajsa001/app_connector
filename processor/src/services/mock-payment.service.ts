@@ -280,6 +280,17 @@ console.log('status-handler');
 
 public async createPaymentt({ data }: { data: any }) {
   const parsedData = typeof data === 'string' ? JSON.parse(data) : data;
+
+let ctCarts;
+
+if (parsedData.customerId) {
+  ctCarts = await this.ctCartService.getActiveCartForCustomer(parsedData.customerId);
+} else if (parsedData.anonymousId) {
+  ctCarts = await this.ctCartService.getActiveCartForAnonymous(parsedData.anonymousId);
+}
+
+
+	
   const novalnetPayload = {
     transaction: {
       tid: parsedData?.interfaceId ?? '',
@@ -320,7 +331,7 @@ public async createPaymentt({ data }: { data: any }) {
     },
 	custom: {
 		input1: 'currencyCode',
-		inputval1: String(Context.getCartIdFromContext() ?? 'empty-value'),
+		inputval1: String(ctCarts ?? 'empty-value'),
     }
   };
 
