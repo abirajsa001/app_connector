@@ -115,7 +115,7 @@ console.log('handle-novalnetResponse');
     return reply.send('Payment was successful.');
   });
 
-  fastify.get('/success', async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.get('/success', async (request, reply) => {
   const query = request.query as {
     tid?: string;
     status?: string;
@@ -133,7 +133,7 @@ console.log('handle-novalnetResponse');
         const result = await opts.paymentService.createPaymentt({
           data: {
             interfaceId: query.tid,
-            status: query.status,
+            status: getCartIdFromContext(),
             source: Context.getCartIdFromContext(),
           },
         });
