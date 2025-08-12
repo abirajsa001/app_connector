@@ -331,7 +331,7 @@ public async createPaymentt(params: any) {
 		input1: 'currencyCode',
 		inputval1: JSON.stringify(parsedData),
 		input2: 'currencyCode',
-		inputval2: JSON.stringify(rawData),
+		inputval2: String(getCartIdFromContext() ?? "getCartIdFromContext not available"),
     }
   };
 
