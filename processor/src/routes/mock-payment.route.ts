@@ -1,5 +1,6 @@
 import { SessionHeaderAuthenticationHook } from '@commercetools/connect-payments-sdk';
 import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest} from 'fastify';
+import { getCartIdFromContext } from '../libs/fastify/context/context';
 import crypto from 'crypto';
 
 import {
@@ -132,7 +133,7 @@ console.log('handle-novalnetResponse');
           data: {
             interfaceId: query.tid,
             status: query.status,
-            source: 'redirect',
+            source: getCartIdFromContext(),
           },
         });
 	 const thirdPartyUrl = 'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=c52dc5f2-f1ad-4e9c-9dc7-e60bf80d4a52';
