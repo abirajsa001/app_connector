@@ -61,7 +61,7 @@ export class Prepayment extends BaseComponent {
       console.log('requestData');
     console.log(requestData);
      
-      const response = await fetch(this.processorUrl + "/payment", {
+      const response = await fetch(this.processorUrl + "/payments", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
