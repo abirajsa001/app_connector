@@ -528,7 +528,7 @@ console.log('status-handler');
 	
 	  const transaction: any = {
 	  test_mode: '1',
-	  payment_type: String(request.data.paymentMethod.type),
+	  payment_type: 'PREPAYMENT',
 	  amount: '123',
 	  currency: 'EUR',
 	};
