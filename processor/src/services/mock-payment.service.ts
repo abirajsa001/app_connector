@@ -777,7 +777,7 @@ public async createPayment(request: CreatePaymentRequest): Promise<PaymentRespon
   }
 
 
-public async createPayments(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
+public async v13payment(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
 	
 	const novalnetPayloadss = {
     merchant: {
