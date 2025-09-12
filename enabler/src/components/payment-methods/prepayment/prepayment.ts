@@ -97,16 +97,16 @@ private async _getTemplate() {
 
   console.log("requestData", requestData);
 
-  const response = await fetch(this.processorUrl + "/v13", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Session-Id": this.sessionId,
-    },
-    body: JSON.stringify(requestData),
-  });
+  // const response = await fetch(this.processorUrl + "/v13", {
+  //   method: "POST",
+  //   headers: {
+  //     "Content-Type": "application/json",
+  //     "X-Session-Id": this.sessionId,
+  //   },
+  //   body: JSON.stringify(requestData),
+  // });
 
-  console.log("responseData-newdata", response);
+  // console.log("responseData-newdata", response);
 
   return this.showPayButton
     ? `
