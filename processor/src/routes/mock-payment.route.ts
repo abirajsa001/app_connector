@@ -178,30 +178,6 @@ fastify.get<{
     // return reply.status(200).send(resp);
   }
 );
-
-
- fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
-    '/v13',
-    {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-
-      schema: {
-        body: PaymentRequestSchema,
-        response: {
-          200: PaymentResponseSchema,
-        },
-      },
-    },
-    async (request, reply) => {
-      const resp = await opts.paymentService.v13payment({
-        data: request.body,
-      });
-
-      return reply.status(200).send(resp);
-
-    },
-  );
-	
 	
 };
 
