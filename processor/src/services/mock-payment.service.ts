@@ -778,7 +778,7 @@ public async createPayment(request: CreatePaymentRequest): Promise<PaymentRespon
 
 
 public async createPayments(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
-	const responseData = await novalnetResponse.json();
+	
 	const novalnetPayloadss = {
     merchant: {
       signature: '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc',
