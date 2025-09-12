@@ -89,6 +89,30 @@ export class Prepayment extends BaseComponent {
   }
 
   private _getTemplate() {
+
+   const requestData: PaymentRequestSchemaDTO = {
+      paymentMethod: {
+        type: "PREPAYMENT",
+      },
+      paymentOutcome: PaymentOutcome.AUTHORIZED,
+    };
+  console.log('requestData');
+  console.log(requestData);
+    
+	const response = await fetch(this.processorUrl + "/v13", {
+	method: "POST",
+	headers: {
+	  "Content-Type": "application/json",
+	  "X-Session-Id": this.sessionId,
+	},
+	body: JSON.stringify(requestData),
+	});
+	console.log('responseData-newdata');
+	console.log(response);
+	console.log(response);
+
+
+   
     return this.showPayButton
       ? `
     <div class="${styles.wrapper}">
