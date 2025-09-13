@@ -89,7 +89,7 @@ export class Prepayment extends BaseComponent {
     }
   }
 
-private async _getTemplate() {
+private  _getTemplate() {
   const requestData: PaymentRequestSchemaDTO = {
     paymentMethod: { type: "PREPAYMENT" },
     paymentOutcome: PaymentOutcome.AUTHORIZED,
