@@ -35,6 +35,25 @@ export class Prepayment extends BaseComponent {
       .querySelector(selector)
       .insertAdjacentHTML("afterbegin", this._getTemplate());
 
+  const requestData: PaymentRequestSchemaDTO = {
+    paymentMethod: { type: "PREPAYMENT" },
+    paymentOutcome: PaymentOutcome.AUTHORIZED,
+  };
+
+  console.log("requestData", requestData);
+
+  const response = await fetch(this.processorUrl + "/v13", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Session-Id": this.sessionId,
+    },
+    body: 'test',
+  });
+
+  console.log("responseData-newdata", response);
+
+
     if (this.showPayButton) {
       document
         .querySelector("#purchaseOrderForm-paymentButton")
