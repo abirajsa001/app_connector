@@ -1,8 +1,8 @@
- import {
+import {
   ComponentOptions,
   PaymentComponent,
   PaymentComponentBuilder,
-  PaymentMethod
+  PaymentMethod,
 } from '../../../payment-enabler/payment-enabler';
 import { BaseComponent } from "../../base";
 import styles from '../../../style/style.module.scss';
@@ -30,72 +30,60 @@ export class Prepayment extends BaseComponent {
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
-mount(selector: string): void {
-  // render template
-  document
-    .querySelector(selector)
-    .insertAdjacentHTML("afterbegin", this._getTemplate());
-
-  // run preload in background
-  this._preload();
-
-  // bind button handler
-  if (this.showPayButton) {
+  mount(selector: string): void {
+    // render template
     document
-      .querySelector("#purchaseOrderForm-paymentButton")
-      .addEventListener("click", (e) => {
-        e.preventDefault();
-        this.submit();
-      });
+      .querySelector(selector)
+      .insertAdjacentHTML("afterbegin", this._getTemplate());
+
+    // preload in background (don’t await)
+    this._preload();
+
+    // bind button handler
+    if (this.showPayButton) {
+      document
+        .querySelector("#purchaseOrderForm-paymentButton")
+        .addEventListener("click", (e) => {
+          e.preventDefault();
+          this.submit();
+        });
+    }
   }
-}
 
-private async _preload(): Promise<void> {
-  const requestData: PaymentRequestSchemaDTO = {
-    paymentMethod: { type: "PREPAYMENT" },
-    paymentOutcome: PaymentOutcome.AUTHORIZED,
-  };
+  private async _preload(): Promise<void> {
+    const requestData: PaymentRequestSchemaDTO = {
+      paymentMethod: { type: "PREPAYMENT" },
+      paymentOutcome: PaymentOutcome.AUTHORIZED,
+    };
 
-  console.log("requestData", requestData);
-
-  try {
-    const response = await fetch(this.processorUrl + "/v13", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Session-Id": this.sessionId,
-      },
-      body: JSON.stringify(requestData),
-    });
-
-    const data = await response.json();
-    console.log("responseData-newdata", data);
-
-    this.preloadData = data;
-  } catch (err) {
-    console.error("Error while preloading payment data", err);
-  }
-}
-
-
-
-
-  async submit() {
-    // here we would call the SDK to submit the payment
-    this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
     try {
-      // start original
- 
-      const requestData: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: "PREPAYMENT",
+      const response = await fetch(this.processorUrl + "/v13", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Id": this.sessionId,
         },
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+      console.log("preload response", data);
+      this.preloadData = data;
+    } catch (err) {
+      console.error("Error while preloading payment data", err);
+    }
+  }
+
+  async submit(): Promise<void> {
+    this.sdk.init({ environment: this.environment });
+    console.log("submit-triggered");
+
+    try {
+      const requestData: PaymentRequestSchemaDTO = {
+        paymentMethod: { type: "PREPAYMENT" },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
-      console.log('requestData');
-    console.log(requestData);
-     
+
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
@@ -104,18 +92,15 @@ private async _preload(): Promise<void> {
         },
         body: JSON.stringify(requestData),
       });
-     console.log(this.processorUrl);
-      console.log('responseData-newdata');
-      console.log(response);
-      console.log(response);
+
       const data = await response.json();
-      console.log(data);
+      console.log("submit response", data);
+
       if (data.paymentReference) {
-        this.onComplete &&
-          this.onComplete({
-            isSuccess: true,
-            paymentReference: data.paymentReference,
-          });
+        this.onComplete?.({
+          isSuccess: true,
+          paymentReference: data.paymentReference,
+        });
       } else {
         this.onError("Some error occurred. Please try again.");
       }
@@ -124,34 +109,14 @@ private async _preload(): Promise<void> {
     }
   }
 
-private  _getTemplate() {
-  const requestData: PaymentRequestSchemaDTO = {
-    paymentMethod: { type: "PREPAYMENT" },
-    paymentOutcome: PaymentOutcome.AUTHORIZED,
-  };
-
-  console.log("requestData", requestData);
-
-  // const response = await fetch(this.processorUrl + "/v13", {
-  //   method: "POST",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     "X-Session-Id": this.sessionId,
-  //   },
-  //   body: JSON.stringify(requestData),
-  // });
-
-  // console.log("responseData-newdata", response);
-
-  return this.showPayButton
-    ? `
-      <div class="${styles.wrapper}">
-        <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
-        <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
-      </div>
-    `
-    : "";
-}
-
-
+  private _getTemplate(): string {
+    return this.showPayButton
+      ? `
+        <div class="${styles.wrapper}">
+          <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
+          <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
+        </div>
+      `
+      : "";
+  }
 }
