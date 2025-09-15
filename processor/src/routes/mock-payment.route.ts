@@ -115,27 +115,45 @@ console.log('handle-novalnetResponse');
     return reply.send('Payment was successful.');
   });
 
-   fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
-    '/v13',
-    {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-
-      schema: {
-        body: PaymentRequestSchema,
-        response: {
-          200: PaymentResponseSchema,
-        },
-      },
+    fastify.post('/v13', async (request, reply) => {
+	  const novalnetPayload = {
+    merchant: {
+      signature: '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc',
+      tariff: '10004',
     },
-    async (request, reply) => {
-      const resp = await opts.paymentService.v13payment({
-        data: request.body,
-      });
-
-      return reply.status(200).send(resp);
-
+    customer: {
+  	  billing : {
+    		city          : 'test',
+    		country_code  : 'DE',
+    		house_no      : 'test',
+    		street        : 'test',
+    		zip           : '68662',
+  	  },
+      first_name: 'Max',
+      last_name: 'Mustermann',
+      email: 'abiraj_s@novalnetsolutions.com',
     },
-  );
+    transaction: {
+      test_mode: '1',
+      amount: 10,
+      currency: 'EUR',
+    },
+	hosted_page: {
+		type:'PAYMENTFORM',
+	},
+  };
+
+  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+    },
+    body: JSON.stringify(novalnetPayload),
+  });	
+    return reply.send(novalnetResponse);
+  });
 
   fastify.get('/success', async (request, reply) => {
   const query = request.query as {
