@@ -1,17 +1,22 @@
- import {
+import {
   ComponentOptions,
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod
 } from '../../../payment-enabler/payment-enabler';
-import { BaseComponent } from "../../base";
+import { BaseComponent } from '../../base';
 import styles from '../../../style/style.module.scss';
-import buttonStyles from "../../../style/button.module.scss";
+import buttonStyles from '../../../style/button.module.scss';
 import {
   PaymentOutcome,
   PaymentRequestSchemaDTO,
-} from "../../../dtos/mock-payment.dto";
-import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
+} from '../../../dtos/mock-payment.dto';
+import { BaseOptions } from '../../../payment-enabler/payment-enabler-mock';
+
+// declare NovalnetPaymentForm global
+declare class NovalnetPaymentForm {
+  initiate(config: Record<string, unknown>): void;
+}
 
 export class PrepaymentBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
@@ -24,102 +29,146 @@ export class PrepaymentBuilder implements PaymentComponentBuilder {
 
 export class Prepayment extends BaseComponent {
   private showPayButton: boolean;
+  private container?: Element;
+  private iframeId = 'novalnet_iframe';
+  private hiddenInputId = 'nn_payment_details';
+  private scriptUrl = 'https://cdn.novalnet.de/js/pv13/checkout.js';
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
     super(PaymentMethod.prepayment, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
-async mount(selector: string) {
-  // render template
-  const container = document.querySelector(selector);
-  if (container) {
-    container.insertAdjacentHTML("afterbegin", this._getTemplate());
-  } else {
-    console.error(`Mount failed: container ${selector} not found`);
-    return;
+  async mount(selector: string) {
+    this.container = document.querySelector(selector);
+    if (!this.container) {
+      console.error(`Mount failed: container ${selector} not found`);
+      return;
+    }
+
+    // Render template
+    this.container.insertAdjacentHTML('afterbegin', this._getTemplate());
+
+    // Preload call (fetch + initiate)
+    try {
+      const response = await fetch(this.processorUrl + '/v13', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-Id': this.sessionId,
+        },
+        body: JSON.stringify({ init: true }),
+      });
+
+      const data = await response.json();
+      console.log('Preload response', data);
+
+      if (data?.result?.redirect_url) {
+        await this._initIframe(data.result.redirect_url);
+      }
+    } catch (err) {
+      console.error('Error during preload fetch', err);
+    }
+
+    // bind button
+    if (this.showPayButton) {
+      document
+        .querySelector('#purchaseOrderForm-paymentButton')
+        ?.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.submit();
+        });
+    }
   }
 
-  // preload call
-  try {
-    const response = await fetch(this.processorUrl + "/v13", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Session-Id": this.sessionId,
+  private async _initIframe(redirectUrl: string) {
+    await this._loadScript();
+
+    this.container?.insertAdjacentHTML(
+      'beforeend',
+      `
+        <iframe
+          style="width:100%; border:0; margin-left:-15px;"
+          id="${this.iframeId}"
+          src="${redirectUrl}"
+          allow="payment"
+        ></iframe>
+        <input type="hidden" id="${this.hiddenInputId}" name="nn_payment_details"/>
+      `
+    );
+
+    const paymentForm = new NovalnetPaymentForm();
+    paymentForm.initiate({
+      iframe: `#${this.iframeId}`,
+      initForm: {
+        orderInformation: {},
+        setWalletPending: true,
+        showButton: true,
       },
-      body: JSON.stringify({ init: true }),
     });
 
-    const data = await response.json();
-    console.log("Preload response", data);
-  } catch (err) {
-    console.error("Error during preload fetch", err);
+    console.log('Novalnet iframe initiated');
   }
 
-  // bind button
-  if (this.showPayButton) {
-    document
-      .querySelector("#purchaseOrderForm-paymentButton")
-      ?.addEventListener("click", (e) => {
-        e.preventDefault();
-        this.submit();
-      });
+  private _loadScript(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (document.querySelector(`script[src="${this.scriptUrl}"]`)) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = this.scriptUrl;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load ${this.scriptUrl}`));
+      document.head.appendChild(script);
+    });
   }
-}
-
 
   async submit() {
-    // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
     console.log('submit-triggered');
+
+    const requestData: PaymentRequestSchemaDTO = {
+      paymentMethod: {
+        type: 'PREPAYMENT',
+      },
+      paymentOutcome: PaymentOutcome.AUTHORIZED,
+    };
+
     try {
-      // start original
- 
-      const requestData: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: "PREPAYMENT",
-        },
-        paymentOutcome: PaymentOutcome.AUTHORIZED,
-      };
-      console.log('requestData');
-    console.log(requestData);
-     
-      const response = await fetch(this.processorUrl + "/payment", {
-        method: "POST",
+      const response = await fetch(this.processorUrl + '/payment', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
+          'Content-Type': 'application/json',
+          'X-Session-Id': this.sessionId,
         },
         body: JSON.stringify(requestData),
       });
-      console.log('responseData-newdata');
-      console.log(response);
-      console.log(response);
       const data = await response.json();
-      console.log(data);
+      console.log('Submit response', data);
+
       if (data.paymentReference) {
-        this.onComplete &&
-          this.onComplete({
-            isSuccess: true,
-            paymentReference: data.paymentReference,
-          });
+        this.onComplete?.({
+          isSuccess: true,
+          paymentReference: data.paymentReference,
+        });
       } else {
-        this.onError("Some error occurred. Please try again.");
+        this.onError('Some error occurred. Please try again.');
       }
     } catch (e) {
-      this.onError("Some error occurred. Please try again.");
+      this.onError('Some error occurred. Please try again.');
     }
   }
 
   private _getTemplate() {
     return this.showPayButton
       ? `
-    <div class="${styles.wrapper}">
-      <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
-      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
-    </div>
+      <div class="${styles.wrapper}">
+        <p>Pay easily with Prepayment and transfer the shopping amount within the specified date.</p>
+        <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
+      </div>
     `
-      : "";
+      : '';
   }
 }
