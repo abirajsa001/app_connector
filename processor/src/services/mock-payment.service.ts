@@ -693,6 +693,72 @@ public async createPayment(request: CreatePaymentRequest): Promise<PaymentRespon
 }
 
 
+public async createPayment(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
+  const type = String(request.data?.paymentMethod?.type ?? 'INVOICE');
+  const config = getConfig();
+  const { testMode, paymentAction, dueDate } = getNovalnetConfigValues(type, config);
+
+  const ctCart = await this.ctCartService.getCart({
+    id: getCartIdFromContext(),
+  });
+
+  const novalnetPayload = {
+    merchant: {
+      signature: '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc',
+      tariff: '10004',
+    },
+    customer: {
+  	  billing : {
+    		city          : 'test',
+    		country_code  : 'DE',
+    		house_no      : 'test',
+    		street        : 'test',
+    		zip           : '68662',
+  	  },
+      first_name: 'Max',
+      last_name: 'Mustermann',
+      email: 'abiraj_s@novalnetsolutions.com',
+    },
+    transaction: {
+      test_mode: '1',
+      payment_type: 'PREPAYMENT',
+      amount: 10,
+      currency: 'EUR',
+    },
+	hosted_page: {
+		type:'PAYMENTFORM',
+	},
+    custom: {
+	    input1: 'request',
+	    inputval1: String(request ?? 'empty'),
+	    input2: 'reply',
+	    inputval2: String(reply ?? 'empty'),
+	  }
+  };
+
+  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+    },
+    body: JSON.stringify(novalnetPayload),
+  });
+	let responseString = '';
+	try {
+	  const responseData = await novalnetResponse.json(); 
+	  responseString = JSON.stringify(responseData);
+	} catch (err) {
+	  responseString = 'Unable to parse Novalnet response';
+	}
+
+  return {
+    paymentReference: responseString,
+  };
+}
+
+
   public async handleTransaction(transactionDraft: TransactionDraftDTO): Promise<TransactionResponseDTO> {
     const TRANSACTION_AUTHORIZATION_TYPE: TransactionType = 'Authorization';
     const TRANSACTION_STATE_SUCCESS: TransactionState = 'Success';
