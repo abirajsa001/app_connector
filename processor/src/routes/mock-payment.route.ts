@@ -54,7 +54,7 @@ fastify.post('/test', async (request, reply) => {
 	  }
   };
 
-  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/seamless/payment', {
+  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -143,7 +143,7 @@ console.log('handle-novalnetResponse');
 	},
   };
 
-  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
+  const novalnetResponse = await fetch('https://payport.novalnet.de/v2/seamless/payment', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
