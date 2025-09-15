@@ -114,9 +114,29 @@ console.log('handle-novalnetResponse');
     fastify.get('/failure', async (request, reply) => {
     return reply.send('Payment was successful.');
   });
-    fastify.get('/v13', async (request, reply) => {
-    return reply.send('Payment was successful.');
-  });
+
+   fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
+    '/payments',
+    {
+      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+
+      schema: {
+        body: PaymentRequestSchema,
+        response: {
+          200: PaymentResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const resp = await opts.paymentService.v13payment({
+        data: request.body,
+      });
+
+      return reply.status(200).send(resp);
+
+    },
+  );
+
   fastify.get('/success', async (request, reply) => {
   const query = request.query as {
     tid?: string;
