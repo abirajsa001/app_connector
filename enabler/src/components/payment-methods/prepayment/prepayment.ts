@@ -30,20 +30,44 @@ export class Prepayment extends BaseComponent {
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
-  mount(selector: string) {
-    document
-      .querySelector(selector)
-      .insertAdjacentHTML("afterbegin", this._getTemplate());
-
-    if (this.showPayButton) {
-      document
-        .querySelector("#purchaseOrderForm-paymentButton")
-        .addEventListener("click", (e) => {
-          e.preventDefault();
-          this.submit();
-        });
-    }
+async mount(selector: string) {
+  // render template
+  const container = document.querySelector(selector);
+  if (container) {
+    container.insertAdjacentHTML("afterbegin", this._getTemplate());
+  } else {
+    console.error(`Mount failed: container ${selector} not found`);
+    return;
   }
+
+  // preload call
+  try {
+    const response = await fetch(this.processorUrl + "/v13", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": this.sessionId,
+      },
+      body: JSON.stringify({ init: true }),
+    });
+
+    const data = await response.json();
+    console.log("Preload response", data);
+  } catch (err) {
+    console.error("Error during preload fetch", err);
+  }
+
+  // bind button
+  if (this.showPayButton) {
+    document
+      .querySelector("#purchaseOrderForm-paymentButton")
+      ?.addEventListener("click", (e) => {
+        e.preventDefault();
+        this.submit();
+      });
+  }
+}
+
 
   async submit() {
     // here we would call the SDK to submit the payment
