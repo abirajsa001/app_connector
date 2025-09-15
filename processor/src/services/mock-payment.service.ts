@@ -346,7 +346,6 @@ console.log('status-handler');
     },
     transaction: {
       test_mode: '1',
-      payment_type: 'PREPAYMENT',
       amount: 173,
       currency: 'EUR',
     },
