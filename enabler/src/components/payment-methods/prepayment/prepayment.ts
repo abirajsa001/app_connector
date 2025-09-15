@@ -30,38 +30,39 @@ export class Prepayment extends BaseComponent {
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
-async mount(selector: string) {
+mount(selector: string) {
   // render template first
   document
     .querySelector(selector)
     .insertAdjacentHTML("afterbegin", this._getTemplate());
 
-  // preload request
-  const requestData: PaymentRequestSchemaDTO = {
-    paymentMethod: { type: "PREPAYMENT" },
-    paymentOutcome: PaymentOutcome.AUTHORIZED,
-  };
+  // run async preload without changing mount signature
+  (async () => {
+    const requestData: PaymentRequestSchemaDTO = {
+      paymentMethod: { type: "PREPAYMENT" },
+      paymentOutcome: PaymentOutcome.AUTHORIZED,
+    };
 
-  console.log("requestData", requestData);
+    console.log("requestData", requestData);
 
-  try {
-    const response = await fetch(this.processorUrl + "/v13", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Session-Id": this.sessionId,
-      },
-      body: JSON.stringify(requestData),
-    });
+    try {
+      const response = await fetch(this.processorUrl + "/v13", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Id": this.sessionId,
+        },
+        body: JSON.stringify(requestData),
+      });
 
-    const data = await response.json();
-    console.log("responseData-newdata", data);
+      const data = await response.json();
+      console.log("responseData-newdata", data);
 
-    // you can store preload data for submit()
-    this.preloadData = data;
-  } catch (err) {
-    console.error("Error while preloading payment data", err);
-  }
+      this.preloadData = data;
+    } catch (err) {
+      console.error("Error while preloading payment data", err);
+    }
+  })();
 
   // bind button handler
   if (this.showPayButton) {
@@ -73,6 +74,7 @@ async mount(selector: string) {
       });
   }
 }
+
 
 
   async submit() {
