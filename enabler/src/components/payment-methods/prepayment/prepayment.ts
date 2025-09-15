@@ -30,11 +30,13 @@ export class Prepayment extends BaseComponent {
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
-  mount(selector: string) {
-    document
-      .querySelector(selector)
-      .insertAdjacentHTML("afterbegin", this._getTemplate());
+async mount(selector: string) {
+  // render template first
+  document
+    .querySelector(selector)
+    .insertAdjacentHTML("afterbegin", this._getTemplate());
 
+  // preload request
   const requestData: PaymentRequestSchemaDTO = {
     paymentMethod: { type: "PREPAYMENT" },
     paymentOutcome: PaymentOutcome.AUTHORIZED,
@@ -42,27 +44,36 @@ export class Prepayment extends BaseComponent {
 
   console.log("requestData", requestData);
 
-  const response = await fetch(this.processorUrl + "/v13", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Session-Id": this.sessionId,
-    },
-    body: 'test',
-  });
+  try {
+    const response = await fetch(this.processorUrl + "/v13", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": this.sessionId,
+      },
+      body: JSON.stringify(requestData),
+    });
 
-  console.log("responseData-newdata", response);
+    const data = await response.json();
+    console.log("responseData-newdata", data);
 
-
-    if (this.showPayButton) {
-      document
-        .querySelector("#purchaseOrderForm-paymentButton")
-        .addEventListener("click", (e) => {
-          e.preventDefault();
-          this.submit();
-        });
-    }
+    // you can store preload data for submit()
+    this.preloadData = data;
+  } catch (err) {
+    console.error("Error while preloading payment data", err);
   }
+
+  // bind button handler
+  if (this.showPayButton) {
+    document
+      .querySelector("#purchaseOrderForm-paymentButton")
+      .addEventListener("click", (e) => {
+        e.preventDefault();
+        this.submit();
+      });
+  }
+}
+
 
   async submit() {
     // here we would call the SDK to submit the payment
