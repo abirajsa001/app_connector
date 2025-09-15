@@ -694,13 +694,7 @@ public async createPayment(request: CreatePaymentRequest): Promise<PaymentRespon
 
 
 public async v13payment(request: CreatePaymentRequest): Promise<PaymentResponseSchemaDTO> {
-  const type = String(request.data?.paymentMethod?.type ?? 'INVOICE');
-  const config = getConfig();
-  const { testMode, paymentAction, dueDate } = getNovalnetConfigValues(type, config);
 
-  const ctCart = await this.ctCartService.getCart({
-    id: getCartIdFromContext(),
-  });
 
   const novalnetPayload = {
     merchant: {
@@ -728,12 +722,6 @@ public async v13payment(request: CreatePaymentRequest): Promise<PaymentResponseS
 	hosted_page: {
 		type:'PAYMENTFORM',
 	},
-    custom: {
-	    input1: 'request',
-	    inputval1: String(request ?? 'empty'),
-	    input2: 'reply',
-	    inputval2: String(reply ?? 'empty'),
-	  }
   };
 
   const novalnetResponse = await fetch('https://payport.novalnet.de/v2/payment', {
