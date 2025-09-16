@@ -13,13 +13,9 @@ import {
 } from '../../../dtos/mock-payment.dto';
 import { BaseOptions } from '../../../payment-enabler/payment-enabler-mock';
 
-// declare NovalnetPaymentForm global (from checkout.js)
-declare global {
-  interface Window {
-    NovalnetPaymentForm: new () => {
-      initiate(config: Record<string, unknown>): void;
-    };
-  }
+// declare NovalnetPaymentForm global
+declare class NovalnetPaymentForm {
+  initiate(config: Record<string, unknown>): void;
 }
 
 export class PrepaymentBuilder implements PaymentComponentBuilder {
@@ -50,11 +46,11 @@ export class Prepayment extends BaseComponent {
       return;
     }
 
-    // Render base template
+    // Render template
     this.container.insertAdjacentHTML('afterbegin', this._getTemplate());
 
+    // Preload call (fetch + initiate)
     try {
-      // Preload call
       const response = await fetch(this.processorUrl + '/v13', {
         method: 'POST',
         headers: {
@@ -67,14 +63,14 @@ export class Prepayment extends BaseComponent {
       const data = await response.json();
       console.log('Preload response', data);
 
-      if (data?.result) {
-        await this._initIframe(); // init iframe without setting src
+      if (data?.result?.redirect_url) {
+        await this._initIframe(data.result.redirect_url);
       }
     } catch (err) {
       console.error('Error during preload fetch', err);
     }
 
-    // Bind button
+    // bind button
     if (this.showPayButton) {
       document
         .querySelector('#purchaseOrderForm-paymentButton')
@@ -85,35 +81,33 @@ export class Prepayment extends BaseComponent {
     }
   }
 
-  private async _initIframe() {
-    // load SDK script
+  private async _initIframe(redirectUrl: string) {
     await this._loadScript();
 
-    // insert iframe + hidden field (NO src attribute here)
     this.container?.insertAdjacentHTML(
       'beforeend',
       `
         <iframe
           style="width:100%; border:0; margin-left:-15px;"
           id="${this.iframeId}"
+          src="${redirectUrl}"
           allow="payment"
         ></iframe>
         <input type="hidden" id="${this.hiddenInputId}" name="nn_payment_details"/>
       `
     );
 
-    // initialize iframe via SDK
-    const paymentForm = new window.NovalnetPaymentForm();
+    const paymentForm = new NovalnetPaymentForm();
     paymentForm.initiate({
       iframe: `#${this.iframeId}`,
       initForm: {
-        orderInformation: {}, // TODO: pass order data if required
+        orderInformation: {},
         setWalletPending: true,
         showButton: true,
       },
     });
 
-    console.log('Novalnet iframe successfully initiated');
+    console.log('Novalnet iframe initiated');
   }
 
   private _loadScript(): Promise<void> {
