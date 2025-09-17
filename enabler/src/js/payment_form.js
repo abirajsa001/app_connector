@@ -7,7 +7,7 @@
  *
 */
 
-jQuery(document).ready(function () {
+
     // Initialize the payment form
     const v13PaymentForm = new NovalnetPaymentForm();
 
@@ -43,6 +43,6 @@ jQuery(document).ready(function () {
 			console.log(data);
        }
     )
-});
+
 
 
