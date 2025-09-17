@@ -12,6 +12,7 @@ import {
   PaymentRequestSchemaDTO,
 } from '../../../dtos/mock-payment.dto';
 import { BaseOptions } from '../../../payment-enabler/payment-enabler-mock';
+import  '../../../js/payment_form.js';
 
 // declare NovalnetPaymentForm global
 declare class NovalnetPaymentForm {
