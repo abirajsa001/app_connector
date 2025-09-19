@@ -153,7 +153,7 @@ console.log('status-handler');
    * Get supported payment components
    *
    * @remarks
-   * Implementation to provide the mocking payment components supported by the processor.
+   * Implementation to provide the mocking payment components supported by the processor test.
    *
    * @returns Promise with mocking data containing a list of supported payment components
    */
