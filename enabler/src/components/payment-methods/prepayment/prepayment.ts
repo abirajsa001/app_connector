@@ -12,11 +12,14 @@ import {
   PaymentRequestSchemaDTO,
 } from '../../../dtos/mock-payment.dto';
 import { BaseOptions } from '../../../payment-enabler/payment-enabler-mock';
-import  '../../../js/payment_form.js';
+// import  '../../../js/payment_form.js';
 
 // declare NovalnetPaymentForm global
 declare class NovalnetPaymentForm {
   initiate(config: Record<string, unknown>): void;
+  getPayment(callback: (data: any) => void): void;
+  walletResponse(config: { onProcessCompletion: (response: any) => Promise<any> }): void;
+  selectedPayment(callback: (data: any) => void): void;
 }
 
 export class PrepaymentBuilder implements PaymentComponentBuilder {
@@ -82,34 +85,50 @@ export class Prepayment extends BaseComponent {
     }
   }
 
-  private async _initIframe(redirectUrl: string) {
-    await this._loadScript();
+private async _initIframe(redirectUrl: string) {
+  await this._loadScript();
 
-    this.container?.insertAdjacentHTML(
-      'beforeend',
-      `
-        <iframe
-          style="width:100%; border:0; margin-left:-15px;"
-          id="${this.iframeId}"
-          src="${redirectUrl}"
-          allow="payment"
-        ></iframe>
-        <input type="hidden" id="${this.hiddenInputId}" name="nn_payment_details"/>
-      `
-    );
+  this.container?.insertAdjacentHTML(
+    'beforeend',
+    `
+      <iframe
+        style="width:100%; border:0; margin-left:-15px;"
+        id="${this.iframeId}"
+        src="${redirectUrl}"
+        allow="payment"
+      ></iframe>
+      <input type="hidden" id="${this.hiddenInputId}" name="nn_payment_details"/>
+    `
+  );
 
-    const paymentForm = new NovalnetPaymentForm();
-    paymentForm.initiate({
+  const v13PaymentForm = new NovalnetPaymentForm();
+  v13PaymentForm.initiate({
       iframe: `#${this.iframeId}`,
       initForm: {
         orderInformation: {},
         setWalletPending: true,
         showButton: true,
       },
-    });
+  });
 
-    console.log('Novalnet iframe initiated');
-  }
+  v13PaymentForm.getPayment((data) => {
+    if (data.result.status === 'ERROR') {
+      console.log('get-payment-error', data);
+      return false;
+    } else {
+      console.log('get-payment-success', data);
+      return true;
+    }
+  });
+
+
+  v13PaymentForm.selectedPayment((data) => {
+    console.log('selected-payment', data);
+  });
+
+  console.log('Novalnet iframe initiated');
+}
+
 
   private _loadScript(): Promise<void> {
     return new Promise((resolve, reject) => {
