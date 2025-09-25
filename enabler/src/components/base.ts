@@ -19,6 +19,7 @@ export abstract class BaseComponent implements PaymentComponent {
   protected environment: BaseOptions['environment'];
   protected onComplete: (result: PaymentResult) => void;
   protected onError: (error: any, context?: { paymentReference?: string }) => void;
+  private paymentCompleted: boolean = false;
 
   constructor(paymentMethod: PaymentMethod, baseOptions: BaseOptions, _componentOptions: ComponentOptions) {
     this.paymentMethod = paymentMethod;
@@ -33,6 +34,139 @@ export abstract class BaseComponent implements PaymentComponent {
   abstract submit(): void;
 
   abstract mount(selector: string): void ;
+
+  protected completePayment(result: PaymentResult) {
+    if (!this.paymentCompleted) {
+      this.paymentCompleted = true;
+      console.log('Payment completed:', result);
+      this.onComplete(result);
+    }
+  }
+
+  protected initializeNovalnetChildWindow(txnSecret: string) {
+    this.loadNovalnetScript(() => {
+      this.setupNovalnetChildWindow(txnSecret);
+      
+      // Fallback timeout to ensure onComplete is called
+      setTimeout(() => {
+        console.log('Payment timeout - checking if payment was completed');
+        // Only trigger if payment hasn't been completed yet
+        if (typeof window.Novalnet !== 'undefined') {
+          window.Novalnet.closeChildWindow('timeout');
+        }
+      }, 300000); // 5 minutes timeout
+    });
+  }
+
+  private loadNovalnetScript(callback: () => void) {
+    if (document.getElementById('novalnet-checkout-js')) {
+      callback();
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'novalnet-checkout-js';
+    script.src = `https://paygate.novalnet.de/v2/checkout-1.1.0.js?t=${Date.now()}`;
+    script.integrity = 'sha384-RTo1KLOtNoTrL1BSbu7e6j+EBW5LRzBKiOMAo5C2MBUB9kapkJi1LPG4jk5vzPyv';
+    script.crossOrigin = 'anonymous';
+    script.onload = callback;
+    script.onerror = () => this.onError('Failed to load Novalnet SDK');
+    document.head.appendChild(script);
+  }
+
+  private setupNovalnetChildWindow(txnSecret: string) {
+    if (typeof window.Novalnet !== 'undefined') {
+      window.Novalnet.setParam('nn_it', 'child_window');
+      window.Novalnet.setParam('txn_secret', txnSecret);
+      window.Novalnet.setParam('rftarget', 'top');
+      
+      this.setupNovalnetMessageListener();
+      
+      window.Novalnet.render(); // This automatically creates the child window
+    } else {
+      this.onError('Novalnet SDK not loaded properly');
+    }
+  }
+
+  protected setupNovalnetMessageListener() {
+    const messageHandler = (event: MessageEvent) => {
+      if (event.origin === 'https://paygate.novalnet.de') {
+        try {
+          let eventData = event.data;
+          if (typeof eventData === 'string') {
+            eventData = JSON.parse(eventData);
+          }
+          
+          console.log('Novalnet message received:', eventData);
+          
+          // Handle successful payment - PRIORITY: Trigger onComplete
+          if (eventData.status_code === '100' || eventData.status === 100) {
+            if (typeof window.Novalnet !== 'undefined') {
+              window.Novalnet.closeChildWindow();
+            }
+            
+            // MAIN GOAL: Complete the payment
+            this.completePayment({
+              isSuccess: true,
+              paymentReference: eventData.tid || eventData.transaction?.tid || 'success',
+            });
+            return;
+          }
+          
+          // Handle payment cancellation - PRIORITY: Trigger onComplete
+          if (eventData.nnpf_postMsg === 'payment_cancel') {
+            if (typeof window.Novalnet !== 'undefined') {
+              window.Novalnet.closeChildWindow();
+            }
+            
+            // MAIN GOAL: Complete the payment (as cancelled)
+            this.completePayment({
+              isSuccess: false,
+              paymentReference: null,
+            });
+            return;
+          }
+          
+          // Handle other payment responses - PRIORITY: Trigger onComplete
+          if (eventData.status_code && eventData.status_code !== '100') {
+            if (typeof window.Novalnet !== 'undefined') {
+              window.Novalnet.closeChildWindow();
+            }
+            
+            // MAIN GOAL: Complete the payment (as failed)
+            this.completePayment({
+              isSuccess: false,
+              paymentReference: eventData.tid || 'failed',
+            });
+            return;
+          }
+          
+        } catch (e) {
+          console.error('Error parsing Novalnet message:', e);
+          // Even on error, complete the payment as failed
+          this.completePayment({
+            isSuccess: false,
+            paymentReference: 'error',
+          });
+        }
+      }
+    };
+    
+    if (window.addEventListener) {
+      window.addEventListener('message', messageHandler, false);
+    } else {
+      (window as any).attachEvent('onmessage', messageHandler);
+    }
+    
+    // Handle window close/refresh events - PRIORITY: Trigger onComplete
+    const beforeUnloadHandler = () => {
+      if (typeof window.Novalnet !== 'undefined') {
+        window.Novalnet.closeChildWindow('refresh');
+      }
+    };
+    
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+  }
 
   showValidation?(): void;
   isValid?(): boolean;
