@@ -70,17 +70,23 @@ export class Ideal extends BaseComponent {
       const data = await response.json();
       console.log('Payment response:', data);
 
-      if (data.paymentReference) {
-        this.setupRedirectListener();
-        const paymentWindow = window.open(
-          data.paymentReference,
-          'novalnet_payment',
-          'width=800,height=600,scrollbars=yes,resizable=yes'
-        );
+      if (data.txnSecret) {
+        // Set up Novalnet message listener
+        this.setupNovalnetListener();
         
-        if (!paymentWindow) {
-          window.location.href = data.paymentReference;
-        }
+        // Create Novalnet payment page URL with txn_secret
+        const paymentPageUrl = `${this.processorUrl}/novalnet-payment?txn_secret=${data.txnSecret}`;
+        // // Open Novalnet child window for payment
+        // const width = 800;
+        // const height = 600;
+        // const left = (screen.width - width) / 2;
+        // const top = (screen.height - height) / 2;
+        
+        // window.open(
+        //   paymentPageUrl,
+        //   'novalnet_payment',
+        //   `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
+        // );
       } else {
         this.onError("Payment initialization failed. Please try again.");
       }
@@ -91,32 +97,46 @@ export class Ideal extends BaseComponent {
     }
   }
 
-  private setupRedirectListener() {
+  private setupNovalnetListener() {
     const messageHandler = (event: MessageEvent) => {
-      console.log('Received payment message:', event.data);
+      console.log('Received Novalnet message:', event.data);
       
-      if (event.data && event.data.type === 'PAYMENT_SUCCESS') {
-        window.removeEventListener('message', messageHandler);
-        
-        this.onComplete && this.onComplete({
-          isSuccess: true,
-          paymentReference: event.data.paymentReference,
-        });
-      } else if (event.data && event.data.type === 'PAYMENT_FAILURE') {
-        window.removeEventListener('message', messageHandler);
-        
-        this.onComplete && this.onComplete({
-          isSuccess: false,
-          paymentReference: event.data.paymentReference,
-        });
+      if (event.origin === 'https://paygate.novalnet.de') {
+        try {
+          const jsonData = JSON.parse(event.data);
+          
+          if (jsonData.status_code == '100' || jsonData.status == 100) {
+            // Payment success
+            window.removeEventListener('message', messageHandler);
+            
+            this.onComplete && this.onComplete({
+              isSuccess: true,
+              paymentReference: jsonData.tid || jsonData.transaction?.tid,
+            });
+          } else if (jsonData.nnpf_postMsg == 'payment_cancel') {
+            // Payment cancelled
+            window.removeEventListener('message', messageHandler);
+            
+            this.onComplete && this.onComplete({
+              isSuccess: false,
+              paymentReference: jsonData.tid || 'cancelled',
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing Novalnet response:', e);
+        }
       }
     };
     
     window.addEventListener('message', messageHandler);
+    
+    // Cleanup after timeout
     setTimeout(() => {
       window.removeEventListener('message', messageHandler);
     }, 300000);
   }
+
+
 
   private _getTemplate() {
     return this.showPayButton
