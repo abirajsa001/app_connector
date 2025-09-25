@@ -325,7 +325,7 @@ console.log('status-handler');
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+      'X-NN-Access-Key': String(getConfig()?.novalnetPrivateKey ?? ''),
     },
     body: JSON.stringify(novalnetPayload),
   });
@@ -334,9 +334,9 @@ console.log('status-handler');
 const paymentRef = responseData?.custom?.paymentRef ?? '';
 const cartId = responseData?.custom?.cartId ?? ''; 
 
-  const ctPayment = await this.ctPaymentService.getPayment({
-    id: paymentRef,
-  });
+const ctPayment = await this.ctPaymentService.getPayment({
+	id: paymentRef,
+});
 
   const updatedPayment = await this.ctPaymentService.updatePayment({
     id: ctPayment.id,
@@ -389,7 +389,7 @@ const cartId = responseData?.custom?.cartId ?? '';
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+      'X-NN-Access-Key': String(getConfig()?.novalnetPrivateKey ?? ''),
     },
     body: JSON.stringify(novalnetPayloadss),
   });	
@@ -433,7 +433,7 @@ const cartId = responseData?.custom?.cartId ?? '';
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+      'X-NN-Access-Key': String(getConfig()?.novalnetPrivateKey ?? ''),
     },
     body: JSON.stringify(novalnetPayloads),
   });	
@@ -509,7 +509,6 @@ const cartId = responseData?.custom?.cartId ?? '';
   
   log.info('Return URL created:', returnUrl);
   
-      // 🔐 Call Novalnet API server-side (no CORS issue)
 	const novalnetPayload = {
 	  merchant: {
 	    signature: String(getConfig()?.novalnetPrivateKey ?? '7ibc7ob5|tuJEH3gNbeWJfIHah||nbobljbnmdli0poys|doU3HJVoym7MQ44qf7cpn7pc'),
@@ -536,16 +535,16 @@ const cartId = responseData?.custom?.cartId ?? '';
 	  },
 	  transaction: {
 	    test_mode: '1',
-	    //payment_type: 'IDEAL',
+	    payment_type: type.toUpperCase(),
 	    amount: '123',
 	    currency: 'EUR',
-      create_token: '1',
 	    return_url: returnUrl,
 	    error_return_url: returnUrl,
+	    create_token: 1,
 	  },
 	  hosted_page: {
-	    display_payments: ['IDEAL'],
-	    hide_blocks: ['ADDRESS_FORM', 'SHOP_INFO', 'LANGUAGE_MENU', 'TARIFF'],
+	    display_payments: [type.toUpperCase()],
+	    hide_blocks: ['ADDRESS_FORM', 'SHOP_INFO', 'LANGUAGE_MENU', 'HEADER', 'TARIFF'],
 	    skip_pages: ['CONFIRMATION_PAGE', 'SUCCESS_PAGE', 'PAYMENT_PAGE'],
 	  },
 	  custom: {
@@ -567,7 +566,7 @@ const cartId = responseData?.custom?.cartId ?? '';
 	    headers: {
 	      'Content-Type': 'application/json',
 	      'Accept': 'application/json',
-	      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+	      'X-NN-Access-Key': String(getConfig()?.novalnetPrivateKey ?? ''),
 	    },
 	    body: JSON.stringify(novalnetPayload),
 	  });
@@ -582,7 +581,7 @@ const cartId = responseData?.custom?.cartId ?? '';
 	const parsedResponse = JSON.parse(responseString); // convert JSON string to object
 	const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid}
 	Test Order`;
-	let bankDetails = ''; // Use `let` instead of `const` so we can reassign it
+	let bankDetails = '';
 	if (parsedResponse?.transaction?.bank_details) {
 	  bankDetails = `Please transfer the amount of ${parsedResponse?.transaction?.amount} to the following account.
 		Account holder: ${parsedResponse.transaction.bank_details.account_holder}
@@ -595,8 +594,7 @@ const cartId = responseData?.custom?.cartId ?? '';
 	}
 
     return {
-      txnSecret: parsedResponse?.transaction?.txn_secret ?? null,
-      paymentReference: updatedPayment.id,
+      paymentReference: parsedResponse?.transaction?.txn_secret ?? 'null',
     };
   }
 
@@ -699,7 +697,7 @@ public async createPayment(request: CreatePaymentRequest): Promise<PaymentRespon
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json',
-      'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+      'X-NN-Access-Key': String(getConfig()?.novalnetPrivateKey ?? ''),
     },
     body: JSON.stringify(novalnetPayload),
   });
