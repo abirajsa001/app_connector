@@ -113,7 +113,9 @@ console.log('handle-novalnetResponse');
 
     },
   );
-
+    fastify.get('/failure', async (request, reply) => {
+    return reply.send('Payment was successful.');
+  });
 
   fastify.get('/success', async (request, reply) => {
     const query = request.query as {
@@ -131,8 +133,9 @@ console.log('handle-novalnetResponse');
       const tokenString = `${query.tid}${query.txn_secret}${query.status}${accessKey}`;
       const generatedChecksum = crypto.createHash('sha256').update(tokenString).digest('hex');
 
-      //if (generatedChecksum === query.checksum) {
+      if (generatedChecksum === query.checksum) {
         try {
+          // Update payment in commercetools
           const result = await opts.paymentService.createPaymentt({
             data: {
               interfaceId: query.tid,
@@ -140,33 +143,18 @@ console.log('handle-novalnetResponse');
               paymentReference: query.paymentReference,
             },
           });
-			
+
+          // Simple success page - Novalnet child window handles communication
           const successPageHtml = `
             <!DOCTYPE html>
             <html>
             <head>
               <title>Payment Successful</title>
-              <script>
-                window.onload = function() {
-                  if (window.opener) {
-                    window.opener.postMessage({
-                      type: 'PAYMENT_SUCCESS',
-                      paymentReference: '${query.paymentReference}',
-                      transactionId: '${query.tid}'
-                    }, '*');
-                    window.close();
-                  } else {
-                    setTimeout(() => {
-                      window.location.href = '/payment-complete?success=true&paymentReference=${query.paymentReference || query.tid}';
-                    }, 2000);
-                  }
-                };
-              </script>
             </head>
             <body>
               <h1>Payment Successful!</h1>
               <p>Your payment has been processed successfully.</p>
-              <p>Redirecting...</p>
+              <p>Transaction ID: ${query.tid}</p>
             </body>
             </html>
           `;
@@ -176,52 +164,74 @@ console.log('handle-novalnetResponse');
           log.error('Error processing payment:', error);
           return reply.code(400).send('Payment processing failed');
         }
-      //} else {
-       // return reply.code(400).send('Checksum verification failed.');
-      //}
+      } else {
+        return reply.code(400).send('Checksum verification failed.');
+      }
     } else {
       return reply.code(400).send('Missing required query parameters.');
     }
   });
 
-  fastify.get('/failure', async (request, reply) => {
+  fastify.get('/novalnet-payment', async (request, reply) => {
     const query = request.query as {
-      tid?: string;
-      status?: string;
-      paymentReference?: string;
+      txn_secret?: string;
     };
-
-    const failurePageHtml = `
+    
+    if (!query.txn_secret) {
+      return reply.code(400).send('Missing txn_secret parameter');
+    }
+    
+    const novalnetPaymentPage = `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Payment Failed</title>
-        <script>
-          window.onload = function() {
-            if (window.opener) {
-              window.opener.postMessage({
-                type: 'PAYMENT_FAILURE',
-                paymentReference: '${query.paymentReference || ''}',
-                transactionId: '${query.tid || ''}'
-              }, '*');
-              window.close();
-            } else {
-              setTimeout(() => {
-                window.location.href = '/payment-complete?success=false&paymentReference=${query.paymentReference || query.tid || ''}';
-              }, 2000);
-            }
-          };
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Novalnet Payment</title>
+        <script src="https://paygate.novalnet.de/v2/checkout-1.1.0.js?t=${Date.now()}" id="novalnet-checkout-js" integrity="sha384-RTo1KLOtNoTrL1BSbu7e6j+EBW5LRzBKiOMAo5C2MBUB9kapkJi1LPG4jk5vzPyv" crossorigin="anonymous"></script>
+        <script type="text/javascript">
+          Novalnet.setParam("nn_it", "child_window");
+          Novalnet.setParam("txn_secret", "${query.txn_secret}");
+          ListenPostmessage(window, "message", NovalnetResponseEventHandler);
         </script>
       </head>
       <body>
-        <h1>Payment Failed</h1>
-        <p>Your payment could not be processed.</p>
-        <p>Redirecting...</p>
+        <div style="text-align: center; padding: 50px;">
+          <h2>Complete Your Payment</h2>
+          <button type="submit" onclick="Novalnet.render();" style="padding: 15px 30px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            <span>Pay Now</span>
+          </button>
+        </div>
       </body>
       </html>
+      <script>
+        function NovalnetResponseEventHandler(e) {
+          if (e.origin === "https://paygate.novalnet.de") {
+            var json_event_data = JSON.parse(e.data);
+            if (json_event_data.status_code == "100" || json_event_data.status == 100) {
+              if (window.opener) {
+                window.opener.postMessage(e.data, '*');
+              }
+              Novalnet.closeChildWindow();
+            } else if (json_event_data.nnpf_postMsg == "payment_cancel") {
+              if (window.opener) {
+                window.opener.postMessage(e.data, '*');
+              }
+              Novalnet.closeChildWindow();
+            }
+          }
+        }
+        
+        function ListenPostmessage(element, eventName, handler) {
+          if (element.addEventListener) {
+            element.addEventListener(eventName, handler, false);
+          } else if (element.attachEvent) {
+            element.attachEvent("on" + eventName, handler);
+          }
+        }
+      </script>
     `;
     
-    return reply.type('text/html').send(failurePageHtml);
+    return reply.type('text/html').send(novalnetPaymentPage);
   });
 
   fastify.get('/payment-complete', async (request, reply) => {
@@ -249,18 +259,10 @@ console.log('handle-novalnetResponse');
       </html>
     `;
     
-    
     return reply.type('text/html').send(completePage);
   });
 
-fastify.get('/callback', async (request, reply) => {
-    return reply.send('sucess');
-});
 
-fastify.post('/webhook', async (request, reply) => {
-    return reply.send('sucess');
-});
-	
 fastify.get<{ 
   Querystring: PaymentRequestSchemaDTO; 
   Reply: PaymentResponseSchemaDTO 
