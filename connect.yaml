@@ -23,14 +23,26 @@ deployAs:
           description: "commercetools API URL"
           required: true
           default: "https://api.europe-west1.gcp.commercetools.com"
+        - key: CTP_SESSION_URL
+          description: "commercetools Session URL"
+          required: true
+          default: "https://session.europe-west1.gcp.commercetools.com"
+        - key: CTP_JWKS_URL
+          description: "JWKs url"
+          required: true
+          default: "https://mc-api.europe-west1.gcp.commercetools.com/.well-known/jwks.json"
+        - key: CTP_JWT_ISSUER
+          description: "JWT Issuer for jwt validation"
+          required: true
+          default: "https://mc-api.europe-west1.gcp.commercetools.com"
         - key: NOVALNET_PRIVATE_KEY
-          description: Novalnet unique identifier.
+          description: Novalnet Access Key for API authentication
           required: true
         - key: NOVALNET_PUBLIC_KEY
-          description: Novalnet unique identifier.
-          required: true
+          description: Novalnet Public Key
+          required: false
         - key: NOVALNET_TARIFF_KEY
-          description: Novalnet unique identifier.
+          description: Novalnet Tariff ID
           required: true
         - key: NOVALNET_WEBHOOK_URL
           description: Novalnet unique identifier.
