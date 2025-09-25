@@ -253,7 +253,14 @@ console.log('handle-novalnetResponse');
     return reply.type('text/html').send(completePage);
   });
 
+fastify.get('/callback', async (request, reply) => {
+    return reply.send('sucess');
+});
 
+fastify.post('/webhook', async (request, reply) => {
+    return reply.send('sucess');
+});
+	
 fastify.get<{ 
   Querystring: PaymentRequestSchemaDTO; 
   Reply: PaymentResponseSchemaDTO 
