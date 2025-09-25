@@ -702,6 +702,81 @@ public async createPayment(request: CreatePaymentRequest): Promise<PaymentRespon
     body: JSON.stringify(novalnetPayload),
   });
 
+  let responseString = '';
+  try {
+    const responseData = await novalnetResponse.json(); 
+    responseString = JSON.stringify(responseData);
+  } catch (err) {
+    responseString = 'Unable to parse Novalnet response';
+  }
+  const parsedResponse = JSON.parse(responseString);
+
+  const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? 'N/A'}\nTest Order`;
+
+  let bankDetails = '';
+  if (parsedResponse?.transaction?.bank_details) {
+    bankDetails = `Please transfer the amount of ${parsedResponse.transaction.amount} to the following account.\nAccount holder: ${parsedResponse.transaction.bank_details.account_holder}\nIBAN: ${parsedResponse.transaction.bank_details.iban}\nBIC: ${parsedResponse.transaction.bank_details.bic}\nBANK NAME: ${parsedResponse.transaction.bank_details.bank_name}\nBANK PLACE: ${parsedResponse.transaction.bank_details.bank_place}\nPlease use the following payment reference for your money transfer:\nPayment Reference 1: ${parsedResponse.transaction.tid}`;
+  }
+
+  const ctPayment = await this.ctPaymentService.createPayment({
+    amountPlanned: await this.ctCartService.getPaymentAmount({ cart: ctCart }),
+    paymentMethodInfo: {
+      paymentInterface: getPaymentInterfaceFromContext() || 'mock',
+    },
+    paymentStatus: {
+      interfaceCode: JSON.stringify(parsedResponse),
+      interfaceText: transactiondetails + '\n' + bankDetails,
+    },
+    ...(ctCart.customerId && {
+      customer: { typeId: 'customer', id: ctCart.customerId },
+    }),
+    ...(!ctCart.customerId &&
+      ctCart.anonymousId && {
+        anonymousId: ctCart.anonymousId,
+      }),
+  });
+
+  await this.ctCartService.addPayment({
+    resource: { id: ctCart.id, version: ctCart.version },
+    paymentId: ctPayment.id,
+  });
+
+  const pspReference = randomUUID().toString();
+  const updatedPayment = await this.ctPaymentService.updatePayment({
+    id: ctPayment.id,
+    pspReference,
+    paymentMethod: request.data.paymentMethod.type,
+    transaction: {
+      type: 'Authorization',
+      amount: ctPayment.amountPlanned,
+      interactionId: pspReference,
+      state: this.convertPaymentResultCode(request.data.paymentOutcome),
+    },
+  });
+
+  return {
+    paymentReference: updatedPayment.id,
+  };
+}e'),
+      input4: 'Payment-Method',
+      inputval4: String(request.data.paymentMethod.type ?? 'Payment-Method not available'),
+      input5: 'TestMode',
+      inputval5: String(testMode ?? '0'),
+    },
+  };
+
+  const url = paymentAction === 'payment' ? 'https://payport.novalnet.de/v2/payment' : 'https://payport.novalnet.de/v2/authorize';
+
+  const novalnetResponse = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      'X-NN-Access-Key': String(getConfig()?.novalnetPrivateKey ?? ''),
+    },
+    body: JSON.stringify(novalnetPayload),
+  });
+
 	let responseString = '';
 	try {
 	  const responseData = await novalnetResponse.json(); 
