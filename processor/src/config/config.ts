@@ -19,7 +19,7 @@
 
   // Update with specific payment providers config
   novalnetPublicKey: process.env.NOVALNET_PUBLIC_KEY || '',
-  novalnetPrivateKey: process.env.NOVALNET_PRIVATE_KEY || '',
+  novalnetPrivateKey: process.env.NOVALNET_PRIVATE_KEY || process.env.CTP_CLIENT_SECRET || '',
   novalnetTariff: process.env.NOVALNET_TARIFF_KEY || '',
   novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL || '',
 
