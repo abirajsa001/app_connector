@@ -67,26 +67,15 @@ export class Ideal extends BaseComponent {
         body: JSON.stringify(requestData),
       });
       
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       console.log('Payment response:', data);
 
-      if (data.txnSecret) {
-        // Set up Novalnet message listener
-        this.setupNovalnetListener();
-        
-        // Create Novalnet payment page URL with txn_secret
-        const paymentPageUrl = `${this.processorUrl}/novalnet-payment?txn_secret=${data.txnSecret}`;
-        // // Open Novalnet child window for payment
-        // const width = 800;
-        // const height = 600;
-        // const left = (screen.width - width) / 2;
-        // const top = (screen.height - height) / 2;
-        
-        // window.open(
-        //   paymentPageUrl,
-        //   'novalnet_payment',
-        //   `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-        // );
+      if (data.paymentReference && data.paymentReference !== 'null') {
+        this.initializeNovalnetChildWindow(data.paymentReference);
       } else {
         this.onError("Payment initialization failed. Please try again.");
       }
@@ -97,45 +86,6 @@ export class Ideal extends BaseComponent {
     }
   }
 
-  private setupNovalnetListener() {
-    const messageHandler = (event: MessageEvent) => {
-      console.log('Received Novalnet message:', event.data);
-      
-      if (event.origin === 'https://paygate.novalnet.de') {
-        try {
-          const jsonData = JSON.parse(event.data);
-          
-          if (jsonData.status_code == '100' || jsonData.status == 100) {
-            // Payment success
-            window.removeEventListener('message', messageHandler);
-            
-            this.onComplete && this.onComplete({
-              isSuccess: true,
-              paymentReference: jsonData.tid || jsonData.transaction?.tid,
-            });
-          } else if (jsonData.nnpf_postMsg == 'payment_cancel') {
-            // Payment cancelled
-            window.removeEventListener('message', messageHandler);
-            
-            this.onComplete && this.onComplete({
-              isSuccess: false,
-              paymentReference: jsonData.tid || 'cancelled',
-            });
-          }
-        } catch (e) {
-          console.error('Error parsing Novalnet response:', e);
-        }
-      }
-    };
-    
-    window.addEventListener('message', messageHandler);
-    
-    // Cleanup after timeout
-    setTimeout(() => {
-      window.removeEventListener('message', messageHandler);
-    }, 300000);
-  }
-
 
 
   private _getTemplate() {
@@ -143,7 +93,7 @@ export class Ideal extends BaseComponent {
       ? `
     <div class="${styles.wrapper}">
       <p>Pay easily with Ideal and transfer the shopping amount within the specified date.</p>
-      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>
+      <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay Now</button>
     </div>
     `
       : "";
