@@ -5,7 +5,9 @@ declare global {
     Novalnet: {
       setParam(key: string, value: string): void;
       render(): void;
-      closeChildWindow(): void;
+      closeChildWindow(method?: string): void;
     };
   }
 }
+
+export {};
