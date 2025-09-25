@@ -12,4 +12,6 @@ async function runPostDeployScripts() {
   }
 }
 
-runPostDeployScripts();
+(async () => {
+  await runPostDeployScripts();
+})();
