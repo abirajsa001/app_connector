@@ -48,7 +48,10 @@ export class Ideal extends BaseComponent {
 
   async submit() {
     this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
+    console.log('=== IDEAL ENABLER SUBMIT START ===');
+    console.log('Environment:', this.environment);
+    console.log('Processor URL:', this.processorUrl);
+    console.log('Session ID:', this.sessionId);
 
     try {
       const requestData: PaymentRequestSchemaDTO = {
@@ -57,7 +60,9 @@ export class Ideal extends BaseComponent {
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
+      console.log('Request data:', JSON.stringify(requestData, null, 2));
 
+      console.log('Making API call to:', this.processorUrl + "/payments");
       const response = await fetch(this.processorUrl + "/payments", {
         method: "POST",
         headers: {
@@ -66,22 +71,33 @@ export class Ideal extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
       
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('HTTP error response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('Payment response:', data);
+      console.log('=== PAYMENT RESPONSE ===:', JSON.stringify(data, null, 2));
 
       if (data.paymentReference && data.paymentReference !== 'null') {
+        console.log('Initializing Novalnet child window with txn_secret:', data.paymentReference);
         this.initializeNovalnetChildWindow(data.paymentReference);
       } else {
+        console.error('No valid payment reference received:', data.paymentReference);
         this.onError("Payment initialization failed. Please try again.");
       }
 
     } catch (e) {
-      console.error('Payment submission error:', e);
+      console.error('=== PAYMENT SUBMISSION ERROR ===:', e);
+      console.error('Error details:', {
+        message: e.message,
+        stack: e.stack,
+        name: e.name
+      });
       this.onError("Some error occurred. Please try again.");
     }
   }
