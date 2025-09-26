@@ -494,25 +494,68 @@ export class MockPaymentService extends AbstractPaymentService {
   public async createPayments(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
+    log.info("=== IDEAL PAYMENT START ===");
+    log.info("Request data:", JSON.stringify(request.data, null, 2));
+    
     const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
+    log.info("Payment type:", type);
+    
     const config = getConfig();
-    const { testMode, paymentAction } = getNovalnetConfigValues(type, config);
-
-    const ctCart = await this.ctCartService.getCart({
-      id: getCartIdFromContext(),
+    log.info("Config loaded:", {
+      hasPrivateKey: !!config.novalnetPrivateKey,
+      hasTariff: !!config.novalnetTariff,
+      privateKeyLength: config.novalnetPrivateKey?.length || 0
     });
+    
+    const { testMode, paymentAction } = getNovalnetConfigValues(type, config);
+    log.info("Novalnet config:", { testMode, paymentAction });
+
+    const cartId = getCartIdFromContext();
+    log.info("Cart ID from context:", cartId);
+    
+    const ctCart = await this.ctCartService.getCart({
+      id: cartId,
+    });
+    log.info("Cart retrieved:", {
+      id: ctCart.id,
+      version: ctCart.version,
+      customerId: ctCart.customerId,
+      anonymousId: ctCart.anonymousId,
+      customerEmail: ctCart.customerEmail
+    });
+    
     const deliveryAddress = await this.ctcc(ctCart);
     const billingAddress = await this.ctbb(ctCart);
+    log.info("Addresses:", {
+      billing: billingAddress,
+      delivery: deliveryAddress
+    });
+    
     const parsedCart = typeof ctCart === "string" ? JSON.parse(ctCart) : ctCart;
+    log.info("Cart amount:", {
+      centAmount: parsedCart?.taxedPrice?.totalGross?.centAmount,
+      currency: parsedCart?.taxedPrice?.totalGross?.currencyCode
+    });
+    
     const processorURL = Context.getProcessorUrlFromContext();
     const sessionId = Context.getCtSessionIdFromContext();
+    log.info("Context data:", {
+      processorURL,
+      sessionId
+    });
 
+    const paymentAmount = await this.ctCartService.getPaymentAmount({
+      cart: ctCart,
+    });
+    log.info("Payment amount calculated:", paymentAmount);
+    
+    const paymentInterface = getPaymentInterfaceFromContext() || "mock";
+    log.info("Payment interface:", paymentInterface);
+    
     const ctPayment = await this.ctPaymentService.createPayment({
-      amountPlanned: await this.ctCartService.getPaymentAmount({
-        cart: ctCart,
-      }),
+      amountPlanned: paymentAmount,
       paymentMethodInfo: {
-        paymentInterface: getPaymentInterfaceFromContext() || "mock",
+        paymentInterface,
       },
       ...(ctCart.customerId && {
         customer: { typeId: "customer", id: ctCart.customerId },
@@ -521,6 +564,10 @@ export class MockPaymentService extends AbstractPaymentService {
         ctCart.anonymousId && {
           anonymousId: ctCart.anonymousId,
         }),
+    });
+    log.info("CT Payment created:", {
+      id: ctPayment.id,
+      amountPlanned: ctPayment.amountPlanned
     });
 
     await this.ctCartService.addPayment({
@@ -542,7 +589,7 @@ export class MockPaymentService extends AbstractPaymentService {
     });
 
     const paymentRef = updatedPayment.id;
-    const cartId = ctCart.id;
+    const paymentCartId = ctCart.id;
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
@@ -574,10 +621,10 @@ export class MockPaymentService extends AbstractPaymentService {
         email: "abiraj_s@novalnetsolutions.com",
       },
       transaction: {
-        test_mode: "1",
+        test_mode: testMode === "1" ? "1" : "0",
         payment_type: type.toUpperCase(),
-        amount: "123",
-        currency: "EUR",
+        amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
+        currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
         return_url: returnUrl,
         error_return_url: returnUrl,
         create_token: 1,
@@ -597,7 +644,7 @@ export class MockPaymentService extends AbstractPaymentService {
         input1: "paymentRef",
         inputval1: String(paymentRef ?? "no paymentRef"),
         input2: "cartId",
-        inputval2: String(cartId ?? "no cartId"),
+        inputval2: String(paymentCartId ?? "no cartId"),
         input3: "currencyCode",
         inputval3: String(
           parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR",
@@ -609,6 +656,8 @@ export class MockPaymentService extends AbstractPaymentService {
       },
     };
 
+    log.info("Full Novalnet payload:", JSON.stringify(novalnetPayload, null, 2));
+    
     const novalnetResponse = await fetch(
       "https://payport.novalnet.de/v2/seamless/payment",
       {
@@ -621,18 +670,44 @@ export class MockPaymentService extends AbstractPaymentService {
         body: JSON.stringify(novalnetPayload),
       },
     );
+    
+    log.info("Novalnet response status:", novalnetResponse.status);
 
     let responseString = "";
+    let parsedResponse: any = {};
+    
     try {
       const responseData = await novalnetResponse.json();
       responseString = JSON.stringify(responseData);
+      parsedResponse = responseData;
+      log.info("Novalnet response parsed:", JSON.stringify(parsedResponse, null, 2));
     } catch (err) {
-      responseString = "Unable to parse Novalnet response";
+      log.error("Failed to parse Novalnet response:", err);
+      throw new Error("Invalid response from payment provider");
     }
-    const parsedResponse = JSON.parse(responseString);
 
+    // Check for Novalnet API errors
+    if (parsedResponse?.result?.status !== 'SUCCESS') {
+      log.error("Novalnet API error - Status not SUCCESS:", {
+        status: parsedResponse?.result?.status,
+        statusText: parsedResponse?.result?.status_text,
+        fullResponse: parsedResponse
+      });
+      throw new Error(parsedResponse?.result?.status_text || "Payment initialization failed");
+    }
+
+    const txnSecret = parsedResponse?.transaction?.txn_secret;
+    if (!txnSecret) {
+      log.error("No txn_secret in Novalnet response:", {
+        transaction: parsedResponse?.transaction,
+        fullResponse: parsedResponse
+      });
+      throw new Error("Payment initialization failed - missing transaction secret");
+    }
+
+    log.info("=== IDEAL PAYMENT SUCCESS ===, returning txn_secret:", txnSecret);
     return {
-      paymentReference: parsedResponse?.transaction?.txn_secret ?? "null",
+      paymentReference: txnSecret,
     };
   }
 
