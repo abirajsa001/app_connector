@@ -44,7 +44,11 @@ export abstract class BaseComponent implements PaymentComponent {
   }
 
   protected initializeNovalnetChildWindow(txnSecret: string) {
+    console.log('=== NOVALNET CHILD WINDOW INIT ===');
+    console.log('txn_secret:', txnSecret);
+    
     this.loadNovalnetScript(() => {
+      console.log('Novalnet script loaded successfully');
       this.setupNovalnetChildWindow(txnSecret);
       
       // Fallback timeout to ensure onComplete is called
@@ -59,7 +63,9 @@ export abstract class BaseComponent implements PaymentComponent {
   }
 
   private loadNovalnetScript(callback: () => void) {
+    console.log('Loading Novalnet script...');
     if (document.getElementById('novalnet-checkout-js')) {
+      console.log('Novalnet script already loaded');
       callback();
       return;
     }
@@ -69,21 +75,35 @@ export abstract class BaseComponent implements PaymentComponent {
     script.src = `https://paygate.novalnet.de/v2/checkout-1.1.0.js?t=${Date.now()}`;
     script.integrity = 'sha384-RTo1KLOtNoTrL1BSbu7e6j+EBW5LRzBKiOMAo5C2MBUB9kapkJi1LPG4jk5vzPyv';
     script.crossOrigin = 'anonymous';
-    script.onload = callback;
-    script.onerror = () => this.onError('Failed to load Novalnet SDK');
+    script.onload = () => {
+      console.log('Novalnet script loaded from CDN');
+      callback();
+    };
+    script.onerror = (error) => {
+      console.error('Failed to load Novalnet SDK:', error);
+      this.onError('Failed to load Novalnet SDK');
+    };
     document.head.appendChild(script);
   }
 
   private setupNovalnetChildWindow(txnSecret: string) {
+    console.log('Setting up Novalnet child window...');
+    console.log('window.Novalnet available:', typeof window.Novalnet !== 'undefined');
+    
     if (typeof window.Novalnet !== 'undefined') {
+      console.log('Setting Novalnet parameters...');
       window.Novalnet.setParam('nn_it', 'child_window');
       window.Novalnet.setParam('txn_secret', txnSecret);
       window.Novalnet.setParam('rftarget', 'top');
       
+      console.log('Parameters set, setting up message listener...');
       this.setupNovalnetMessageListener();
       
+      console.log('Rendering Novalnet child window...');
       window.Novalnet.render(); // This automatically creates the child window
+      console.log('Novalnet render called');
     } else {
+      console.error('Novalnet SDK not available on window object');
       this.onError('Novalnet SDK not loaded properly');
     }
   }
@@ -97,7 +117,9 @@ export abstract class BaseComponent implements PaymentComponent {
             eventData = JSON.parse(eventData);
           }
           
-          console.log('Novalnet message received:', eventData);
+          console.log('=== NOVALNET MESSAGE RECEIVED ===:', eventData);
+          console.log('Event origin:', event.origin);
+          console.log('Raw event data:', event.data);
           
           // Handle successful payment - PRIORITY: Trigger onComplete
           if (eventData.status_code === '100' || eventData.status === 100) {
