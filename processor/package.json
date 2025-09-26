@@ -2,7 +2,7 @@
   "name": "payment-integration-template",
   "version": "4.1.0",
   "description": "Payment provider integration template",
-  "main": "dist/server.js",
+  "main": "dist/main.js",
   "scripts": {
     "start": "node dist/main.js",
     "start:dev": "node_modules/.bin/nodemon -q dist/main.js",
