@@ -10,10 +10,10 @@ deployAs:
     configuration:
       standardConfiguration:
         - key: CTP_PROJECT_KEY
-          description: "commercetools project key descriptions"
+          description: "commercetools project key"
           required: true
         - key: CTP_CLIENT_ID
-          description: "commercetools client ID with required scopes"
+          description: "commercetools client ID with manage_payments, manage_orders, view_sessions, view_api_clients, manage_checkout_payment_intents & introspect_oauth_tokens scopes"
           required: true
         - key: CTP_AUTH_URL
           description: "commercetools Auth URL"
@@ -45,32 +45,38 @@ deployAs:
           description: Novalnet Tariff ID
           required: true
         - key: NOVALNET_WEBHOOK_URL
-          description: Novalnet unique identifier.
+          description: Novalnet webhook URL for payment notifications
           required: true
         - key: NOVALNET_INVOICE_TEST_MODE
-          description: Novalnet unique identifier test description data.
+          description: Enable test mode for Invoice payments (0=Live, 1=Test)
           required: false
         - key: NOVALNET_INVOICE_DUE_DATE
-          description: Novalnet unique identifier test description data.
+          description: Due date in days for Invoice payments
           required: true
         - key: NOVALNET_INVOICE_PAYMENT_ACTION
-          description: Novalnet unique identifier test description data.
+          description: Payment action for Invoice (payment/authorize)
           required: true
         - key: NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT
-          description: Novalnet unique identifier test description data.
+          description: Minimum amount for Invoice payment action
           required: true
         - key: NOVALNET_PREPAYMENT_TEST_MODE
-          description: Novalnet unique identifier test description data.
+          description: Enable test mode for Prepayment (0=Live, 1=Test)
           required: true
         - key: NOVALNET_PREPAYMENT_DUE_DATE
-          description: Novalnet unique identifier test description data.
+          description: Due date in days for Prepayment
           required: true
         - key: NOVALNET_PREPAYMENT_PAYMENT_ACTION
-          description: Novalnet unique identifier test description data.
+          description: Payment action for Prepayment (payment/authorize)
           required: true
         - key: NOVALNET_PREPAYMENT_PAYMENT_ACTION_MINIMUM_AMOUNT
-          description: Novalnet unique identifier test description data.
+          description: Minimum amount for Prepayment action
           required: true
+        - key: MERCHANT_RETURN_URL
+          description: Merchant return URL for payment completion
+          required: false
+        - key: CONNECT_SERVICE_URL
+          description: Connect service URL for internal communication
+          required: false
       securedConfiguration:
         - key: CTP_CLIENT_SECRET
           description: "commercetools client secret"
