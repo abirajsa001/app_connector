@@ -95,11 +95,26 @@ export const paymentRoutes = async (
       },
     },
     async (request, reply) => {
-      const resp = await opts.paymentService.createPayments({
-        data: request.body,
-      });
-
-      return reply.status(200).send(resp);
+      log.info("=== PAYMENT ROUTE /payments CALLED ===");
+      log.info("Request body:", JSON.stringify(request.body, null, 2));
+      log.info("Request headers:", request.headers);
+      
+      try {
+        const resp = await opts.paymentService.createPayments({
+          data: request.body,
+        });
+        log.info("Payment service response:", JSON.stringify(resp, null, 2));
+        return reply.status(200).send(resp);
+      } catch (error) {
+        log.error("Payment route error:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        log.error("Error details:", {
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          name: error instanceof Error ? error.name : undefined
+        });
+        return reply.status(500).send({ paymentReference: 'error' });
+      }
     },
   );
 
