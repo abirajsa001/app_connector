@@ -1,8 +1,8 @@
 export const config = {
   // Required by Payment SDK
-  projectKey: process.env.CTP_PROJECT_KEY || "payment-integration",
-  clientId: process.env.CTP_CLIENT_ID || "xxx",
-  clientSecret: process.env.CTP_CLIENT_SECRET || "xxx",
+  projectKey: process.env.CTP_PROJECT_KEY!,
+  clientId: process.env.CTP_CLIENT_ID!,
+  clientSecret: process.env.CTP_CLIENT_SECRET!,
   jwksUrl:
     process.env.CTP_JWKS_URL ||
     "https://mc-api.europe-west1.gcp.commercetools.com/.well-known/jwks.json",
@@ -28,27 +28,26 @@ export const config = {
 
   // Update with specific payment providers config
   novalnetPublicKey: process.env.NOVALNET_PUBLIC_KEY || "",
-  novalnetPrivateKey:
-    process.env.NOVALNET_PRIVATE_KEY || process.env.CTP_CLIENT_SECRET || "",
-  novalnetTariff: process.env.NOVALNET_TARIFF_KEY || "",
-  novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL || "",
+  novalnetPrivateKey: process.env.NOVALNET_PRIVATE_KEY!,
+  novalnetTariff: process.env.NOVALNET_TARIFF_KEY!,
+  novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL!,
 
-  merchanturl: process.env.MERCHANT_RETURN_URL || "no",
-  serviceurl: process.env.CONNECT_SERVICE_URL || "no",
-  url: process.env.URL || "no",
+  merchanturl: process.env.MERCHANT_RETURN_URL || "",
+  serviceurl: process.env.CONNECT_SERVICE_URL || "",
+  url: process.env.URL || "",
 
   novalnet_INVOICE_TestMode:
-    process.env.NOVALNET_INVOICE_TEST_MODE || "processor-config",
+    process.env.NOVALNET_INVOICE_TEST_MODE || "0",
   novalnet_PREPAYMENT_TestMode:
-    process.env.NOVALNET_PREPAYMENT_TEST_MODE || "processor-config",
+    process.env.NOVALNET_PREPAYMENT_TEST_MODE || "0",
   novalnet_INVOICE_DueDate:
-    process.env.NOVALNET_INVOICE_DUE_DATE || "processor-config",
+    process.env.NOVALNET_INVOICE_DUE_DATE || "14",
   novalnet_PREPAYMENT_DueDate:
-    process.env.NOVALNET_PREPAYMENT_DUE_DATE || "processor-config",
+    process.env.NOVALNET_PREPAYMENT_DUE_DATE || "14",
   novalnet_INVOICE_PaymentAction:
-    process.env.NOVALNET_INVOICE_PAYMENT_ACTION || "processor-config",
+    process.env.NOVALNET_INVOICE_PAYMENT_ACTION || "payment",
   novalnet_PREPAYMENT_PaymentAction:
-    process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION || "processor-config",
+    process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION || "payment",
 
   // Payment Providers config
   returnurl: process.env.RETURN_URL,
