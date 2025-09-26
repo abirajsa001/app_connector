@@ -284,7 +284,7 @@ export class MockPaymentService extends AbstractPaymentService {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          "X-NN-Access-Key": String(getConfig()?.novalnetPrivateKey ?? ""),
+         'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
         },
         body: JSON.stringify(novalnetPayload),
       },
@@ -427,7 +427,7 @@ export class MockPaymentService extends AbstractPaymentService {
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "X-NN-Access-Key": String(getConfig()?.novalnetPrivateKey ?? ""),
+        'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
       },
       body: JSON.stringify(novalnetPayload),
     });
@@ -621,7 +621,7 @@ export class MockPaymentService extends AbstractPaymentService {
         email: "abiraj_s@novalnetsolutions.com",
       },
       transaction: {
-        test_mode: testMode === "1" ? "1" : "0",
+        test_mode: "1",
         payment_type: type.toUpperCase(),
         amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
         currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
@@ -663,9 +663,9 @@ export class MockPaymentService extends AbstractPaymentService {
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "X-NN-Access-Key": String(getConfig()?.novalnetPrivateKey ?? ""),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
         },
         body: JSON.stringify(novalnetPayload),
       },
