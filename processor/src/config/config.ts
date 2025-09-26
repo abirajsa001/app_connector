@@ -33,7 +33,6 @@ export const config = {
   novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL!,
 
   merchanturl: process.env.MERCHANT_RETURN_URL || "",
-  serviceurl: process.env.CONNECT_SERVICE_URL || "",
   url: process.env.URL || "",
 
   novalnet_INVOICE_TestMode:
