@@ -78,3 +78,4 @@ deployAs:
         - key: CTP_CLIENT_SECRET
           description: "commercetools client secret"
           required: true
+
