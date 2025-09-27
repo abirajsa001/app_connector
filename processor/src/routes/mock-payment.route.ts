@@ -31,7 +31,7 @@ export const paymentRoutes = async (
 ) => {
   fastify.post("/test", async (request, reply) => {
     console.log("Received payment request in processor");
-    // Call Novalnet API server-side (no CORS issue)
+
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
