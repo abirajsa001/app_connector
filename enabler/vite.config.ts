@@ -12,8 +12,6 @@ export default defineConfig({
         try {
           if (typeof document != "undefined") {
             var elementStyle = document.createElement("style");
-            // this attribute will allow the client application using this connector to
-            // identify the style tag and remove it if needed for cleanup purposes
             elementStyle.setAttribute("data-ctc-connector-styles", "");
             for (const attribute in options.attributes) {
               elementStyle.setAttribute(
