@@ -309,16 +309,13 @@ export class MockPaymentService extends AbstractPaymentService {
 
     const novalnetTid = responseData?.transaction?.tid || parsedData?.interfaceId;
     
-    // Prepare payment details text
     let paymentDetails = `Novalnet Transaction ID: ${novalnetTid}\nPayment Status: ${responseData?.transaction?.status_text || "Completed"}`;
 
-    // Add bank details if available
     if (responseData?.transaction?.bank_details) {
       const bankInfo = responseData.transaction.bank_details;
       paymentDetails += `\n\nBank Transfer Details:\nAccount holder: ${bankInfo.account_holder}\nIBAN: ${bankInfo.iban}\nBIC: ${bankInfo.bic}\nBank: ${bankInfo.bank_name}\nBank Place: ${bankInfo.bank_place}\nPayment Reference: ${novalnetTid}`;
     }
     
-    // Update payment with Novalnet TID using Payment SDK
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference: novalnetTid,
@@ -330,7 +327,6 @@ export class MockPaymentService extends AbstractPaymentService {
       },
     });
 
-    // Store additional details in logs for reference
     const additionalDetails = {
       novalnetTid,
       status: responseData?.transaction?.status_text || "Completed",
@@ -730,7 +726,6 @@ export class MockPaymentService extends AbstractPaymentService {
       throw new Error("Payment initialization failed");
     }
 
-    // Check for Novalnet API errors
     if (parsedResponse?.result?.status !== 'SUCCESS') {
       log.error("Novalnet API error - Status not SUCCESS:", {
         status: parsedResponse?.result?.status,
