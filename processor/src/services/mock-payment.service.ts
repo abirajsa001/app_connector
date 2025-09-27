@@ -277,20 +277,30 @@ export class MockPaymentService extends AbstractPaymentService {
       },
     };
 
-    const novalnetResponse = await fetch(
-      "https://payport.novalnet.de/v2/transaction/details",
-      {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+    let responseData: any;
+    try {
+      const novalnetResponse = await fetch(
+        "https://payport.novalnet.de/v2/transaction/details",
+        {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+          },
+          body: JSON.stringify(novalnetPayload),
         },
-        body: JSON.stringify(novalnetPayload),
-      },
-    );
+      );
 
-    const responseData = await novalnetResponse.json();
+      if (!novalnetResponse.ok) {
+        throw new Error(`Novalnet API error: ${novalnetResponse.status}`);
+      }
+
+      responseData = await novalnetResponse.json();
+    } catch (error) {
+      log.error("Failed to fetch transaction details from Novalnet:", error);
+      throw new Error("Payment verification failed");
+    }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
 
     const ctPayment = await this.ctPaymentService.getPayment({
@@ -299,35 +309,19 @@ export class MockPaymentService extends AbstractPaymentService {
 
     const novalnetTid = responseData?.transaction?.tid || parsedData?.interfaceId;
     
-    // Prepare custom fields for Novalnet TID and bank details
-    const customFields: Record<string, any> = {
-      novalnetTid: novalnetTid,
-      novalnetStatus: responseData?.transaction?.status_text || "Completed"
-    };
+    // Prepare payment details text
+    let paymentDetails = `Novalnet Transaction ID: ${novalnetTid}\nPayment Status: ${responseData?.transaction?.status_text || "Completed"}`;
 
     // Add bank details if available
     if (responseData?.transaction?.bank_details) {
       const bankInfo = responseData.transaction.bank_details;
-      customFields.novalnetBankDetails = JSON.stringify({
-        accountHolder: bankInfo.account_holder,
-        iban: bankInfo.iban,
-        bic: bankInfo.bic,
-        bankName: bankInfo.bank_name,
-        bankPlace: bankInfo.bank_place,
-        paymentReference: novalnetTid
-      });
+      paymentDetails += `\n\nBank Transfer Details:\nAccount holder: ${bankInfo.account_holder}\nIBAN: ${bankInfo.iban}\nBIC: ${bankInfo.bic}\nBank: ${bankInfo.bank_name}\nBank Place: ${bankInfo.bank_place}\nPayment Reference: ${novalnetTid}`;
     }
     
+    // Update payment with Novalnet TID using Payment SDK
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference: novalnetTid,
-      custom: {
-        type: {
-          typeId: "type",
-          key: "novalnet-payment-details"
-        },
-        fields: customFields
-      },
       transaction: {
         type: "Authorization",
         amount: ctPayment.amountPlanned,
@@ -336,18 +330,26 @@ export class MockPaymentService extends AbstractPaymentService {
       },
     });
 
-    log.info("Payment updated with Novalnet details:", {
-      paymentId: updatedPayment.id,
+    // Store additional details in logs for reference
+    const additionalDetails = {
       novalnetTid,
-      customFields,
+      status: responseData?.transaction?.status_text || "Completed",
+      bankDetails: responseData?.transaction?.bank_details
+    };
+
+    const finalPayment = updatedPayment;
+
+    log.info("Payment updated with Novalnet details:", {
+      paymentId: finalPayment.id,
+      additionalDetails,
       novalnetResponse: responseData
     });
 
     const redirectUrl = new URL(merchantReturnUrl);
-    redirectUrl.searchParams.append("paymentReference", updatedPayment.id);
+    redirectUrl.searchParams.append("paymentReference", finalPayment.id);
 
     return {
-      paymentReference: updatedPayment.id,
+      paymentReference: finalPayment.id,
     };
   }
 
@@ -457,22 +459,28 @@ export class MockPaymentService extends AbstractPaymentService {
         ? "https://payport.novalnet.de/v2/payment"
         : "https://payport.novalnet.de/v2/authorize";
 
-    const novalnetResponse = await fetch(url, {
-      method: "POST",
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
-      },
-      body: JSON.stringify(novalnetPayload),
-    });
-
     let responseString = "";
+    let responseData: any;
     try {
-      const responseData = await novalnetResponse.json();
+      const novalnetResponse = await fetch(url, {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+        },
+        body: JSON.stringify(novalnetPayload),
+      });
+
+      if (!novalnetResponse.ok) {
+        throw new Error(`Novalnet API error: ${novalnetResponse.status}`);
+      }
+
+      responseData = await novalnetResponse.json();
       responseString = JSON.stringify(responseData);
     } catch (err) {
-      responseString = "Unable to parse Novalnet response";
+      log.error("Failed to process payment with Novalnet:", err);
+      throw new Error("Payment processing failed");
     }
     const parsedResponse = JSON.parse(responseString);
 
@@ -693,32 +701,33 @@ export class MockPaymentService extends AbstractPaymentService {
 
     log.info("Full Novalnet payload:", JSON.stringify(novalnetPayload, null, 2));
     
-    const novalnetResponse = await fetch(
-      "https://payport.novalnet.de/v2/seamless/payment",
-      {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
-        },
-        body: JSON.stringify(novalnetPayload),
-      },
-    );
-    
-    log.info("Novalnet response status:", novalnetResponse.status);
-
-    let responseString = "";
     let parsedResponse: any = {};
     
     try {
-      const responseData = await novalnetResponse.json();
-      responseString = JSON.stringify(responseData);
-      parsedResponse = responseData;
+      const novalnetResponse = await fetch(
+        "https://payport.novalnet.de/v2/seamless/payment",
+        {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+          },
+          body: JSON.stringify(novalnetPayload),
+        },
+      );
+      
+      log.info("Novalnet response status:", novalnetResponse.status);
+
+      if (!novalnetResponse.ok) {
+        throw new Error(`Novalnet API error: ${novalnetResponse.status}`);
+      }
+
+      parsedResponse = await novalnetResponse.json();
       log.info("Novalnet response parsed:", JSON.stringify(parsedResponse, null, 2));
     } catch (err) {
-      log.error("Failed to parse Novalnet response:", err);
-      throw new Error("Invalid response from payment provider");
+      log.error("Failed to process payment with Novalnet:", err);
+      throw new Error("Payment initialization failed");
     }
 
     // Check for Novalnet API errors
