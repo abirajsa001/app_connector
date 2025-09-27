@@ -282,9 +282,9 @@ export class MockPaymentService extends AbstractPaymentService {
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-         'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
         },
         body: JSON.stringify(novalnetPayload),
       },
@@ -297,22 +297,57 @@ export class MockPaymentService extends AbstractPaymentService {
       id: paymentRef,
     });
 
+    const novalnetTid = responseData?.transaction?.tid || parsedData?.interfaceId;
+    
+    // Prepare custom fields for Novalnet TID and bank details
+    const customFields: Record<string, any> = {
+      novalnetTid: novalnetTid,
+      novalnetStatus: responseData?.transaction?.status_text || "Completed"
+    };
+
+    // Add bank details if available
+    if (responseData?.transaction?.bank_details) {
+      const bankInfo = responseData.transaction.bank_details;
+      customFields.novalnetBankDetails = JSON.stringify({
+        accountHolder: bankInfo.account_holder,
+        iban: bankInfo.iban,
+        bic: bankInfo.bic,
+        bankName: bankInfo.bank_name,
+        bankPlace: bankInfo.bank_place,
+        paymentReference: novalnetTid
+      });
+    }
+    
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
-      pspReference: parsedData?.interfaceId,
+      pspReference: novalnetTid,
+      custom: {
+        type: {
+          typeId: "type",
+          key: "novalnet-payment-details"
+        },
+        fields: customFields
+      },
       transaction: {
         type: "Authorization",
         amount: ctPayment.amountPlanned,
-        interactionId: parsedData?.interfaceId,
+        interactionId: novalnetTid,
         state: "Success",
       },
+    });
+
+    log.info("Payment updated with Novalnet details:", {
+      paymentId: updatedPayment.id,
+      novalnetTid,
+      customFields,
+      novalnetResponse: responseData
     });
 
     const redirectUrl = new URL(merchantReturnUrl);
     redirectUrl.searchParams.append("paymentReference", updatedPayment.id);
 
     return {
-      paymentReference: redirectUrl.toString(),
+      paymentReference: updatedPayment.id,
     };
   }
 
@@ -425,8 +460,8 @@ export class MockPaymentService extends AbstractPaymentService {
     const novalnetResponse = await fetch(url, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
       },
       body: JSON.stringify(novalnetPayload),
@@ -621,7 +656,7 @@ export class MockPaymentService extends AbstractPaymentService {
         email: "abiraj_s@novalnetsolutions.com",
       },
       transaction: {
-        test_mode: "1",
+        test_mode: testMode === "1" ? "1" : "0",
         payment_type: type.toUpperCase(),
         amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
         currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
@@ -707,7 +742,8 @@ export class MockPaymentService extends AbstractPaymentService {
 
     log.info("=== IDEAL PAYMENT SUCCESS ===, returning txn_secret:", txnSecret);
     return {
-      paymentReference: txnSecret,
+      paymentReference: paymentRef,
+      txnSecret: txnSecret,
     };
   }
 
