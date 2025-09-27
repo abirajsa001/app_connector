@@ -182,15 +182,13 @@ export const paymentRoutes = async (
                     window.opener.postMessage(JSON.stringify({
                       status_code: '100',
                       status: 100,
-                      tid: '${query.tid}',
-                      transaction: {
-                        tid: '${query.tid}'
-                      }
+                      paymentReference: '${result.paymentReference}',
+                      commercetoolsPaymentId: '${result.paymentReference}'
                     }), '*');
                     window.close();
                   } else {
                     setTimeout(() => {
-                      window.location.href = '/payment-complete?success=true&paymentReference=${query.paymentReference || query.tid}';
+                      window.location.href = '/payment-complete?success=true&paymentReference=${result.paymentReference}';
                     }, 2000);
                   }
                 };
