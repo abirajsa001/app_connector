@@ -57,14 +57,13 @@ export abstract class BaseComponent implements PaymentComponent {
       console.log('Novalnet script loaded successfully');
       this.setupNovalnetChildWindow(txnSecret);
       
-      // Fallback timeout to ensure onComplete is called
       setTimeout(() => {
         console.log('Payment timeout - checking if payment was completed');
         // Only trigger if payment hasn't been completed yet
         if (typeof window.Novalnet !== 'undefined') {
           window.Novalnet.closeChildWindow('timeout');
         }
-      }, 300000); // 5 minutes timeout
+      }, 300000);
     });
   }
 
@@ -127,13 +126,11 @@ export abstract class BaseComponent implements PaymentComponent {
           console.log('Event origin:', event.origin);
           console.log('Raw event data:', event.data);
           
-          // Handle successful payment - PRIORITY: Trigger onComplete
           if (eventData.status_code === '100' || eventData.status === 100) {
             if (typeof window.Novalnet !== 'undefined') {
               window.Novalnet.closeChildWindow();
             }
             
-            // MAIN GOAL: Complete the payment with commercetools payment ID from success page
             this.completePayment({
               isSuccess: true,
               paymentReference: eventData.paymentReference || eventData.commercetoolsPaymentId || 'success',
@@ -141,13 +138,11 @@ export abstract class BaseComponent implements PaymentComponent {
             return;
           }
           
-          // Handle payment cancellation - PRIORITY: Trigger onComplete
           if (eventData.nnpf_postMsg === 'payment_cancel') {
             if (typeof window.Novalnet !== 'undefined') {
               window.Novalnet.closeChildWindow();
             }
             
-            // MAIN GOAL: Complete the payment (as cancelled)
             this.completePayment({
               isSuccess: false,
               paymentReference: null,
@@ -155,13 +150,11 @@ export abstract class BaseComponent implements PaymentComponent {
             return;
           }
           
-          // Handle other payment responses - PRIORITY: Trigger onComplete
           if (eventData.status_code && eventData.status_code !== '100') {
             if (typeof window.Novalnet !== 'undefined') {
               window.Novalnet.closeChildWindow();
             }
             
-            // MAIN GOAL: Complete the payment (as failed)
             this.completePayment({
               isSuccess: false,
               paymentReference: eventData.tid || 'failed',
@@ -171,7 +164,6 @@ export abstract class BaseComponent implements PaymentComponent {
           
         } catch (e) {
           console.error('Error parsing Novalnet message:', e);
-          // Even on error, complete the payment as failed
           this.completePayment({
             isSuccess: false,
             paymentReference: 'error',
@@ -186,7 +178,6 @@ export abstract class BaseComponent implements PaymentComponent {
       (window as any).attachEvent('onmessage', messageHandler);
     }
     
-    // Handle window close/refresh events - PRIORITY: Trigger onComplete
     const beforeUnloadHandler = () => {
       if (typeof window.Novalnet !== 'undefined') {
         window.Novalnet.closeChildWindow('refresh');
