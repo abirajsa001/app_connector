@@ -161,8 +161,8 @@ export const paymentRoutes = async (
         .update(tokenString)
         .digest("hex");
 
-      //if (generatedChecksum === query.checksum) {
-      try {
+      if (generatedChecksum === query.checksum) {
+        try {
         const result = await opts.paymentService.createPaymentt({
           data: {
             interfaceId: query.tid,
@@ -203,13 +203,14 @@ export const paymentRoutes = async (
           `;
 
         return reply.type("text/html").send(successPageHtml);
-      } catch (error) {
-        log.error("Error processing payment:", error);
-        return reply.code(400).send("Payment processing failed");
+        } catch (error) {
+          log.error("Error processing payment:", error);
+          return reply.code(400).send("Payment processing failed");
+        }
+      } else {
+        log.error("Checksum verification failed", { expected: generatedChecksum, received: query.checksum });
+        return reply.code(400).send('Checksum verification failed.');
       }
-      //} else {
-      // return reply.code(400).send('Checksum verification failed.');
-      //}
     } else {
       return reply.code(400).send("Missing required query parameters.");
     }
