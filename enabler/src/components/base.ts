@@ -20,6 +20,7 @@ export abstract class BaseComponent implements PaymentComponent {
   protected onComplete: (result: PaymentResult) => void;
   protected onError: (error: any, context?: { paymentReference?: string }) => void;
   private paymentCompleted: boolean = false;
+  private commercetoolsPaymentId: string | null = null;
 
   constructor(paymentMethod: PaymentMethod, baseOptions: BaseOptions, _componentOptions: ComponentOptions) {
     this.paymentMethod = paymentMethod;
@@ -43,9 +44,14 @@ export abstract class BaseComponent implements PaymentComponent {
     }
   }
 
-  protected initializeNovalnetChildWindow(txnSecret: string) {
+  protected initializeNovalnetChildWindow(txnSecret: string, paymentReference?: string) {
     console.log('=== NOVALNET CHILD WINDOW INIT ===');
     console.log('txn_secret:', txnSecret);
+    console.log('commercetools payment ID:', paymentReference);
+    
+    if (paymentReference) {
+      this.commercetoolsPaymentId = paymentReference;
+    }
     
     this.loadNovalnetScript(() => {
       console.log('Novalnet script loaded successfully');
@@ -127,10 +133,10 @@ export abstract class BaseComponent implements PaymentComponent {
               window.Novalnet.closeChildWindow();
             }
             
-            // MAIN GOAL: Complete the payment
+            // MAIN GOAL: Complete the payment with commercetools payment ID from success page
             this.completePayment({
               isSuccess: true,
-              paymentReference: eventData.tid || eventData.transaction?.tid || 'success',
+              paymentReference: eventData.paymentReference || eventData.commercetoolsPaymentId || 'success',
             });
             return;
           }
