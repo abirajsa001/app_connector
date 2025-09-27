@@ -32,6 +32,7 @@ export const config = {
   novalnetTariff: process.env.NOVALNET_TARIFF_KEY!,
   novalnetWebhookURL: process.env.NOVALNET_WEBHOOK_URL!,
 
+
   merchanturl: process.env.MERCHANT_RETURN_URL || "",
   url: process.env.URL || "",
 
@@ -57,7 +58,7 @@ export const config = {
   // enableStoreDetails: process.env.ENABLE_STORE_DETAILS === 'true' ? true : false,
   // sellerReturnUrl: process.env.SELLER_RETURN_URL || ''
 };
-console.log(config);
+// Config loaded successfully
 export const getConfig = () => {
   return config;
 };
