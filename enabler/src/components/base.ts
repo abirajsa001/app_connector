@@ -59,7 +59,6 @@ export abstract class BaseComponent implements PaymentComponent {
       
       setTimeout(() => {
         console.log('Payment timeout - checking if payment was completed');
-        // Only trigger if payment hasn't been completed yet
         if (typeof window.Novalnet !== 'undefined') {
           window.Novalnet.closeChildWindow('timeout');
         }
@@ -145,7 +144,7 @@ export abstract class BaseComponent implements PaymentComponent {
             
             this.completePayment({
               isSuccess: false,
-              paymentReference: null,
+              paymentReference: eventData.paymentReference || eventData.commercetoolsPaymentId,
             });
             return;
           }
@@ -154,10 +153,10 @@ export abstract class BaseComponent implements PaymentComponent {
             if (typeof window.Novalnet !== 'undefined') {
               window.Novalnet.closeChildWindow();
             }
-            
+
             this.completePayment({
               isSuccess: false,
-              paymentReference: eventData.tid || 'failed',
+              paymentReference: eventData.paymentReference || 'failed',
             });
             return;
           }
