@@ -309,16 +309,13 @@ export class MockPaymentService extends AbstractPaymentService {
 
     const novalnetTid = responseData?.transaction?.tid || parsedData?.interfaceId;
     
-    // Prepare payment details text
     let paymentDetails = `Novalnet Transaction ID: ${novalnetTid}\nPayment Status: ${responseData?.transaction?.status_text || "Completed"}`;
 
-    // Add bank details if available
     if (responseData?.transaction?.bank_details) {
       const bankInfo = responseData.transaction.bank_details;
       paymentDetails += `\n\nBank Transfer Details:\nAccount holder: ${bankInfo.account_holder}\nIBAN: ${bankInfo.iban}\nBIC: ${bankInfo.bic}\nBank: ${bankInfo.bank_name}\nBank Place: ${bankInfo.bank_place}\nPayment Reference: ${novalnetTid}`;
     }
     
-    // Prepare interface interaction for storing Novalnet details
     const interactionFields: Record<string, any> = {
       novalnetTid: novalnetTid,
       paymentStatus: responseData?.transaction?.status_text || "Completed",
@@ -326,7 +323,6 @@ export class MockPaymentService extends AbstractPaymentService {
       currency: responseData?.transaction?.currency || ""
     };
 
-    // Add bank details if available
     if (responseData?.transaction?.bank_details) {
       const bankInfo = responseData.transaction.bank_details;
       interactionFields.bankAccountHolder = bankInfo.account_holder || "";
@@ -337,7 +333,6 @@ export class MockPaymentService extends AbstractPaymentService {
       interactionFields.paymentReference = novalnetTid;
     }
 
-    // Create detailed payment information text
     let paymentDetailsText = `Novalnet TID: ${novalnetTid} | Status: ${responseData?.transaction?.status_text || "Completed"}`;
     
     if (responseData?.transaction?.bank_details) {
@@ -345,7 +340,6 @@ export class MockPaymentService extends AbstractPaymentService {
       paymentDetailsText += ` | Bank: ${bankInfo.account_holder} - ${bankInfo.iban} (${bankInfo.bic}) - ${bankInfo.bank_name}, ${bankInfo.bank_place}`;
     }
 
-    // Update payment with Novalnet TID and details
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference: novalnetTid,
