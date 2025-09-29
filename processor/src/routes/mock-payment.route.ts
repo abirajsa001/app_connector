@@ -31,7 +31,7 @@ export const paymentRoutes = async (
 ) => {
   fastify.post("/test", async (request, reply) => {
     console.log("Received payment request in processor");
-
+    // Call Novalnet API server-side (no CORS issue)
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
@@ -187,9 +187,6 @@ export const paymentRoutes = async (
                     }), '*');
                     window.close();
                   } else {
-                    setTimeout(() => {
-                      window.location.href = '/payment-complete?success=true&paymentReference=${result.paymentReference}';
-                    }, 2000);
                   }
                 };
               </script>
@@ -234,6 +231,8 @@ export const paymentRoutes = async (
               window.opener.postMessage(JSON.stringify({
                 nnpf_postMsg: 'payment_cancel',
                 status_code: '${query.status || "FAILURE"}',
+                paymentReference: '${query.paymentReference}',
+                commercetoolsPaymentId: '${query.paymentReference}'
                 tid: '${query.tid || ""}'
               }), '*');
               window.close();
