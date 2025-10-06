@@ -3,6 +3,8 @@ import { fastifyRequestContext, requestContext } from '@fastify/request-context'
 import { randomUUID } from 'crypto';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
+import { log } from "../../../libs/logger";
+
 
 export type ContextData = {
   anonymousId?: string;
@@ -60,7 +62,9 @@ export const getProcessorUrlFromContext = (): string => {
 };
 
 export const getMerchantReturnUrlFromContext = (): string | undefined => {
+  log.info('getMerchantReturnUrlFromContext recieved');
   const contextData = getRequestContext() as ContextData;
+  log.info(paymentSdk.getMerchantReturnUrlFromContext(contextData));
   return paymentSdk.getMerchantReturnUrlFromContext(contextData);
 };
 
