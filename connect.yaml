@@ -16,7 +16,7 @@ deployAs:
           description: "commercetools client ID with manage_payments, manage_orders, view_sessions, view_api_clients, manage_checkout_payment_intents & introspect_oauth_tokens scopes"
           required: true
         - key: CTP_AUTH_URL
-          description: "commercetools Auth URL"
+          description: "commercetools Auth URL Test"
           required: true
           default: "https://auth.europe-west1.gcp.commercetools.com"
         - key: CTP_API_URL
