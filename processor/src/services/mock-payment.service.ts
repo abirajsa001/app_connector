@@ -124,7 +124,7 @@ export class MockPaymentService extends AbstractPaymentService {
               name: "Mock Payment API",
               status: "DOWN",
               message:
-                "The mock payment API is down for some reason. Please check the logs for more details test test.",
+                "The mock payment API is down for some reason. Please check the logs for more details test.",
               details: {
                 error: e,
               },
