@@ -386,7 +386,40 @@ export class MockPaymentService extends AbstractPaymentService {
     const billingAddress = await this.ctbb(ctCart);
     const parsedCart = typeof ctCart === "string" ? JSON.parse(ctCart) : ctCart;
     const dueDateValue = getPaymentDueDate(dueDate);
+    const ctPayment = await this.ctPaymentService.createPayment({
+      amountPlanned: await this.ctCartService.getPaymentAmount({
+        cart: ctCart,
+      }),
+      paymentMethodInfo: {
+        paymentInterface: getPaymentInterfaceFromContext() || "mock",
+      },
+      ...(ctCart.customerId && {
+        customer: { typeId: "customer", id: ctCart.customerId },
+      }),
+      ...(!ctCart.customerId &&
+        ctCart.anonymousId && {
+          anonymousId: ctCart.anonymousId,
+        }),
+    });
 
+    await this.ctCartService.addPayment({
+      resource: { id: ctCart.id, version: ctCart.version },
+      paymentId: ctPayment.id,
+    });
+
+    const pspReference = randomUUID().toString();
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: ctPayment.id,
+      pspReference,
+      paymentMethod: request.data.paymentMethod.type,
+      transaction: {
+        type: "Authorization",
+        amount: ctPayment.amountPlanned,
+        interactionId: pspReference,
+        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+      },
+    });
+    const paymentref = updatedPayment.id;
     const transaction: Record<string, any> = {
       test_mode: testMode === "1" ? "1" : "0",
       payment_type: String(request.data.paymentMethod.type),
@@ -458,8 +491,8 @@ export class MockPaymentService extends AbstractPaymentService {
         inputval2: String(
           parsedCart?.taxedPrice?.totalGross?.centAmount ?? "empty",
         ),
-        input3: "customerEmail",
-        inputval3: String(parsedCart.customerEmail ?? "Email not available"),
+        input3: "paymentref",
+        inputval3: String(paymentref ?? "paymentref not available"),
         input4: "Payment-Method",
         inputval4: String(
           request.data.paymentMethod.type ?? "Payment-Method not available",
@@ -505,44 +538,6 @@ export class MockPaymentService extends AbstractPaymentService {
     if (parsedResponse?.transaction?.bank_details) {
       bankDetails = `Please transfer the amount of ${parsedResponse.transaction.amount} to the following account.\nAccount holder: ${parsedResponse.transaction.bank_details.account_holder}\nIBAN: ${parsedResponse.transaction.bank_details.iban}\nBIC: ${parsedResponse.transaction.bank_details.bic}\nBANK NAME: ${parsedResponse.transaction.bank_details.bank_name}\nBANK PLACE: ${parsedResponse.transaction.bank_details.bank_place}\nPlease use the following payment reference for your money transfer:\nPayment Reference 1: ${parsedResponse.transaction.tid}`;
     }
-
-    const ctPayment = await this.ctPaymentService.createPayment({
-      amountPlanned: await this.ctCartService.getPaymentAmount({
-        cart: ctCart,
-      }),
-      paymentMethodInfo: {
-        paymentInterface: getPaymentInterfaceFromContext() || "mock",
-      },
-      paymentStatus: {
-        interfaceCode: JSON.stringify(parsedResponse),
-        interfaceText: transactiondetails + "\n" + bankDetails,
-      },
-      ...(ctCart.customerId && {
-        customer: { typeId: "customer", id: ctCart.customerId },
-      }),
-      ...(!ctCart.customerId &&
-        ctCart.anonymousId && {
-          anonymousId: ctCart.anonymousId,
-        }),
-    });
-
-    await this.ctCartService.addPayment({
-      resource: { id: ctCart.id, version: ctCart.version },
-      paymentId: ctPayment.id,
-    });
-
-    const pspReference = randomUUID().toString();
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: ctPayment.id,
-      pspReference,
-      paymentMethod: request.data.paymentMethod.type,
-      transaction: {
-        type: "Authorization",
-        amount: ctPayment.amountPlanned,
-        interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
-      },
-    });
 
     return {
       paymentReference: updatedPayment.id,
