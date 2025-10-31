@@ -485,6 +485,7 @@ export class MockPaymentService extends AbstractPaymentService {
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference,
+      paymentStatus,
       paymentMethod: request.data.paymentMethod.type,
       transaction: {
         type: "Authorization",
@@ -492,7 +493,7 @@ export class MockPaymentService extends AbstractPaymentService {
         interactionId: pspReference,
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
       },
-    });
+    } as ExtendedUpdatePayment);
 
     return {
       paymentReference: updatedPayment.id,
