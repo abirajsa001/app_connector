@@ -1,4 +1,4 @@
-import {
+ import {
   statusHandler,
   healthCheckCommercetoolsPermissions,
   Cart,
@@ -484,17 +484,7 @@ export class MockPaymentService extends AbstractPaymentService {
 
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
-      pspReference,
-      paymentMethod: request.data.paymentMethod.type,
-      paymentStatus, 
-      transaction: {
-        type: "Authorization",
-        amount: ctPayment.amountPlanned,
-        interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
-      },
-    } as ExtendedUpdatePayment);
-    
+    });
 
     return {
       paymentReference: updatedPayment.id,
