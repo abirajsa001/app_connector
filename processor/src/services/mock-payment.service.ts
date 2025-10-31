@@ -486,6 +486,12 @@ export class MockPaymentService extends AbstractPaymentService {
       id: ctPayment.id,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
+      transaction: {
+        type: "Authorization",
+        amount: ctPayment.amountPlanned,
+        interactionId: pspReference,
+        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+      },
     });
 
     return {
