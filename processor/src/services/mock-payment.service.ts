@@ -494,7 +494,7 @@ export class MockPaymentService extends AbstractPaymentService {
   public async createPayments(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
-    log.info("=== IDEAL PAYMENT START ===");
+    log.info("=== IDEAL PAYMENT START TEST===");
     log.info("Request data:", JSON.stringify(request.data, null, 2));
     const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
     log.info("Payment type:", type);
