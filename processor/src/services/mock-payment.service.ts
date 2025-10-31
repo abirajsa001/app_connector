@@ -484,6 +484,8 @@ export class MockPaymentService extends AbstractPaymentService {
 
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
+      pspReference,
+      paymentMethod: request.data.paymentMethod.type,
     });
 
     return {
