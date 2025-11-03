@@ -8,11 +8,11 @@ import { createApiBuilderFromCtpClient } from '@commercetools/platform-sdk';
 // //~ const apiUrl = process.env.CTP_API_URL!;
 
 
-const projectKey = 'newprojectkey';
+const projectKey = 'commercekey';
 const authUrl = 'https://auth.europe-west1.gcp.commercetools.com';
 const apiUrl = 'https://api.europe-west1.gcp.commercetools.com';
-const clientId = 'PvpIwckG4tM69ATbESCg362e';
-const clientSecret = 'hLSoCgHZu7er7zNVhnqTWgFsTuJllBXL';
+const clientId = 'zzykDtn0B_bBov_EVqk0Hvo-';
+const clientSecret = '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy';
 
 export function getApiRoot() {
   const client = new ClientBuilder()
