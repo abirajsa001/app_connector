@@ -177,8 +177,6 @@ export enum PaymentMethod {
   klarna_pay_now = "klarna_paynow",
   /* Klarna Pay Over Time */
   klarna_pay_overtime = "klarna_account",
-  /* PayPal */
-  paypal = "paypal",
   /* Prepayment */
   prepayment = "prepayment",
   /* Ideal */
