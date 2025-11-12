@@ -329,7 +329,7 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
         };
     }
     async createPayment(request) {
-        const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
+        const type = String(request.data?.paymentMethod?.type);
         const config = (0, config_1.getConfig)();
         const { testMode, paymentAction, dueDate } = getNovalnetConfigValues(type, config);
         const ctCart = await this.ctCartService.getCart({
@@ -352,48 +352,48 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
             "DIRECT_DEBIT_SEPA") {
             transaction.create_token = 1;
             transaction.payment_data = {
-                account_holder: String(request.data.paymentMethod.poNumber ?? "Norbert Maier"),
-                iban: String(request.data.paymentMethod.invoiceMemo ?? "DE24300209002411761956"),
+                account_holder: String(request.data.paymentMethod.poNumber),
+                iban: String(request.data.paymentMethod.invoiceMemo),
             };
         }
         if (String(request.data.paymentMethod.type).toUpperCase() ===
             "DIRECT_DEBIT_ACH") {
             transaction.create_token = 1;
             transaction.payment_data = {
-                account_holder: String(request.data.paymentMethod.accHolder ?? "Max Mustermann"),
-                account_number: String(request.data.paymentMethod.poNumber ?? "123456789"),
-                routing_number: String(request.data.paymentMethod.invoiceMemo ?? "031200730"),
+                account_holder: String(request.data.paymentMethod.accHolder),
+                account_number: String(request.data.paymentMethod.poNumber),
+                routing_number: String(request.data.paymentMethod.invoiceMemo),
             };
         }
         if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
             transaction.payment_data = {
-                pan_hash: String(request.data.paymentMethod.panHash ?? ""),
-                unique_id: String(request.data.paymentMethod.uniqueId ?? ""),
+                pan_hash: String(request.data.paymentMethod.panHash),
+                unique_id: String(request.data.paymentMethod.uniqueId),
             };
         }
         const novalnetPayload = {
             merchant: {
-                signature: String((0, config_1.getConfig)()?.novalnetPrivateKey ?? ""),
-                tariff: String((0, config_1.getConfig)()?.novalnetTariff ?? ""),
+                signature: String((0, config_1.getConfig)()?.novalnetPrivateKey),
+                tariff: String((0, config_1.getConfig)()?.novalnetTariff),
             },
             customer: {
                 billing: {
-                    city: String(billingAddress?.city ?? "demo"),
-                    country_code: String(billingAddress?.country ?? "US"),
-                    house_no: String(billingAddress?.streetName ?? "10"),
-                    street: String(billingAddress?.streetName ?? "teststreet"),
-                    zip: String(billingAddress?.postalCode ?? "12345"),
+                    city: String(billingAddress?.city),
+                    country_code: String(billingAddress?.country),
+                    house_no: String(billingAddress?.streetName),
+                    street: String(billingAddress?.streetName),
+                    zip: String(billingAddress?.postalCode),
                 },
                 shipping: {
-                    city: String(deliveryAddress?.city ?? "demoshipping"),
-                    country_code: String(deliveryAddress?.country ?? "US"),
-                    house_no: String(deliveryAddress?.streetName ?? "11"),
-                    street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
-                    zip: String(deliveryAddress?.postalCode ?? "12345"),
+                    city: String(deliveryAddress?.city),
+                    country_code: String(deliveryAddress?.country),
+                    house_no: String(deliveryAddress?.streetName),
+                    street: String(deliveryAddress?.streetName),
+                    zip: String(deliveryAddress?.postalCode),
                 },
                 first_name: "Max",
                 last_name: "Mustermann",
-                email: "abiraj_s@novalnetsolutions.com",
+                email:  String(parsedCart.customerEmail),
             },
             transaction,
             custom: {

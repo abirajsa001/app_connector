@@ -128,7 +128,7 @@ private _getTemplate() {
 
         <div class="inputContainer">
           <label class="inputLabel" for="purchaseOrderForm-invoiceMemo">
-            IBAN
+            Routing number
           </label>
           <input class="inputField" type="text" id="purchaseOrderForm-invoiceMemo" name="invoiceMemo" value="">
           <span class="hidden errorField">Invalid Invoice memo</span>

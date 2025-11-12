@@ -63,8 +63,8 @@ export class Multibanco extends BaseComponent {
       console.log('Request data:', JSON.stringify(requestData, null, 2));
 	  console.log('Payment Method:', this.paymentMethod);
 	  
-      console.log('Making API call to:', this.processorUrl + "/payments");
-      const response = await fetch(this.processorUrl + "/payments", {
+      console.log('Making API call to:', this.processorUrl + "/payment");
+      const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
