@@ -58,10 +58,6 @@ export const config = {
     process.env.NOVALNET_EPS_TEST_MODE || "0",
   novalnet_MBWAY_TestMode:
     process.env.NOVALNET_MBWAY_TEST_MODE || "0", 
-  novalnet_ONLINE_BANK_TRANSFER_TestMode:
-    process.env.NOVALNET_ONLINE_BANK_TRANSFER_TEST_MODE || "0",
-  novalnet_BANCONTACT_TestMode:
-    process.env.NOVALNET_BANCONTACT_TEST_MODE || "0",
   novalnet_PAYCONIQ_TestMode:
     process.env.NOVALNET_PAYCONIQ_TEST_MODE || "0",
   novalnet_PAYPAL_TestMode:
@@ -96,11 +92,11 @@ export const config = {
     process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION || "payment",
   novalnet_INVOICE_MinimumAmount:
     process.env.NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
-  novalnet_PREPAYMENT_PaymentAction:
+  novalnet_PREPAYMENT_PaymentMinimumAmount:
     process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
   novalnet_SEPA_MinimumAmount:
     process.env.NOVALNET_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
-  novalnet_CREDITCARD_PaymentAction:
+  novalnet_CREDITCARD_MinimumAmount:
     process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
   novalnet_CREDITCARD_Enforce3d:
     process.env.NOVALNET_CREDITCARD_ENFORCE_3D_SECURE_PAYMENT_OUTSIDE_EU || "payment",
