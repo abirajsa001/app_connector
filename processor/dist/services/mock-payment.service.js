@@ -51,9 +51,12 @@ const Context = __importStar(require("../libs/fastify/context/context"));
 function getNovalnetConfigValues(type, config) {
     const upperType = type.toUpperCase();
     return {
-        testMode: String(config?.[`novalnet_${upperType}_TestMode`] ?? "0"),
-        paymentAction: String(config?.[`novalnet_${upperType}_PaymentAction`] ?? "payment"),
-        dueDate: String(config?.[`novalnet_${upperType}_DueDate`] ?? "3"),
+        testMode: String(config?.[`novalnet_${upperType}_TestMode`]),
+        paymentAction: String(config?.[`novalnet_${upperType}_PaymentAction`]),
+        dueDate: String(config?.[`novalnet_${upperType}_DueDate`]),
+        minumumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
+        enforce3d: String(config?.[`novalnet_${upperType}_Enforce3d`]),
+        displayInline: String(config?.[`novalnet_${upperType}_DisplayInline`]),
     };
 }
 function getPaymentDueDate(configuredDueDate) {
@@ -331,7 +334,7 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
     async createPayment(request) {
         const type = String(request.data?.paymentMethod?.type);
         const config = (0, config_1.getConfig)();
-        const { testMode, paymentAction, dueDate } = getNovalnetConfigValues(type, config);
+        const { testMode, paymentAction, dueDate, minimumAmount, enforce3d, displayInline } = getNovalnetConfigValues(type, config);
         const ctCart = await this.ctCartService.getCart({
             id: (0, context_1.getCartIdFromContext)(),
         });
@@ -342,15 +345,14 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
         const transaction = {
             test_mode: testMode === "1" ? "1" : "0",
             payment_type: String(request.data.paymentMethod.type),
-            amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "0"),
-            currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
+            amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount),
+            currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),
         };
         if (dueDateValue) {
             transaction.due_date = dueDateValue;
         }
         if (String(request.data.paymentMethod.type).toUpperCase() ===
             "DIRECT_DEBIT_SEPA") {
-            transaction.create_token = 1;
             transaction.payment_data = {
                 account_holder: String(request.data.paymentMethod.poNumber),
                 iban: String(request.data.paymentMethod.invoiceMemo),
@@ -358,7 +360,6 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
         }
         if (String(request.data.paymentMethod.type).toUpperCase() ===
             "DIRECT_DEBIT_ACH") {
-            transaction.create_token = 1;
             transaction.payment_data = {
                 account_holder: String(request.data.paymentMethod.accHolder),
                 account_number: String(request.data.paymentMethod.poNumber),
@@ -366,6 +367,9 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
             };
         }
         if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
+            if(enforce3d == '1') {
+                transaction.enforce_3d = 1
+            }
             transaction.payment_data = {
                 pan_hash: String(request.data.paymentMethod.panHash),
                 unique_id: String(request.data.paymentMethod.uniqueId),
@@ -409,9 +413,20 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
                 inputval5: String(testMode ?? "0"),
             },
         };
-        const url = paymentAction === "payment"
+        let paymentActionUrl = "payment"; 
+        
+        if (paymentAction === "authorize") {
+          const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount);
+          paymentActionUrl = (orderTotal > 0 && orderTotal >= minimumAmount)
+            ? "authorize"
+            : "payment";
+        }
+        
+        const url =
+          paymentActionUrl === "payment"
             ? "https://payport.novalnet.de/v2/payment"
             : "https://payport.novalnet.de/v2/authorize";
+
         let responseString = "";
         let responseData;
         try {
