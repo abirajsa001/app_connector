@@ -92,7 +92,7 @@ export const config = {
     process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION || "payment",
   novalnet_INVOICE_MinimumAmount:
     process.env.NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
-  novalnet_PREPAYMENT_PaymentMinimumAmount:
+  novalnet_PREPAYMENT_MinimumAmount:
     process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
   novalnet_SEPA_MinimumAmount:
     process.env.NOVALNET_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",

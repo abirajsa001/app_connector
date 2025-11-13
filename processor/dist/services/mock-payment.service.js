@@ -48,13 +48,14 @@ const context_1 = require("../libs/fastify/context/context");
 const crypto_1 = require("crypto");
 const logger_1 = require("../libs/logger");
 const Context = __importStar(require("../libs/fastify/context/context"));
+
 function getNovalnetConfigValues(type, config) {
     const upperType = type.toUpperCase();
     return {
         testMode: String(config?.[`novalnet_${upperType}_TestMode`]),
         paymentAction: String(config?.[`novalnet_${upperType}_PaymentAction`]),
         dueDate: String(config?.[`novalnet_${upperType}_DueDate`]),
-        minumumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
+        minimumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
         enforce3d: String(config?.[`novalnet_${upperType}_Enforce3d`]),
         displayInline: String(config?.[`novalnet_${upperType}_DisplayInline`]),
     };
@@ -416,8 +417,8 @@ class MockPaymentService extends abstract_payment_service_1.AbstractPaymentServi
         let paymentActionUrl = "payment"; 
         
         if (paymentAction === "authorize") {
-          const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount);
-          paymentActionUrl = (orderTotal > 0 && orderTotal >= minimumAmount)
+          const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
+          paymentActionUrl = (orderTotal >= minimumAmount)
             ? "authorize"
             : "payment";
         }

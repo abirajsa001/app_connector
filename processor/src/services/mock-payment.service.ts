@@ -54,6 +54,9 @@ type NovalnetConfig = {
   testMode: string;
   paymentAction: string;
   dueDate: string;
+  minimumAmount: string;
+  enforce3d: string;
+  displayInline: string;
 };
 
 
@@ -67,7 +70,7 @@ function getNovalnetConfigValues(
     testMode: String(config?.[`novalnet_${upperType}_TestMode`]),
     paymentAction: String(config?.[`novalnet_${upperType}_PaymentAction`]),
     dueDate: String(config?.[`novalnet_${upperType}_DueDate`]),
-    minumumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
+    minimumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
     enforce3d: String(config?.[`novalnet_${upperType}_Enforce3d`]),
     displayInline: String(config?.[`novalnet_${upperType}_DisplayInline`]),
   };
@@ -434,8 +437,17 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       },
     };
 
+    let paymentActionUrl = "payment"; 
+        
+    if (paymentAction === "authorize") {
+      const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
+      paymentActionUrl = (orderTotal > 0 && orderTotal >= minimumAmount)
+        ? "authorize"
+        : "payment";
+    }
+    
     const url =
-      paymentAction === "payment"
+      paymentActionUrl === "payment"
         ? "https://payport.novalnet.de/v2/payment"
         : "https://payport.novalnet.de/v2/authorize";
 
