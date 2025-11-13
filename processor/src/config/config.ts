@@ -107,7 +107,7 @@ export const config = {
   returnurl: process.env.RETURN_URL,
   merchantReturnUrl: process.env.MERCHANT_RETURN_URL || "",
 
-  // TODO review these configurations
+  // TODO review these configurations are maded
   // supportedUIElements: convertStringCommaSeparatedValuesToArray(process.env.SUPPORTED_UI_ELEMENTS),
   // enableStoreDetails: process.env.ENABLE_STORE_DETAILS === 'true' ? true : false,
   // sellerReturnUrl: process.env.SELLER_RETURN_URL || ''
