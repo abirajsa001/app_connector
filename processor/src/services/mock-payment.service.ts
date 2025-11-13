@@ -441,7 +441,7 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
         
     if (paymentAction === "authorize") {
       const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
-      paymentActionUrl = (orderTotal > 0 && orderTotal >= minimumAmount)
+      paymentActionUrl = (orderTotal >= minimumAmount)
         ? "authorize"
         : "payment";
     }
