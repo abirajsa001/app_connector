@@ -53,7 +53,7 @@ deployAs:
         - key: NOVALNET_INVOICE_DUE_DATE
           description: Due date in days for Invoice payments
           required: false
-        - key: NOVALNET_INVOICE_ PAYMENT_ACTION
+        - key: NOVALNET_INVOICE_PAYMENT_ACTION
           description: Payment action for Invoice (payment/authorize)
           required: true
         - key: NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT
