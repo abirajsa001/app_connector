@@ -64,11 +64,12 @@ function getNovalnetConfigValues(
 ): NovalnetConfig {
   const upperType = type.toUpperCase();
   return {
-    testMode: String(config?.[`novalnet_${upperType}_TestMode`] ?? "0"),
-    paymentAction: String(
-      config?.[`novalnet_${upperType}_PaymentAction`] ?? "payment",
-    ),
-    dueDate: String(config?.[`novalnet_${upperType}_DueDate`] ?? "3"),
+    testMode: String(config?.[`novalnet_${upperType}_TestMode`]),
+    paymentAction: String(config?.[`novalnet_${upperType}_PaymentAction`]),
+    dueDate: String(config?.[`novalnet_${upperType}_DueDate`]),
+    minumumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
+    enforce3d: String(config?.[`novalnet_${upperType}_Enforce3d`]),
+    displayInline: String(config?.[`novalnet_${upperType}_DisplayInline`]),
   };
 }
 
@@ -337,7 +338,7 @@ export class MockPaymentService extends AbstractPaymentService {
   ): Promise<PaymentResponseSchemaDTO> {
     const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
     const config = getConfig();
-    const { testMode, paymentAction, dueDate } = getNovalnetConfigValues(
+    const { testMode, paymentAction, dueDate, minimumAmount, enforce3d, displayInline } = getNovalnetConfigValues(
       type,
       config,
     );
@@ -364,48 +365,30 @@ export class MockPaymentService extends AbstractPaymentService {
       transaction.due_date = dueDateValue;
     }
 
-    if (
-      String(request.data.paymentMethod.type).toUpperCase() ===
-      "DIRECT_DEBIT_SEPA"
-    ) {
-      transaction.create_token = 1;
-      transaction.payment_data = {
-        account_holder: String(
-          request.data.paymentMethod.poNumber ?? "Norbert Maier",
-        ),
-        iban: String(
-          request.data.paymentMethod.invoiceMemo ?? "DE24300209002411761956",
-        ),
-      };
+    if (String(request.data.paymentMethod.type).toUpperCase() ===
+    "DIRECT_DEBIT_SEPA") {
+    transaction.payment_data = {
+        account_holder: String(request.data.paymentMethod.poNumber),
+        iban: String(request.data.paymentMethod.invoiceMemo),
+    };
+}
+if (String(request.data.paymentMethod.type).toUpperCase() ===
+    "DIRECT_DEBIT_ACH") {
+    transaction.payment_data = {
+        account_holder: String(request.data.paymentMethod.accHolder),
+        account_number: String(request.data.paymentMethod.poNumber),
+        routing_number: String(request.data.paymentMethod.invoiceMemo),
+    };
+}
+if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
+    if(enforce3d == '1') {
+        transaction.enforce_3d = 1
     }
-
-    if (
-      String(request.data.paymentMethod.type).toUpperCase() ===
-      "DIRECT_DEBIT_ACH"
-    ) {
-      transaction.create_token = 1;
-      transaction.payment_data = {
-        account_holder: String(
-          request.data.paymentMethod.accHolder ?? "Norbert Maier",
-        ),
-        account_number: String(
-          request.data.paymentMethod.poNumber ?? "123456789",
-        ),
-        routing_number: String(
-          request.data.paymentMethod.invoiceMemo ?? "031200730",
-        ),
-      };
-    }
-    
-    if (
-      String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD"
-    ) {
-      transaction.payment_data = {
-        pan_hash: String(request.data.paymentMethod.panHash ?? ""),
-        unique_id: String(request.data.paymentMethod.uniqueId ?? ""),
-      };
-    }
-
+    transaction.payment_data = {
+        pan_hash: String(request.data.paymentMethod.panHash),
+        unique_id: String(request.data.paymentMethod.uniqueId),
+    };
+}
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
