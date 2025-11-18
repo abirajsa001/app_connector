@@ -50,12 +50,11 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
         },
       })
       .execute();
-
+      console.log('Response was found an order', response);
     // The search returns results[]
     const results = response?.body?.results ?? [];
     if (results.length === 0) {
       console.log(`Order not found for orderNumber=${orderNumber}`);
-      return null;
     }
 
     console.log('Order found: id=', results[0].id, 'orderNumber=', results[0].orderNumber);
