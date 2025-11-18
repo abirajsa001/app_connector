@@ -41,7 +41,7 @@ function safeSnippet(obj: any, max = 1000) {
   }
 }
 
-export async function getOrderByOrderNumber(orderNumber: string): Promise<Order | null> {
+export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
   const trimmed = (orderNumber ?? '').toString().trim();
   try {
     const apiRoot = getApiRoot();
