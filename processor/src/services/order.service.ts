@@ -63,7 +63,7 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
       .execute();
 
     // diagnostic: show status and small snippet of body
-    console.log('CT response status:', response?.statusCode ?? response?.status ?? 'success');
+    console.log('CT response status:', response ?? 'no response');
     console.log('CT response body (snippet):', safeSnippet(response?.body ?? response));
 
     const results = response?.body?.results ?? [];
