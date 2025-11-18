@@ -28,49 +28,63 @@
 // }
 // src/services/order-service.ts (or your current file)
 
+
 import type { Order } from '@commercetools/platform-sdk';
-import { getApiRoot } from '../utils/ct-client.js'; // static import is important
+import { getApiRoot } from '../utils/ct-client.js';
+
+function safeSnippet(obj: any, max = 1000) {
+  try {
+    const s = JSON.stringify(obj);
+    return s.length > max ? s.slice(0, max) + '... (truncated)' : s;
+  } catch {
+    return String(obj).slice(0, max);
+  }
+}
 
 export async function getOrderByOrderNumber(orderNumber: string): Promise<Order | null> {
+  const trimmed = (orderNumber ?? '').toString().trim();
   try {
     const apiRoot = getApiRoot();
+    console.log('Using CT projectKey (diagnostic):', (apiRoot as any)?.projectKey ?? 'commercekey');
 
-    // small safe log — don't print the entire apiRoot object
-    console.log('Using commercetools project (apiRoot loaded)');
+    const safeOrderNumber = trimmed.replace(/"/g, '\\"');
+    const where = `orderNumber="${safeOrderNumber}"`;
 
-    // Escape quotes to keep where clause valid
-    const safeOrderNumber = orderNumber.replace(/"/g, '\\"');
+    console.log('Searching orders with where clause:', where);
 
     const response = await apiRoot
       .orders()
       .get({
         queryArgs: {
-          where: `orderNumber="${safeOrderNumber}"`,
+          where,
           limit: 1,
         },
       })
       .execute();
-      console.log('Response was found an order', response);
-    // The search returns results[]
+
+    // diagnostic: show status and small snippet of body
+    console.log('CT response status:', response?.statusCode ?? response?.status ?? 'success');
+    console.log('CT response body (snippet):', safeSnippet(response?.body ?? response));
+
     const results = response?.body?.results ?? [];
-    if (results.length === 0) {
-      console.log(`Order not found for orderNumber=${orderNumber}`);
+    console.log('CT search results length:', Array.isArray(results) ? results.length : 'unknown result lenth');
+
+    if (!Array.isArray(results) || results.length === 0) {
+      console.log(`Order not found for orderNumber=${trimmed}`);
+      return null;
     }
 
     console.log('Order found: id=', results[0].id, 'orderNumber=', results[0].orderNumber);
     return results[0] as Order;
   } catch (error: any) {
-    // Log the best diagnostic info available
-    console.log('Error fetching order (mock):', error?.message ?? error);
-    // If the error has a response body (SDK HTTP error) show useful bits
+    console.log('Error fetching order (diagnostic):', error?.message ?? error);
     if (error?.response?.body) {
-      try {
-        console.log('Error response body:', JSON.stringify(error.response.body));
-      } catch (_) { /* ignore */ }
+      console.log('Error response body snippet:', safeSnippet(error.response.body));
     }
     return null;
   }
 }
+
 
 export async function getOrderIdFromOrderNumber(orderNumber: string): Promise<string | null> {
   const order = await getOrderByOrderNumber(orderNumber);
