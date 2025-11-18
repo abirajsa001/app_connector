@@ -29,24 +29,46 @@
 // src/services/order-service.ts (or your current file)
 
 import type { Order } from '@commercetools/platform-sdk';
+import { getApiRoot } from '../utils/ct-client.js'; // static import is important
 
-export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
+export async function getOrderByOrderNumber(orderNumber: string): Promise<Order | null> {
   try {
-    // Import dummy getApiRoot
-    const { getApiRoot } = await import('../utils/ct-client.js');
     const apiRoot = getApiRoot();
+
+    // small safe log — don't print the entire apiRoot object
+    console.log('Using commercetools project (apiRoot loaded)');
+
+    // Escape quotes to keep where clause valid
+    const safeOrderNumber = orderNumber.replace(/"/g, '\\"');
 
     const response = await apiRoot
       .orders()
-      .withOrderNumber({ orderNumber })
-      .get()
+      .get({
+        queryArgs: {
+          where: `orderNumber="${safeOrderNumber}"`,
+          limit: 1,
+        },
+      })
       .execute();
 
-    console.log('Mock API response:', response.body);
+    // The search returns results[]
+    const results = response?.body?.results ?? [];
+    if (results.length === 0) {
+      console.log(`Order not found for orderNumber=${orderNumber}`);
+      return null;
+    }
 
-    return response.body;
+    console.log('Order found: id=', results[0].id, 'orderNumber=', results[0].orderNumber);
+    return results[0] as Order;
   } catch (error: any) {
-    console.log('Error fetching order (mock):', error);
+    // Log the best diagnostic info available
+    console.log('Error fetching order (mock):', error?.message ?? error);
+    // If the error has a response body (SDK HTTP error) show useful bits
+    if (error?.response?.body) {
+      try {
+        console.log('Error response body:', JSON.stringify(error.response.body));
+      } catch (_) { /* ignore */ }
+    }
     return null;
   }
 }
