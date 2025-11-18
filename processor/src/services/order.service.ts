@@ -33,7 +33,7 @@ import type { Order } from '@commercetools/platform-sdk';
 export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
   try {
     // Import dummy getApiRoot
-    const { getApiRoot } = await import('../utils/ct-client.ts');
+    const { getApiRoot } = await import('../utils/ct-client.js');
     const apiRoot = getApiRoot();
 
     const response = await apiRoot
