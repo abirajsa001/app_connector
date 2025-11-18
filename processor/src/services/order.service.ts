@@ -66,16 +66,7 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
     console.log('CT response status:', response ?? 'no response');
     console.log('CT response body (snippet):', safeSnippet(response?.body ?? response));
 
-    const results = response?.body?.results ?? [];
-    console.log('CT search results length:', Array.isArray(results) ? results.length : 'unknown result lenth');
-
-    if (!Array.isArray(results) || results.length === 0) {
-      console.log(`Order not found for orderNumber=${trimmed}`);
-      return null;
-    }
-
-    console.log('Order found: id=', results[0].id, 'orderNumber=', results[0].orderNumber);
-    return results[0] as Order;
+    return response.body;
   } catch (error: any) {
     console.log('Error fetching order (diagnostic):', error?.message ?? error);
     if (error?.response?.body) {
