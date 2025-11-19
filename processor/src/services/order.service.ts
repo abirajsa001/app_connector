@@ -60,7 +60,7 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
   try {
     const { getApiRoot } = await import('../utils/ct-client.js');
     const apiRoot = getApiRoot();
-    console.log('Using CT projectKey (diagnostic):', (apiRoot as any)?.projectKey ?? '(unknown)');
+    console.log('Using CT projectKey (diagnostic):', (apiRoot as any)?.projectKey ?? '(commercekey)');
 
     // Use withOrderNumber route which returns the order object (or a 404)
     const response = await apiRoot
@@ -72,7 +72,7 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<Order 
     console.log('HTTP status:', (response as any).statusCode ?? (response as any).status ?? '(unknown)');
     console.log('Order fetched snippet:', safeSnippet(response?.body, 1500));
 
-    const order = response?.body as Order | undefined;
+    const order = response?.body as Order;
     if (!order) {
       console.log('Order fetch returned no body (unexpected).');
       return null;
