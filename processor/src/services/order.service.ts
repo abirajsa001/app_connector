@@ -32,15 +32,6 @@
 import type { Order } from '@commercetools/platform-sdk';
 import { getApiRoot } from '../utils/ct-client.js';
 
-function safeSnippet(obj: any, max = 1000) {
-  try {
-    const s = JSON.stringify(obj);
-    return s.length > max ? s.slice(0, max) + '... (truncated)' : s;
-  } catch {
-    return String(obj).slice(0, max);
-  }
-}
-
 export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
   const trimmed = (orderNumber ?? '').toString().trim();
   try {
@@ -63,10 +54,19 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<any | 
       .execute();
 
     // diagnostic: show status and small snippet of body
-    console.log('CT response status:', response ?? 'no response');
+    console.log('CT response status:', response?.statusCode ?? response?.status ?? 'no status');
     console.log('CT response body (snippet):', safeSnippet(response?.body ?? response));
 
-    return response.body;
+    // response.body is a PagedQueryResult with `results: Order[]`
+    const paged = response?.body;
+    if (!paged || !Array.isArray(paged.results) || paged.results.length === 0) {
+      console.log('No orders found for orderNumber:', trimmed);
+      return null;
+    }
+
+    const order = paged.results[0];
+    console.log('Found order id:', order?.id);
+    return order;
   } catch (error: any) {
     console.log('Error fetching order (diagnostic):', error?.message ?? error);
     if (error?.response?.body) {
@@ -75,7 +75,6 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<any | 
     return null;
   }
 }
-
 
 export async function getOrderIdFromOrderNumber(orderNumber: string): Promise<string | null> {
   const order = await getOrderByOrderNumber(orderNumber);
