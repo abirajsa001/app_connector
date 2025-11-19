@@ -53,9 +53,6 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<any | 
       })
       .execute();
 
-    // diagnostic: show status and small snippet of body
-    console.log('CT response status:', response?.statusCode ?? response?.status ?? 'no status');
-    console.log('CT response body (snippet):', safeSnippet(response?.body ?? response));
 
     // response.body is a PagedQueryResult with `results: Order[]`
     const paged = response?.body;
@@ -69,9 +66,6 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<any | 
     return order;
   } catch (error: any) {
     console.log('Error fetching order (diagnostic):', error?.message ?? error);
-    if (error?.response?.body) {
-      console.log('Error response body snippet:', safeSnippet(error.response.body));
-    }
     return null;
   }
 }
