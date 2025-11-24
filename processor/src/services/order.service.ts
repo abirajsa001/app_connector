@@ -1,5 +1,6 @@
-// services/order-service.ts
+// src/services/order.service.ts
 import type { Order } from '@commercetools/platform-sdk';
+import type { ByProjectKeyRequestBuilder } from '@commercetools/platform-sdk';
 import { getApiRoot } from '../utils/ct-client.js';
 
 function safeSnippet(obj: any, max = 1000) {
@@ -13,13 +14,6 @@ function safeSnippet(obj: any, max = 1000) {
 
 /**
  * findOrder: Attempts several strategies to find an Order resource.
- * Strategies (in order):
- *  1) orders().withOrderNumber({ orderNumber }).get().execute()
- *  2) orders().get({ queryArgs: { where: `orderNumber="X"` } })
- *  3) orders().get({ queryArgs: { where: `paymentInfo(payments(id="PAY"))` } }) when paymentId provided
- *  4) optional: orders.search (index-based) if useSearch=true and SDK supports it
- *
- * Returns Order | null
  */
 export async function findOrder({
   orderNumber,
@@ -31,7 +25,8 @@ export async function findOrder({
   useSearch?: boolean;
 }): Promise<Order | null> {
   const trimmedOrderNumber = (orderNumber ?? '').toString().trim();
-  const apiRoot = getApiRoot();
+  // getApiRoot() returns a properly typed, non-null builder
+  const apiRoot: ByProjectKeyRequestBuilder = getApiRoot();
 
   // 1) Direct endpoint: withOrderNumber
   if (trimmedOrderNumber) {
@@ -55,7 +50,7 @@ export async function findOrder({
     // 2) Fallback: where query on orderNumber
     try {
       const q = await apiRoot.orders().get({
-        queryArgs: { where: `orderNumber="${trimmedOrderNumber}"`, limit: '1' },
+        queryArgs: { where: `orderNumber="${trimmedOrderNumber}"`, limit: 1 },
       }).execute();
 
       console.log('[CT] where query status:', (q as any)?.statusCode ?? '(unknown)');
@@ -71,7 +66,7 @@ export async function findOrder({
   if (paymentId) {
     try {
       const q2 = await apiRoot.orders().get({
-        queryArgs: { where: `paymentInfo(payments(id="${paymentId}"))`, limit: '1' },
+        queryArgs: { where: `paymentInfo(payments(id="${paymentId}"))`, limit: 1 },
       }).execute();
 
       console.log('[CT] paymentId where status:', (q2 as any)?.statusCode ?? '(unknown)');
@@ -83,11 +78,10 @@ export async function findOrder({
     }
   }
 
-  // 4) Optional: Order search (index-based) - may not be available/usable in some projects
+  // 4) Optional: Order search (index-based)
   if (useSearch && trimmedOrderNumber) {
     try {
-      // The SDK might provide .orders().search() — if not, you can use raw HTTP path with apiRoot.client.
-      const sresp = await (apiRoot as any).orders().search({ queryArgs: { text: trimmedOrderNumber, limit: '1' } }).execute();
+      const sresp = await (apiRoot as any).orders().search({ queryArgs: { text: trimmedOrderNumber, limit: 1 } }).execute();
       console.log('[CT] search status:', (sresp as any)?.statusCode ?? '(unknown)');
       console.log('[CT] search body snippet:', safeSnippet(sresp?.body, 1500));
       const ids = sresp?.body?.results?.map((r: any) => r?.id).filter(Boolean);
