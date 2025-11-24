@@ -1,104 +1,83 @@
 // src/services/order.service.ts
 import type { Order } from '@commercetools/platform-sdk';
-import type { ByProjectKeyRequestBuilder } from '@commercetools/platform-sdk';
 import { getApiRoot } from '../utils/ct-client.js';
 
-function safeSnippet(obj: any, max = 1000) {
-  try {
-    const s = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
-    return s.length > max ? s.slice(0, max) + '... (truncated)' : s;
-  } catch {
-    return String(obj).slice(0, max);
-  }
+function safeTrim(v?: string) {
+  return (v ?? '').toString().trim();
+}
+
+function safeEscapeForWhere(s: string) {
+  return s.replace(/"/g, '\\"');
+}
+
+function extractErrorInfo(err: any) {
+  // return useful pieces of the CT SDK error for debugging
+  return {
+    message: err?.message ?? String(err),
+    status:
+      err?.statusCode ??
+      err?.response?.statusCode ??
+      err?.response?.status ??
+      null,
+    body: err?.response?.body ?? err?.body ?? null,
+    stack: err?.stack ?? null,
+  };
 }
 
 /**
- * findOrder: Attempts several strategies to find an Order resource.
+ * Try multiple strategies to get the order id
+ * 1) Prefer direct endpoint /orders/order-number={orderNumber} if available
+ * 2) Otherwise fallback to search via where query
  */
-export async function findOrder({
-  orderNumber,
-  paymentId,
-  useSearch = false,
-}: {
-  orderNumber?: string;
-  paymentId?: string;
-  useSearch?: boolean;
-}): Promise<Order | null> {
-  const trimmedOrderNumber = (orderNumber ?? '').toString().trim();
-  // getApiRoot() returns a properly typed, non-null builder
-  const apiRoot: ByProjectKeyRequestBuilder = getApiRoot();
+export async function getOrderIdFromOrderNumber(orderNumber?: string): Promise<string | null> {
+  const cleaned = safeTrim(orderNumber);
+  if (!cleaned) return null;
 
-  // 1) Direct endpoint: withOrderNumber
-  if (trimmedOrderNumber) {
+  const apiRoot = getApiRoot();
+
+  // defensive: inspect available methods on orders() builder
+  let ordersBuilder: any;
+  try {
+    ordersBuilder = apiRoot.orders();
+  } catch (err) {
+    console.error('[CT] apiRoot.orders() failed:', extractErrorInfo(err));
+    return null;
+  }
+
+  // 1) If withOrderNumber exists and is a function, try it
+  if (typeof ordersBuilder.withOrderNumber === 'function') {
     try {
-      const resp = await apiRoot.orders().withOrderNumber({ orderNumber: trimmedOrderNumber }).get().execute();
-      console.log('[CT] withOrderNumber status:', (resp as any)?.statusCode ?? '(unknown)');
-      console.log('[CT] withOrderNumber body snippet:', safeSnippet(resp?.body, 1500));
-      const order = resp?.body as Order | undefined;
-      if (order?.id) return order;
+      const resp = await ordersBuilder.withOrderNumber({ orderNumber: cleaned }).get().execute();
+      if (resp?.body?.id) {
+        return resp.body.id as string;
+      }
+      // if no body or id, log and fall through to where
+      console.warn('[CT] withOrderNumber returned no id, falling back to where query. body snippet:', JSON.stringify(resp?.body ?? {}, null, 2).slice(0, 2000));
     } catch (err: any) {
-      const status = err?.statusCode ?? err?.response?.statusCode ?? (err?.response && err.response.status);
-      console.warn('[CT] withOrderNumber error status:', status);
-      if (status !== 404) {
-        console.warn('[CT] withOrderNumber error:', err?.message ?? safeSnippet(err?.response?.body ?? err));
-      } else {
-        console.log(`[CT] withOrderNumber: order not found (${trimmedOrderNumber})`);
+      const info = extractErrorInfo(err);
+      console.warn('[CT] withOrderNumber threw error:', info);
+      // If 404 -> go to fallback (not an exceptional failure)
+      if (info.status && info.status !== 404) {
+        // For non-404 status we still attempt fallback, but log prominently
+        console.error('[CT] withOrderNumber non-404 error, attempting fallback where query.');
       }
       // continue to fallback
     }
-
-    // 2) Fallback: where query on orderNumber
-    try {
-      const q = await apiRoot.orders().get({
-        queryArgs: { where: `orderNumber="${trimmedOrderNumber}"`, limit: 1 },
-      }).execute();
-
-      console.log('[CT] where query status:', (q as any)?.statusCode ?? '(unknown)');
-      console.log('[CT] where query body snippet:', safeSnippet(q?.body, 1500));
-      const found = q?.body?.results?.[0];
-      if (found?.id) return found as Order;
-    } catch (qerr: any) {
-      console.error('[CT] where query error:', safeSnippet(qerr?.response?.body ?? qerr?.message ?? qerr));
-    }
+  } else {
+    console.warn('[CT] orders().withOrderNumber not available on this SDK build — using fallback where query.');
   }
 
-  // 3) If paymentId provided, search orders referencing that payment
-  if (paymentId) {
-    try {
-      const q2 = await apiRoot.orders().get({
-        queryArgs: { where: `paymentInfo(payments(id="${paymentId}"))`, limit: 1 },
-      }).execute();
-
-      console.log('[CT] paymentId where status:', (q2 as any)?.statusCode ?? '(unknown)');
-      console.log('[CT] paymentId where body snippet:', safeSnippet(q2?.body, 1500));
-      const f = q2?.body?.results?.[0];
-      if (f?.id) return f as Order;
-    } catch (perr: any) {
-      console.error('[CT] paymentId query error:', safeSnippet(perr?.response?.body ?? perr?.message ?? perr));
-    }
+  // 2) Fallback: use where query (works even if SDK doesn't have withOrderNumber)
+  try {
+    const whereVal = `orderNumber="${safeEscapeForWhere(cleaned)}"`;
+    const qResp = await ordersBuilder.get({ queryArgs: { where: whereVal, limit: 1 } }).execute();
+    const found = qResp?.body?.results?.[0] as Order | undefined;
+    if (found?.id) return found.id;
+    console.info('[CT] where query returned no results for:', cleaned, 'response snippet:', JSON.stringify(qResp?.body ?? {}, null, 2).slice(0, 2000));
+    return null;
+  } catch (werr: any) {
+    const info = extractErrorInfo(werr);
+    console.error('[CT] where query failed:', info);
+    return null;
   }
-
-  // 4) Optional: Order search (index-based)
-  if (useSearch && trimmedOrderNumber) {
-    try {
-      const sresp = await (apiRoot as any).orders().search({ queryArgs: { text: trimmedOrderNumber, limit: 1 } }).execute();
-      console.log('[CT] search status:', (sresp as any)?.statusCode ?? '(unknown)');
-      console.log('[CT] search body snippet:', safeSnippet(sresp?.body, 1500));
-      const ids = sresp?.body?.results?.map((r: any) => r?.id).filter(Boolean);
-      if (ids?.length) {
-        const getResp = await apiRoot.orders().withId({ ID: ids[0] }).get().execute();
-        if (getResp?.body?.id) return getResp.body as Order;
-      }
-    } catch (serr: any) {
-      console.warn('[CT] order search error (may not be supported):', safeSnippet(serr?.response?.body ?? serr?.message ?? serr));
-    }
-  }
-
-  console.info('[CT] No order found using the configured strategies');
-  return null;
-}
-
-export async function getOrderIdFromOrderNumber(orderNumber?: string): Promise<string | null> {
-  const order = await findOrder({ orderNumber });
-  return order?.id ?? null;
 }
