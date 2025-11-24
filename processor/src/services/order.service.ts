@@ -1,40 +1,7 @@
-//  import { getApiRoot } from '../utils/ct-client';
-// import { Order } from '@commercetools/platform-sdk';
-
-// export async function getOrderByOrderNumber(orderNumber: string): Promise<any | null> {
-//   try {
-//     // Lazy import to prevent bundler from resolving SDK during build
-//     const { getApiRoot } = await import('../utils/ct-client.js');
-//     const apiRoot = getApiRoot();
-
-//     const response = await apiRoot
-//       .orders()
-//       .withOrderNumber({ orderNumber })
-//       .get()
-//       .execute();
-
-//     return response.body;
-//   } catch (error: any) {
-//     // Optional: handle specific 404 cases
-//     if (error?.statusCode === 404) return null;
-//     console.error('Error fetching order:', error);
-//     return null;
-//   }
-// }
-
-// export async function getOrderIdFromOrderNumber(orderNumber: string): Promise<string | null> {
-//   const order = await getOrderByOrderNumber(orderNumber);
-//   return order?.id ?? null;
-// }
-// src/services/order-service.ts (or your current file)
-
-
+// services/order-service.ts
 import type { Order } from '@commercetools/platform-sdk';
 import { getApiRoot } from '../utils/ct-client.js';
 
-/**
- * Safe snippet to avoid massive logs
- */
 function safeSnippet(obj: any, max = 1000) {
   try {
     const s = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2);
@@ -45,112 +12,99 @@ function safeSnippet(obj: any, max = 1000) {
 }
 
 /**
- * Fetch order by orderNumber using withOrderNumber. Returns Order or null.
- * - trims and sanitizes input
- * - returns null when not found or on expected errors
- * - logs useful diagnostics
+ * findOrder: Attempts several strategies to find an Order resource.
+ * Strategies (in order):
+ *  1) orders().withOrderNumber({ orderNumber }).get().execute()
+ *  2) orders().get({ queryArgs: { where: `orderNumber="X"` } })
+ *  3) orders().get({ queryArgs: { where: `paymentInfo(payments(id="PAY"))` } }) when paymentId provided
+ *  4) optional: orders.search (index-based) if useSearch=true and SDK supports it
+ *
+ * Returns Order | null
  */
-export async function getOrderByOrderNumber(orderNumber: string): Promise<Order | null> {
-  const trimmed = (orderNumber ?? '').toString().trim();
-  if (!trimmed) {
-    console.log('getOrderByOrderNumber: empty orderNumber provided');
-    return null;
-  }
+export async function findOrder({
+  orderNumber,
+  paymentId,
+  useSearch = false,
+}: {
+  orderNumber?: string;
+  paymentId?: string;
+  useSearch?: boolean;
+}): Promise<Order | null> {
+  const trimmedOrderNumber = (orderNumber ?? '').toString().trim();
+  const apiRoot = getApiRoot();
 
-  try {
-    const { getApiRoot } = await import('../utils/ct-client.js');
-    const apiRoot = getApiRoot();
-    console.log('Using CT projectKey (diagnostic):', (apiRoot as any)?.projectKey ?? '(commercekey)');
-
-    // Use withOrderNumber route which returns the order object (or a 404)
-    const response = await apiRoot
-      .orders()
-      .withOrderNumber({ orderNumber: trimmed })
-      .get()
-      .execute();
-
-    console.log('HTTP status:', (response as any).statusCode ?? (response as any).status ?? '(unknown)');
-    console.log('Order fetched snippet:', safeSnippet(response?.body, 1500));
-
-    const order = response?.body as Order;
-    if (!order) {
-      console.log('Order fetch returned no body (unexpected).');
-      return null;
+  // 1) Direct endpoint: withOrderNumber
+  if (trimmedOrderNumber) {
+    try {
+      const resp = await apiRoot.orders().withOrderNumber({ orderNumber: trimmedOrderNumber }).get().execute();
+      console.log('[CT] withOrderNumber status:', (resp as any)?.statusCode ?? '(unknown)');
+      console.log('[CT] withOrderNumber body snippet:', safeSnippet(resp?.body, 1500));
+      const order = resp?.body as Order | undefined;
+      if (order?.id) return order;
+    } catch (err: any) {
+      const status = err?.statusCode ?? err?.response?.statusCode ?? (err?.response && err.response.status);
+      console.warn('[CT] withOrderNumber error status:', status);
+      if (status !== 404) {
+        console.warn('[CT] withOrderNumber error:', err?.message ?? safeSnippet(err?.response?.body ?? err));
+      } else {
+        console.log(`[CT] withOrderNumber: order not found (${trimmedOrderNumber})`);
+      }
+      // continue to fallback
     }
 
-    return order;
-  } catch (err: any) {
-    // SDK often throws for 404 (not found) — treat as null 
-    if (err?.statusCode === 404 || err?.response?.statusCode === 404) {
-      console.log('Order not found for orderNumber:', trimmed);
-      return null;
-    }
+    // 2) Fallback: where query on orderNumber
+    try {
+      const q = await apiRoot.orders().get({
+        queryArgs: { where: `orderNumber="${trimmedOrderNumber}"`, limit: '1' },
+      }).execute();
 
-    console.log('Error fetching order (withOrderNumber):', err?.message ?? err);
-    if (err?.response?.body) console.log('Error body snippet:', safeSnippet(err.response.body));
-    return null;
+      console.log('[CT] where query status:', (q as any)?.statusCode ?? '(unknown)');
+      console.log('[CT] where query body snippet:', safeSnippet(q?.body, 1500));
+      const found = q?.body?.results?.[0];
+      if (found?.id) return found as Order;
+    } catch (qerr: any) {
+      console.error('[CT] where query error:', safeSnippet(qerr?.response?.body ?? qerr?.message ?? qerr));
+    }
   }
+
+  // 3) If paymentId provided, search orders referencing that payment
+  if (paymentId) {
+    try {
+      const q2 = await apiRoot.orders().get({
+        queryArgs: { where: `paymentInfo(payments(id="${paymentId}"))`, limit: '1' },
+      }).execute();
+
+      console.log('[CT] paymentId where status:', (q2 as any)?.statusCode ?? '(unknown)');
+      console.log('[CT] paymentId where body snippet:', safeSnippet(q2?.body, 1500));
+      const f = q2?.body?.results?.[0];
+      if (f?.id) return f as Order;
+    } catch (perr: any) {
+      console.error('[CT] paymentId query error:', safeSnippet(perr?.response?.body ?? perr?.message ?? perr));
+    }
+  }
+
+  // 4) Optional: Order search (index-based) - may not be available/usable in some projects
+  if (useSearch && trimmedOrderNumber) {
+    try {
+      // The SDK might provide .orders().search() — if not, you can use raw HTTP path with apiRoot.client.
+      const sresp = await (apiRoot as any).orders().search({ queryArgs: { text: trimmedOrderNumber, limit: '1' } }).execute();
+      console.log('[CT] search status:', (sresp as any)?.statusCode ?? '(unknown)');
+      console.log('[CT] search body snippet:', safeSnippet(sresp?.body, 1500));
+      const ids = sresp?.body?.results?.map((r: any) => r?.id).filter(Boolean);
+      if (ids?.length) {
+        const getResp = await apiRoot.orders().withId({ ID: ids[0] }).get().execute();
+        if (getResp?.body?.id) return getResp.body as Order;
+      }
+    } catch (serr: any) {
+      console.warn('[CT] order search error (may not be supported):', safeSnippet(serr?.response?.body ?? serr?.message ?? serr));
+    }
+  }
+
+  console.info('[CT] No order found using the configured strategies');
+  return null;
 }
 
-/**
- * Return the order.id for the given orderNumber, or null when not found.
- */
-export async function getOrderIdFromOrderNumber(orderNumber: string): Promise<string | null> {
-  const order = await getOrderByOrderNumber(orderNumber);
+export async function getOrderIdFromOrderNumber(orderNumber?: string): Promise<string | null> {
+  const order = await findOrder({ orderNumber });
   return order?.id ?? null;
 }
-
-/**
- * Extract payment reference ids from an Order (if any).
- * Returns an array of payment ids (may be empty).
- *
- * The order shape contains payment info under order.paymentInfo.payments (array of References).
- * Each reference usually has an `id` field with the payment id.
- */
-export function getPaymentIdsFromOrder(order: Order | null): string[] {
-  if (!order) return [];
-  // defensive access
-  const payments = (order as any)?.paymentInfo?.payments;
-  if (!Array.isArray(payments) || payments.length === 0) return [];
-  // references are usually like { typeId: 'payment', id: '...' } or { id: '...' }
-  return payments
-    .map((p: any) => p?.id ?? (p?.obj?.id ?? undefined))
-    .filter((id: string | undefined): id is string => typeof id === 'string');
-}
-
-/**
- * Given an orderNumber, return the commercetools payment ids attached to that order.
- * Optionally fetch the full payment objects if `fetchPayments` is true.
- */
-export async function getPaymentsForOrderNumber(orderNumber: string, fetchPayments = false) {
-  const order = await getOrderByOrderNumber(orderNumber);
-  if (!order) {
-    console.log('No order found for', orderNumber);
-    return { order: null, paymentIds: [], payments: [] as any[] };
-  }
-
-  const paymentIds = getPaymentIdsFromOrder(order);
-  console.log('Payment reference ids on order:', paymentIds);
-
-  if (!fetchPayments || paymentIds.length === 0) {
-    return { order, paymentIds, payments: [] as any[] };
-  }
-
-  // fetch each payment object individually (no expand usage, safe approach)
-  const { getApiRoot } = await import('../utils/ct-client.js');
-  const apiRoot = getApiRoot();
-  const payments: any[] = [];
-
-  for (const pid of paymentIds) {
-    try {
-      const resp = await apiRoot.payments().withId({ ID: pid }).get().execute();
-      payments.push(resp?.body ?? null);
-    } catch (err: any) {
-      console.log('Error fetching payment id', pid, '->', err?.message ?? err);
-      payments.push(null);
-    }
-  }
-
-  return { order, paymentIds, payments };
-}
-
