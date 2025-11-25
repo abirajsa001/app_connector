@@ -11,11 +11,11 @@ const PROJECT_KEY = process.env.CT_PROJECT_KEY ?? 'commercekey';
 // --- Auth / HTTP config ---
 // Replace placeholders / move to env vars for production. Do NOT commit secrets.
 const authMiddlewareOptions: AuthMiddlewareOptions = {
-  host: process.env.CT_AUTH_HOST ?? 'https://auth.europe-west1.gcp.commercetools.com',
+  host:  'https://auth.europe-west1.gcp.commercetools.com',
   projectKey: PROJECT_KEY,
   credentials: {
-    clientId: process.env.CT_CLIENT_ID ?? 'your-client-id',
-    clientSecret: process.env.CT_CLIENT_SECRET ?? 'your-client-secret',
+    clientId: 'zzykDtn0B_bBov_EVqk0Hvo-',
+    clientSecret: '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy',
   },
 };
 
