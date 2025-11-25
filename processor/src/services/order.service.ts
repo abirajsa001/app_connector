@@ -1,83 +1,52 @@
-// src/services/order.service.ts
-import type { Order } from '@commercetools/platform-sdk';
-import { getApiRoot } from '../utils/ct-client.js';
+import {
+  ClientBuilder,
+  type AuthMiddlewareOptions,
+  type HttpMiddlewareOptions,
+} from '@commercetools/sdk-client-v2';
+import { createApiBuilderFromCtpClient } from '@commercetools/platform-sdk';
 
-function safeTrim(v?: string) {
-  return (v ?? '').toString().trim();
-}
+const PROJECT_KEY = 'commercekey';
 
-function safeEscapeForWhere(s: string) {
-  return s.replace(/"/g, '\\"');
-}
+const authMiddlewareOptions: AuthMiddlewareOptions = {
+  host: 'https://auth.europe-west1.gcp.commercetools.com',
+  projectKey: PROJECT_KEY,
+  credentials: {
+    clientId: 'zzykDtn0B_bBov_EVqk0Hvo-',
+    clientSecret: '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy',
+  },
+};
 
-function extractErrorInfo(err: any) {
-  // return useful pieces of the CT SDK error for debugging
-  return {
-    message: err?.message ?? String(err),
-    status:
-      err?.statusCode ??
-      err?.response?.statusCode ??
-      err?.response?.status ??
-      null,
-    body: err?.response?.body ?? err?.body ?? null,
-    stack: err?.stack ?? null,
-  };
-}
+const httpMiddlewareOptions: HttpMiddlewareOptions = {
+  host: 'https://api.europe-west1.gcp.commercetools.com',
+};
 
-/**
- * Try multiple strategies to get the order id
- * 1) Prefer direct endpoint /orders/order-number={orderNumber} if available
- * 2) Otherwise fallback to search via where query
- */
-export async function getOrderIdFromOrderNumber(orderNumber?: string): Promise<string | null> {
-  const cleaned = safeTrim(orderNumber);
-  if (!cleaned) return null;
+const ctpClient = new ClientBuilder()
+  .withClientCredentialsFlow(authMiddlewareOptions)
+  .withHttpMiddleware(httpMiddlewareOptions)
+  .build();
 
-  const apiRoot = getApiRoot();
+const apiRoot = createApiBuilderFromCtpClient(ctpClient)
+  .withProjectKey({ projectKey: PROJECT_KEY });
 
-  // defensive: inspect available methods on orders() builder
-  let ordersBuilder: any;
+export async function getOrderIdByOrderNumber(orderNumber: string) {
   try {
-    ordersBuilder = apiRoot.orders();
-  } catch (err) {
-    console.error('[CT] apiRoot.orders() failed:', extractErrorInfo(err));
-    return null;
-  }
+    const response = await apiRoot
+      .orders()
+      .get({
+        queryArgs: {
+          where: `orderNumber="${orderNumber}"`,
+        },
+      })
+      .execute();
 
-  // 1) If withOrderNumber exists and is a function, try it
-  if (typeof ordersBuilder.withOrderNumber === 'function') {
-    try {
-      const resp = await ordersBuilder.withOrderNumber({ orderNumber: cleaned }).get().execute();
-      if (resp?.body?.id) {
-        return resp.body.id as string;
-      }
-      // if no body or id, log and fall through to where
-      console.warn('[CT] withOrderNumber returned no id, falling back to where query. body snippet:', JSON.stringify(resp?.body ?? {}, null, 2).slice(0, 2000));
-    } catch (err: any) {
-      const info = extractErrorInfo(err);
-      console.warn('[CT] withOrderNumber threw error:', info);
-      // If 404 -> go to fallback (not an exceptional failure)
-      if (info.status && info.status !== 404) {
-        // For non-404 status we still attempt fallback, but log prominently
-        console.error('[CT] withOrderNumber non-404 error, attempting fallback where query.');
-      }
-      // continue to fallback
+    if (response.body.results.length === 0) {
+      console.log("Order not found");
+      return null;
     }
-  } else {
-    console.warn('[CT] orders().withOrderNumber not available on this SDK build — using fallback where query.');
-  }
 
-  // 2) Fallback: use where query (works even if SDK doesn't have withOrderNumber)
-  try {
-    const whereVal = `orderNumber="${safeEscapeForWhere(cleaned)}"`;
-    const qResp = await ordersBuilder.get({ queryArgs: { where: whereVal, limit: 1 } }).execute();
-    const found = qResp?.body?.results?.[0] as Order | undefined;
-    if (found?.id) return found.id;
-    console.info('[CT] where query returned no results for:', cleaned, 'response snippet:', JSON.stringify(qResp?.body ?? {}, null, 2).slice(0, 2000));
-    return null;
-  } catch (werr: any) {
-    const info = extractErrorInfo(werr);
-    console.error('[CT] where query failed:', info);
-    return null;
+    return response.body.results[0].id;
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    throw error;
   }
 }
