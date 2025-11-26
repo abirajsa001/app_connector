@@ -327,7 +327,7 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("paymentRef details:", paymentRef);
     
     await createTransactionCommentsType(); 
-    const transactionComments = Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\\nStatus: ${responseData?.result?.status ?? "N/A"}; // create pspReference and update CT payment with transaction info
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nTest Order`;
 
     // fetch cart id and cart
     const cartId = parsedData?.ctId; 
