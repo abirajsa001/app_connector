@@ -413,7 +413,7 @@ export class MockPaymentService extends AbstractPaymentService {
       type,
       config,
     );
-
+    await createTransactionCommentsType();
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
@@ -586,7 +586,9 @@ export class MockPaymentService extends AbstractPaymentService {
     });
 
     const pspReference = randomUUID().toString();
-
+    // Generate transaction comments
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
+    
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference,
@@ -596,6 +598,15 @@ export class MockPaymentService extends AbstractPaymentService {
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        custom: {
+          type: {
+            typeId: "type",
+            key: "novalnet-transaction-comments",
+          },
+          fields: {
+            transactionComments,
+          },
+        },
       },
     });
   
