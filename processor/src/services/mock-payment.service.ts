@@ -330,7 +330,7 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment updated with Novalnet details:");
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: parsedData?.ctPaymentId,
-      version: '2',
+      version: 2,
       pspReference,
       transaction: {
       custom: {
@@ -537,7 +537,7 @@ export class MockPaymentService extends AbstractPaymentService {
     
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
-      version: '1',
+      version: 1,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
       transaction: {
