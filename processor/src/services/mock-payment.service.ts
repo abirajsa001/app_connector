@@ -292,7 +292,7 @@ export class MockPaymentService extends AbstractPaymentService {
     const config = getConfig();
     log.info("getMerchantReturnUrlFromContext from context:", getMerchantReturnUrlFromContext());
     const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
-
+    await createTransactionCommentsType();
     const novalnetPayload = {
       transaction: {
         tid: parsedData?.interfaceId ?? "",
