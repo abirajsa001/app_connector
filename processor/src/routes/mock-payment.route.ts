@@ -180,6 +180,8 @@ export const paymentRoutes = async (
             data: {
               interfaceId: query.tid,
               ctId: query.ctsid,
+              ctPaymentId: query.ctPaymentID,
+              pspReference: query.pspReference,
             },
           }); 
 
