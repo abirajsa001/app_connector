@@ -660,7 +660,7 @@ export class MockPaymentService extends AbstractPaymentService {
     const paymentCartId = ctCart.id;
     const orderNumber   = getFutureOrderNumberFromContext() ?? "";
     const ctPaymentId   = ctPayment.id;
-    const paymentMethod = updatedPayment.paymentMethod;
+
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
