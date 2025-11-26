@@ -154,6 +154,8 @@ export const paymentRoutes = async (
       paymentReference?: string;
       ctsid?: string;
       orderNumber?: string;
+      ctPaymentID?: string;
+      pspReference?: string;
     };
 
     const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
