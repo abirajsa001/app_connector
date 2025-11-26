@@ -343,7 +343,7 @@ export class MockPaymentService extends AbstractPaymentService {
         },
       },
       } as unknown as any,
-    });
+    }as any);
 
     return {
       paymentReference: paymentRef,
@@ -555,7 +555,7 @@ export class MockPaymentService extends AbstractPaymentService {
           },
         },
       } as unknown as any,
-    });
+    }as any);
   
     return {
       paymentReference: updatedPayment.id,
