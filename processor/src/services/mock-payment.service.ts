@@ -387,15 +387,6 @@ export class MockPaymentService extends AbstractPaymentService {
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: "Success",
-        custom: {
-        type: {
-        typeId: 'type',
-        key: 'novalnet-transaction-comments'
-        },
-        fields: {
-        transactionComments
-        }
-        }
       },
     } as any); 
   
@@ -607,7 +598,7 @@ export class MockPaymentService extends AbstractPaymentService {
             transactionComments,
           },
         },
-      },
+      } as unknown as any,
     });
   
     return {
