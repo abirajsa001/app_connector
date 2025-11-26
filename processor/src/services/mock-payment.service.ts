@@ -48,7 +48,7 @@ import {
 import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
-
+import { createTransactionCommentsType } from '../utils/custom-fields';
 
 type NovalnetConfig = {
   testMode: string;
@@ -325,8 +325,11 @@ export class MockPaymentService extends AbstractPaymentService {
   
     const paymentRef: string = responseData?.custom?.paymentRef ?? "";
     log.info("paymentRef details:", paymentRef);
-    // fetch cart id and cart
+    
+    await createTransactionCommentsType(); 
+    const transactionComments = Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\\nStatus: ${responseData?.result?.status ?? "N/A"}; // create pspReference and update CT payment with transaction info
 
+    // fetch cart id and cart
     const cartId = parsedData?.ctId; 
 
     log.info("cartId detailss:", cartId);
@@ -384,6 +387,15 @@ export class MockPaymentService extends AbstractPaymentService {
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
         state: "Success",
+        custom: {
+        type: {
+        typeId: 'type',
+        key: 'novalnet-transaction-comments'
+        },
+        fields: {
+        transactionComments
+        }
+        }
       },
     } as any); 
   
