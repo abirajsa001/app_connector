@@ -333,7 +333,7 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
     const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
-    const version = (payment as any).version ?? payment.version ?? (payment as any).body?.version;
+    const version = 1;
     if (version === undefined) throw new Error('Could not read payment version');
     
     const transactions = (payment as any).transactions ?? (payment as any).body?.transactions ?? [];
@@ -347,8 +347,8 @@ export class MockPaymentService extends AbstractPaymentService {
       actions: [
         {
           action: 'setTransactionCustomType',
-          transactionId: txId,
-          type: {
+          transactionId: parsedData.ctPaymentId,
+          type: { 
             typeId: 'type',               // required
             key: 'novalnet-transaction-comments'  // your custom type key
           },
