@@ -336,28 +336,37 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("psp reference for redirect:", pspReference);
     log.info( pspReference);
 
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: parsedData?.ctPaymentId,
-      pspReference,
+   // 1) fetch payment (get current version)
+const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
+const version = (payment as any).version ?? (payment as any).body?.version;
+if (!version && version !== 0) throw new Error('Could not read version');
+
+// 2) build payload and log it (debug step)
+const payload = {
+  id: parsedData.ctPaymentId,
+  version,
+  actions: [
+    {
+      action: 'addTransaction',
       transaction: {
-        type: "Authorization",
-        amount: {
-          centAmount: 1000,        
-          currencyCode: "EUR"
-        },
+        type: 'Authorization',
+        amount: { centAmount: 1000, currencyCode: 'EUR' },
         interactionId: pspReference,
         state: 'SUCCESS',
         custom: {
-          type: {
-            typeId: "type",
-            key: "novalnet-transaction-comments",
-          },
-          fields: {
-            transactionComments,
-          },
+          type: { typeId: 'type', key: 'novalnet-transaction-comments' },
+          fields: { transactionComments },
         },
-      } as unknown as any,
-    }as any);
+      },
+    },
+  ],
+};
+
+console.log('Update payload:', JSON.stringify(payload, null, 2));
+
+// 3) send
+await this.ctPaymentService.updatePayment(payload as any);
+
 
     log.info("Payment updated with Novalnet details for redirect:");
     return {
