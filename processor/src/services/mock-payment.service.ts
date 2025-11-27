@@ -336,29 +336,63 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("psp reference for redirect:", pspReference);
     log.info( pspReference);
 
-    // fetch payment to get version
-    const payment = await apiRoot.payments().withId({ ID: parsedData?.ctPaymentId }).get().execute();
-    const version = payment.body.version;
-    log.info("payment reference for redirect:", payment);
-    log.info( payment);
-    log.info("currentVersion for redirect:", version);
-    log.info( version);
-    await apiRoot
-      .payments()
-      .withId({ ID: parsedData?.ctPaymentId })
-      .post({
-        body: {
-          version,
-          actions: [
-            {
-              action: 'setCustomType',
-              type: { typeId: 'type', key: 'novalnet-transaction-comments' },
-              fields: { transactionComments: transactionComments }
-            }
-          ]
-        }
-      })
-      .execute();
+	// ---------- robust version + fallback (paste into your service) ----------
+	const paymentId = parsedData?.ctPaymentId;
+	if (!paymentId) throw new Error('missing ctPaymentId');
+
+	let payment: any;
+	try {
+	  // use the wrapper method (use `id` because your GetPayment type likely expects `id`)
+	  payment = await this.ctPaymentService.getPayment({ id: paymentId } as any);
+	} catch (err) {
+	  // fallback: try other common param name if wrapper is different
+	  payment = await (this.ctPaymentService as any).getPayment({ paymentId } as any);
+	}
+
+	// extract version from either wrapper shape: payment.version or payment.body.version
+	const version: number | undefined = (payment && ((payment as any).version ?? (payment as any).body?.version));
+
+	if (!version && version !== 0) {
+	  throw new Error(`Could not determine payment version for paymentId=${paymentId}. Payment response: ${JSON.stringify(payment)}`);
+	}
+
+	const actions = [
+	  {
+		action: 'setCustomType',
+		type: { typeId: 'type', key: 'novalnet-transaction-comments' },
+		fields: { transactionComments }
+	  }
+	];
+
+	// Try the wrapper's most-likely update signature first, then a fallback.
+	try {
+	  // common wrapper shape: top-level version + actions
+	  await this.ctPaymentService.updatePayment({
+		id: paymentId,
+		version,
+		actions,
+	  } as any);
+	} catch (err1) {
+	  // fallback: wrapper expects a `body` property
+	  try {
+		await this.ctPaymentService.updatePayment({
+		  id: paymentId,
+		  body: {
+			version,
+			actions,
+		  },
+		} as any);
+	  } catch (err2) {
+		// final fallback: call wrapper as-any and rethrow both errors for debugging
+		const combined = {
+		  firstError: (err1 && (err1 as any).message) || err1,
+		  secondError: (err2 && (err2 as any).message) || err2,
+		};
+		throw new Error(`updatePayment failed for paymentId=${paymentId}: ${JSON.stringify(combined)}`);
+	  }
+	}
+
+
 
     
     log.info("Payment updated with Novalnet details for redirect:");
