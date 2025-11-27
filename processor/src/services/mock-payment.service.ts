@@ -326,8 +326,7 @@ export class MockPaymentService extends AbstractPaymentService {
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
-    const payment = await (this.ctPaymentService as any).getPayment({ paymentId: parsedData.ctPaymentId });
-	const version = payment.body.version;
+
 
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
@@ -336,26 +335,31 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info(parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
     log.info( pspReference);
+
+    // fetch payment to get version
+    const payment = await apiRoot.payments().withId({ ID: parsedData?.ctPaymentId }).get().execute();
+    const version = payment.body.version;
     log.info("payment reference for redirect:", payment);
     log.info( payment);
     log.info("currentVersion for redirect:", version);
     log.info( version);
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: parsedData?.ctPaymentId,
-      version: version, // must use the latest version
-      actions: [
-        {
-          action: 'setCustomType',
-          type: {
-            typeId: 'type',
-            key: 'novalnet-transaction-comments',
-          },
-          fields: {
-            transactionComments,
-          },
-        },
-      ],
-    }as any);
+    await apiRoot
+      .payments()
+      .withId({ ID: parsedData?.ctPaymentId })
+      .post({
+        body: {
+          version,
+          actions: [
+            {
+              action: 'setCustomType',
+              type: { typeId: 'type', key: 'novalnet-transaction-comments' },
+              fields: { transactionComments: transactionComments }
+            }
+          ]
+        }
+      })
+      .execute();
+
     
     log.info("Payment updated with Novalnet details for redirect:");
     return {
