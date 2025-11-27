@@ -332,7 +332,7 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-    const result = await upsertTxComments({
+    const result = await this.upsertTxComments({
       paymentId: parsedData.ctPaymentId,
       pspReference,
       transactionComments: "Novalnet Transaction ID: N/A Payment Type: N/A Status: N/A"
