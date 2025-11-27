@@ -332,26 +332,26 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-// MINIMAL: update a single field (must fetch payment version + tx.id first)
-const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
-const paymentObj: any = payment?.body ?? payment;
-const version = paymentObj.version;
-const tx = (paymentObj.transactions ?? []).find((t:any) => t.interactionId === pspReference);
-if (!tx) throw new Error('tx not found');
-await this.ctPaymentService.updatePayment({
-  id: parsedData.ctPaymentId,
-  version,
-  actions: [
-    {
-      action: 'setTransactionCustomField',
-      transactionId: tx.id,
-      name: 'transactionComments',
-      value: transactionComments,
-    }
-  ]
-} as any);
+    // MINIMAL: update a single field (must fetch payment version + tx.id first)
+    const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
+    const paymentObj: any = (payment as any)?.body ?? payment;
 
-    
+    const version = paymentObj.version;
+    const tx = (paymentObj.transactions ?? []).find((t:any) => t.interactionId === pspReference);
+    if (!tx) throw new Error('tx not found');
+    log.info(tx.id);
+    await this.ctPaymentService.updatePayment({
+      id: parsedData.ctPaymentId,
+      version,
+      actions: [
+        {
+          action: 'setTransactionCustomField',
+          transactionId: tx.id,
+          name: 'transactionComments',
+          value: transactionComments,
+        }
+      ]
+    } as any);
 
     return {
       paymentReference: paymentRef,
