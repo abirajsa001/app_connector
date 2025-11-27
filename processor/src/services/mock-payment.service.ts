@@ -326,37 +326,119 @@ export class MockPaymentService extends AbstractPaymentService {
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
-    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\nStatus: ${responseData?.result?.status ?? "NN/A"}`;
 
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-    // MINIMAL: update a single field (must fetch payment version + tx.id first)
-    const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
-    const paymentObj: any = (payment as any)?.body ?? payment;
-
-    const version = paymentObj.version;
-    const tx = (paymentObj.transactions ?? []).find((t:any) => t.interactionId === pspReference);
-    if (!tx) throw new Error('tx not found');
-    log.info(tx.id);
-    await this.ctPaymentService.updatePayment({
-      id: parsedData.ctPaymentId,
-      version,
-      actions: [
-        {
-          action: 'setCustomType',
-          transactionId: tx.id,
-          type: { typeId: 'type', key: 'novalnet-payment-comments' },
-          fields: { transactionComments }   // or localized shape below
-        }
-      ]
-    } as any);
+    const result = await upsertTxComments({
+      paymentId: parsedData.ctPaymentId,
+      pspReference,
+      transactionComments: "Novalnet Transaction ID: N/A Payment Type: N/A Status: N/A"
+    });
+    console.log(result);
+    
 
     return {
       paymentReference: paymentRef,
     };
   }
+  
+
+  public async  upsertTxComments({
+    paymentId,
+    pspReference,
+    transactionComments,
+  }: {
+    paymentId: string;
+    pspReference: string;
+    transactionComments: string;
+  }) {
+    const fetchPayment = async () => {
+      const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
+      return (raw as any)?.body ?? raw;
+    };
+  
+    const runUpdate = async (payload: any) => {
+      try {
+        const resp = await this.ctPaymentService.updatePayment(payload as any);
+        return { ok: true, resp };
+      } catch (err: any) {
+        console.error('updatePayment error:', err?.message ?? err);
+        console.error('error body:', JSON.stringify(err?.body ?? err?.response ?? err, null, 2));
+        return { ok: false, err, body: err?.body ?? err?.response ?? null, status: err?.statusCode ?? err?.status };
+      }
+    };
+  
+    // 1) fetch
+    let payment = await fetchPayment();
+    const version = payment?.version;
+    if (version === undefined) throw new Error('Missing payment.version');
+  
+    const transactions: any[] = payment?.transactions ?? [];
+    if (!transactions.length) throw new Error('No transactions on payment');
+  
+    const tx = transactions.find((t:any) => t.interactionId === pspReference || String(t.interactionId) === String(pspReference));
+    if (!tx) throw new Error('Transaction not found');
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+  
+    // 2) if transaction already has our type, update the single field
+    const existingKey = tx.custom?.type?.key ?? null;
+    if (existingKey === 'novalnet-transaction-comments') {
+      const payload = { id: paymentId, version, actions: [{ action: 'setTransactionCustomField', transactionId: txId, name: 'transactionComments', value: transactionComments }] };
+      let res = await runUpdate(payload);
+      if (res.ok) return { ok: true, method: 'setTransactionCustomField' };
+  
+      // retry once on 409
+      if (res.status === 409) {
+        payment = await fetchPayment();
+        payload.version = payment.version;
+        res = await runUpdate(payload);
+        if (res.ok) return { ok: true, method: 'setTransactionCustomField_retry' };
+      }
+  
+      // try localized fallback
+      const payloadLoc = { id: paymentId, version: payload.version ?? version, actions: [{ action: 'setTransactionCustomField', transactionId: txId, name: 'transactionComments', value: { en: transactionComments } }] };
+      let rloc = await runUpdate(payloadLoc);
+      if (rloc.ok) return { ok: true, method: 'setTransactionCustomField_localized' };
+      if (rloc.status === 409) {
+        payment = await fetchPayment();
+        payloadLoc.version = payment.version;
+        rloc = await runUpdate(payloadLoc);
+        if (rloc.ok) return { ok: true, method: 'setTransactionCustomField_localized_retry' };
+      }
+      return { ok: false, reason: 'field_update_failed', body: res.body ?? rloc.body };
+    }
+  
+    // 3) attach the transaction custom type (will create fields)
+    const attach = { id: paymentId, version, actions: [{ action: 'setTransactionCustomType', transactionId: txId, type: { typeId: 'type', key: 'novalnet-transaction-comments' }, fields: { transactionComments } }] };
+    let aRes = await runUpdate(attach);
+    if (aRes.ok) return { ok: true, method: 'setTransactionCustomType' };
+  
+    // retry once on 409
+    if (aRes.status === 409) {
+      payment = await fetchPayment();
+      attach.version = payment.version;
+      aRes = await runUpdate(attach);
+      if (aRes.ok) return { ok: true, method: 'setTransactionCustomType_retry' };
+    }
+  
+    // try localized field if validation error likely
+    const attachLoc = { id: paymentId, version: attach.version ?? version, actions: [{ action: 'setTransactionCustomType', transactionId: txId, type: { typeId: 'type', key: 'novalnet-transaction-comments' }, fields: { transactionComments: { en: transactionComments } } }] };
+    let locRes = await runUpdate(attachLoc);
+    if (locRes.ok) return { ok: true, method: 'setTransactionCustomType_localized' };
+    if (locRes.status === 409) {
+      payment = await fetchPayment();
+      attachLoc.version = payment.version;
+      locRes = await runUpdate(attachLoc);
+      if (locRes.ok) return { ok: true, method: 'setTransactionCustomType_localized_retry' };
+    }
+  
+    return { ok: false, reason: 'attach_failed', body: aRes.body ?? locRes.body };
+  }
+
   
   public async createPayment(
     request: CreatePaymentRequest,
