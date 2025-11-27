@@ -641,7 +641,6 @@ export class MockPaymentService extends AbstractPaymentService {
 
     const pspReference = randomUUID().toString();
     const transactionComments = `Novalnet Transaction ID: ${"N/A"}\nPayment Type: ${"N/A"}\nStatus: ${"N/A"}`;
-    const pspReference = randomUUID().toString();
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference,
