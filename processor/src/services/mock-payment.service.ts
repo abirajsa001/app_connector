@@ -355,7 +355,7 @@ export class MockPaymentService extends AbstractPaymentService {
           },
         },
       ],
-    });
+    }as any);
     
     log.info("Payment updated with Novalnet details for redirect:");
     return {
