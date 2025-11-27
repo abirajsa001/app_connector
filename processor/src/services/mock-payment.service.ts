@@ -332,32 +332,25 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-    const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
-    const version = 1;
-    if (version === undefined) throw new Error('Could not read payment version');
-    
-    const transactions = (payment as any).transactions ?? (payment as any).body?.transactions ?? [];
-    const tx = transactions.find((t: any) => t.interactionId === pspReference);
-    if (!tx) throw new Error('Transaction not found');
-    const txId = tx.id;
-    
-    await this.ctPaymentService.updatePayment({
-      id: parsedData.ctPaymentId,
-      version,
-      actions: [
-        {
-          action: 'setTransactionCustomType',
-          transactionId: parsedData.ctPaymentId,
-          type: { 
-            typeId: 'type',               // required
-            key: 'novalnet-transaction-comments'  // your custom type key
-          },
-          fields: {
-            transactionComments          // initial value for the field(s)
-          }
-        }
-      ]
-    } as any);
+// MINIMAL: update a single field (must fetch payment version + tx.id first)
+const payment = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
+const paymentObj: any = payment?.body ?? payment;
+const version = paymentObj.version;
+const tx = (paymentObj.transactions ?? []).find((t:any) => t.interactionId === pspReference);
+if (!tx) throw new Error('tx not found');
+await this.ctPaymentService.updatePayment({
+  id: parsedData.ctPaymentId,
+  version,
+  actions: [
+    {
+      action: 'setTransactionCustomField',
+      transactionId: tx.id,
+      name: 'transactionComments',
+      value: transactionComments,
+    }
+  ]
+} as any);
+
     
 
     return {
