@@ -336,65 +336,29 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("psp reference for redirect:", pspReference);
     log.info( pspReference);
 
-	// ---------- robust version + fallback (paste into your service) ----------
-	const paymentId = parsedData?.ctPaymentId;
-	if (!paymentId) throw new Error('missing ctPaymentId');
+    const updatedPayment = await this.ctPaymentService.updatePayment({
+      id: parsedData?.ctPaymentId,
+      pspReference,
+      transaction: {
+        type: "Authorization",
+        amount: {
+          centAmount: 1000,        
+          currencyCode: "EUR"
+        },
+        interactionId: pspReference,
+        state: 'SUCCESS',
+        custom: {
+          type: {
+            typeId: "type",
+            key: "novalnet-transaction-comments",
+          },
+          fields: {
+            transactionComments,
+          },
+        },
+      } as unknown as any,
+    }as any);
 
-	let payment: any;
-	try {
-	  // use the wrapper method (use `id` because your GetPayment type likely expects `id`)
-	  payment = await this.ctPaymentService.getPayment({ id: paymentId } as any);
-	} catch (err) {
-	  // fallback: try other common param name if wrapper is different
-	  payment = await (this.ctPaymentService as any).getPayment({ paymentId } as any);
-	}
-
-	// extract version from either wrapper shape: payment.version or payment.body.version
-	const version: number | undefined = (payment && ((payment as any).version ?? (payment as any).body?.version));
-
-	if (!version && version !== 0) {
-	  throw new Error(`Could not determine payment version for paymentId=${paymentId}. Payment response: ${JSON.stringify(payment)}`);
-	}
-
-	const actions = [
-	  {
-		action: 'setCustomType',
-		type: { typeId: 'type', key: 'novalnet-transaction-comments' },
-		fields: { transactionComments }
-	  }
-	];
-
-	// Try the wrapper's most-likely update signature first, then a fallback.
-	try {
-	  // common wrapper shape: top-level version + actions
-	  await this.ctPaymentService.updatePayment({
-		id: paymentId,
-		version,
-		actions,
-	  } as any);
-	} catch (err1) {
-	  // fallback: wrapper expects a `body` property
-	  try {
-		await this.ctPaymentService.updatePayment({
-		  id: paymentId,
-		  body: {
-			version,
-			actions,
-		  },
-		} as any);
-	  } catch (err2) {
-		// final fallback: call wrapper as-any and rethrow both errors for debugging
-		const combined = {
-		  firstError: (err1 && (err1 as any).message) || err1,
-		  secondError: (err2 && (err2 as any).message) || err2,
-		};
-		throw new Error(`updatePayment failed for paymentId=${paymentId}: ${JSON.stringify(combined)}`);
-	  }
-	}
-
-
-
-    
     log.info("Payment updated with Novalnet details for redirect:");
     return {
       paymentReference: paymentRef,
@@ -591,7 +555,6 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("psp reference for direct:", pspReference);
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
-      version: 1,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
       transaction: {
@@ -700,19 +663,8 @@ export class MockPaymentService extends AbstractPaymentService {
     });
 
     const pspReference = randomUUID().toString();
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: ctPayment.id,
-      pspReference,
-      paymentMethod: request.data.paymentMethod.type,
-      transaction: {
-        type: "Authorization",
-        amount: ctPayment.amountPlanned,
-        interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
-      },
-    });
 
-    const paymentRef    = updatedPayment.id;
+    const paymentRef    = ctPayment.id;
     const paymentCartId = ctCart.id;
     const orderNumber   = getFutureOrderNumberFromContext() ?? "";
     const ctPaymentId   = ctPayment.id;
