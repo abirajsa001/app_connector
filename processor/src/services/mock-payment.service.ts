@@ -326,27 +326,37 @@ export class MockPaymentService extends AbstractPaymentService {
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "N/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "N/A"}\nStatus: ${responseData?.result?.status ?? "N/A"}`;
+    const payment = await this.ctPaymentService.getPaymentById(parsedData.ctPaymentId);
+    const currentVersion = payment.body.version;
 
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
+    log.info(transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
+    log.info(parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
+    log.info( pspReference);
+    log.info("payment reference for redirect:", payment);
+    log.info( payment);
+    log.info("currentVersion for redirect:", currentVersion);
+    log.info( currentVersion);
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: parsedData?.ctPaymentId,
-      version: 2,
-      pspReference,
-      transaction: {
-      custom: {
-        type: {
-        typeId: "type",
-        key: "novalnet-transaction-comments",
+      version: currentVersion, // must use the latest version
+      actions: [
+        {
+          action: 'setCustomType',
+          type: {
+            typeId: 'type',
+            key: 'novalnet-transaction-comments',
+          },
+          fields: {
+            transactionComments,
+          },
         },
-        fields: {
-        transactionComments,
-        },
-      },
-      } as unknown as any,
-    }as any);
+      ],
+    });
+    
     log.info("Payment updated with Novalnet details for redirect:");
     return {
       paymentReference: paymentRef,
