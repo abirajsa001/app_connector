@@ -349,7 +349,7 @@ export class MockPaymentService extends AbstractPaymentService {
         action: 'setTransactionCustomType',
         transactionId: txId,
         type: { typeId: 'type', key: 'novalnet-transaction-comments' },
-        fields: { transactionComments }
+        fields: { transactionComments:  transactionComments}
       }
       ]
     } as any);
