@@ -178,20 +178,15 @@ export const paymentRoutes = async (
       
       if (generatedChecksum === query.checksum) {
         try {
-          const requestData = {
-            interfaceId: query.tid,
-            ctId: query.ctsid,
-            ctPaymentId: query.ctPaymentID,
-            pspReference: query.pspReference,
-          };
-        
-          // Convert to JSON string
-          const jsonBody = JSON.stringify(requestData);
-        
           const result = await opts.paymentService.createPaymentt({
-            data: jsonBody,  // send JSON string
-          });
-        
+            data: {
+              interfaceId: String(query.tid || ""),
+              ctId: String(query.ctsid || ""),
+              ctPaymentId: String(query.ctPaymentID || ""),
+              pspReference: String(query.pspReference || "")
+            },
+          }); 
+
           const orderId = await getOrderIdFromOrderNumber(orderNumber);
           if (!orderId) return reply.code(404).send('Order not found');
 
