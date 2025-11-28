@@ -47,7 +47,6 @@ import {
 } from "../dtos/operations/transaction.dto";
 import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
-import { ExtendedUpdatePayment } from './types/payment-extension';
 import { createTransactionCommentsType } from '../utils/custom-fields';
 
 type NovalnetConfig = {
@@ -77,8 +76,7 @@ function getPaymentDueDate(configuredDueDate: number | string): string | null {
   }
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + days);
-  const formattedDate = dueDate.toISOString().split("T")[0];
-  return formattedDate;
+  return dueDate.toISOString().split("T")[0];
 }
 
 export class MockPaymentService extends AbstractPaymentService {
@@ -337,18 +335,17 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
 
-    // Use newly implemented helper to attach comments using the field name you declared in the Type.
-    // Change 'commentDetails' to the actual field name in your Type (or 'transactionComments' if that is your Type field).
+    // Use the robust helper to attach transaction comments (tries to create Type if missing)
     try {
       const attachResult = await this.attachTransactionCommentsUsingField(
         parsedData.ctPaymentId,
         pspReference,
-        "transactionComments", // <-- change if your Type uses a different field name
+        "transactionComments",
         transactionComments,
       );
-      log.info("attachTransactionCommentsUsingField result:", attachResult);
+      log.info("attachTransactionCommentsUsingField result (createPaymentt):", attachResult);
     } catch (err) {
-      log.error("attachTransactionCommentsUsingField threw:", err);
+      log.error("attachTransactionCommentsUsingField threw (createPaymentt):", err);
     }
 
     return {
@@ -357,17 +354,8 @@ export class MockPaymentService extends AbstractPaymentService {
   }
 
   /* ---------------------------
-     Utilities for updatePayment with retry and safe-update
+     Robust update helper (fetch version + retry on 409)
      --------------------------- */
-
-  /**
-   * Robust update helper that:
-   * - fetches the payment version
-   * - runs updatePayment
-   * - on 409 retries once with refreshed version
-   *
-   * returns { ok: boolean, resp?, retried?: boolean, status?, body?, error? }
-   */
   public async updatePaymentWithActions(
     ctPaymentService: any,
     paymentId: string,
@@ -465,12 +453,43 @@ export class MockPaymentService extends AbstractPaymentService {
   }
 
   /* ---------------------------
-     New helpers: attach/update custom type + field with dynamic fieldName
+     Helpers for attaching transaction custom type/fields
      --------------------------- */
 
-  /**
-   * Build setTransactionCustomType action with dynamic field name / value
-   */
+  private isTypeNotFoundError(errBody: any): boolean {
+    if (!errBody) return false;
+    try {
+      const bodyString = typeof errBody === "string" ? errBody : JSON.stringify(errBody);
+      if (bodyString.includes("Type with key") || bodyString.includes("type does not exist") || bodyString.includes("No such type")) {
+        return true;
+      }
+      if (errBody?.errors && Array.isArray(errBody.errors)) {
+        return errBody.errors.some((e: any) => String(e.message ?? "").toLowerCase().includes("type"));
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  private getSuggestedTransactionCommentsTypePayload(typeKey: string, fieldName: string) {
+    // Suggested payload for manual creation or to use in an automated create function
+    return {
+      key: typeKey,
+      name: { en: "Novalnet transaction comments" },
+      description: `Type for storing Novalnet transaction comments on payment transactions (field ${fieldName})`,
+      resourceTypeIds: ["payment"], // adjust as required
+      fieldDefinitions: [
+        {
+          type: { name: "LocalizedString" }, // use "String" if you want non-localized field
+          name: fieldName,
+          label: { en: "Transaction comments" },
+          required: false,
+        },
+      ],
+    };
+  }
+
   private buildSetTransactionCustomTypeAction(
     txId: string,
     typeKey: string,
@@ -486,11 +505,118 @@ export class MockPaymentService extends AbstractPaymentService {
   }
 
   /**
-   * Attach (or update) transaction custom field using Type attach action with dynamic field name.
-   * - tries non-localized first, then localized if necessary.
-   * - typeKey defaults to 'novalnet-transaction-comments'
-   *
-   * fieldName must match the field in your commercetools Type.
+   * Main wrapper:
+   * - tries to attach (setTransactionCustomType) non-localized, then localized
+   * - if attach fails and looks like "type missing", call createTransactionCommentsType() and retry
+   */
+  public async ensureTransactionTypeExistsAndAttach(
+    paymentId: string,
+    pspReference: string,
+    fieldName: string,
+    value: any,
+    typeKey = "novalnet-transaction-comments",
+  ) {
+    // attempt attach (the internal method will resolve tx id)
+    const attempt = async () => {
+      const r = await this.attachTransactionCommentsUsingFieldInternal(paymentId, pspReference, fieldName, value, typeKey);
+      return r;
+    };
+
+    const first = await attempt();
+    if (first.ok) return first;
+
+    // if error suggests Type missing, try creating Type via your imported helper
+    const maybeTypeErr = this.isTypeNotFoundError(first.attachError ?? first.attachLocalizedError ?? first.body);
+    if (!maybeTypeErr) {
+      // not a type-missing error — return first result
+      return first;
+    }
+
+    // Try to create the Type using provided utility (createTransactionCommentsType)
+    try {
+      log.info("Type appears missing — invoking createTransactionCommentsType()");
+      await createTransactionCommentsType();
+    } catch (createErr) {
+      log.error("createTransactionCommentsType() failed:", createErr);
+      return {
+        ok: false,
+        reason: "type_create_failed",
+        createError: createErr,
+        guidance: {
+          message: "Automatic creation of Type failed. Create manually using suggestedTypePayload.",
+          suggestedTypePayload: this.getSuggestedTransactionCommentsTypePayload(typeKey, fieldName),
+        },
+      };
+    }
+
+    // retry attach after creation
+    const second = await attempt();
+    if (second.ok) {
+      log.info("Attach succeeded after creating Type.");
+      return { ok: true, method: second.method, resp: second.resp, createdType: true };
+    }
+
+    // failed even after creating type
+    return {
+      ok: false,
+      reason: "attach_after_create_failed",
+      first,
+      second,
+      guidance: {
+        suggestedTypePayload: this.getSuggestedTransactionCommentsTypePayload(typeKey, fieldName),
+      },
+    };
+  }
+
+  /**
+   * Internal attach implementation:
+   * - resolves tx id
+   * - tries non-localized and localized setTransactionCustomType
+   * Returns structured {ok, method?, resp?, attachError?, attachLocalizedError?}
+   */
+  private async attachTransactionCommentsUsingFieldInternal(
+    paymentId: string,
+    pspReference: string,
+    fieldName: string,
+    fieldValue: any,
+    typeKey = "novalnet-transaction-comments",
+  ) {
+    // fetch payment
+    const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
+    const payment = (raw as any)?.body ?? raw;
+    if (!payment) return { ok: false, reason: "payment_not_found" };
+
+    const transactions: any[] = payment.transactions ?? [];
+    if (!transactions.length) return { ok: false, reason: "no_transactions" };
+
+    const tx = transactions.find((t: any) =>
+      t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
+    ) ?? transactions[transactions.length - 1];
+
+    if (!tx) return { ok: false, reason: "tx_not_found" };
+    const txId = tx.id;
+    if (!txId) return { ok: false, reason: "tx_missing_id" };
+
+    // 1) try non-localized
+    const actionNonLocalized = this.buildSetTransactionCustomTypeAction(txId, typeKey, fieldName, fieldValue);
+    const r1 = await this.updatePaymentWithActions(this.ctPaymentService, paymentId, [actionNonLocalized]);
+    if (r1.ok) return { ok: true, method: "setTransactionCustomType", resp: r1.resp };
+
+    // 2) localized fallback
+    const actionLocalized = this.buildSetTransactionCustomTypeAction(txId, typeKey, fieldName, { en: fieldValue });
+    const r2 = await this.updatePaymentWithActions(this.ctPaymentService, paymentId, [actionLocalized]);
+    if (r2.ok) return { ok: true, method: "setTransactionCustomType_localized", resp: r2.resp };
+
+    return {
+      ok: false,
+      reason: "attach_failed",
+      attachError: r1.body ?? r1.error ?? r1,
+      attachLocalizedError: r2.body ?? r2.error ?? r2,
+    };
+  }
+
+  /**
+   * Public wrapper that uses ensureTransactionTypeExistsAndAttach which will create Type if missing
    */
   public async attachTransactionCommentsUsingField(
     paymentId: string,
@@ -499,88 +625,23 @@ export class MockPaymentService extends AbstractPaymentService {
     fieldValue: string,
     typeKey = "novalnet-transaction-comments",
   ) {
-    // fetch payment
-    const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
-    const payment = (raw as any)?.body ?? raw;
-    if (!payment) throw new Error("Payment not found");
-
-    const transactions: any[] = payment.transactions ?? [];
-    if (!transactions.length) throw new Error("No transactions on payment");
-
-    const tx = transactions.find((t: any) =>
-      t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
-    ) ?? transactions[transactions.length - 1];
-
-    if (!tx) throw new Error("Transaction not found");
-    const txId = tx.id;
-    if (!txId) throw new Error("Transaction id missing");
-
-    // 1) Try attach with non-localized value
-    const actionNonLocalized = this.buildSetTransactionCustomTypeAction(txId, typeKey, fieldName, fieldValue);
-    console.info("Attempting setTransactionCustomType (non-localized) for txId:", txId);
-    const r1 = await this.updatePaymentWithActions(this.ctPaymentService, paymentId, [actionNonLocalized]);
-    if (r1.ok) {
-      console.info("setTransactionCustomType (non-localized) succeeded");
-      return { ok: true, method: "setTransactionCustomType", resp: r1.resp };
-    }
-
-    // 2) Try localized shape (common when field is LocalizedString)
-    const actionLocalized = this.buildSetTransactionCustomTypeAction(txId, typeKey, fieldName, { en: fieldValue });
-    console.info("Attempting setTransactionCustomType (localized) for txId:", txId);
-    const r2 = await this.updatePaymentWithActions(this.ctPaymentService, paymentId, [actionLocalized]);
-    if (r2.ok) {
-      console.info("setTransactionCustomType (localized) succeeded");
-      return { ok: true, method: "setTransactionCustomType_localized", resp: r2.resp };
-    }
-
-    console.error("Both setTransactionCustomType attempts failed", { first: r1.body ?? r1.error, localized: r2.body ?? r2.error });
-    return { ok: false, reason: "attach_failed", attachError: r1.body ?? r1.error, attachLocalizedError: r2.body ?? r2.error };
+    return await this.ensureTransactionTypeExistsAndAttach(paymentId, pspReference, fieldName, fieldValue, typeKey);
   }
 
   /**
-   * Attach the transaction custom type to the transaction with an empty field value
-   * (so that later setTransactionCustomField calls will succeed).
-   *
-   * fieldName: the field name in your Type (e.g. 'commentDetails' or 'transactionComments')
+   * Attach empty Type+field so later setTransactionCustomField updates work
    */
   public async attachEmptyTxCommentsTypeUsingField(
     paymentId: string,
     pspReference: string,
-    fieldName = "commentDetails",
+    fieldName = "transactionComments",
     typeKey = "novalnet-transaction-comments",
   ) {
-    // fetch payment
-    const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
-    const payment = (raw as any)?.body ?? raw;
-    if (!payment) throw new Error("Payment not found in attachEmptyTxCommentsType");
-    const transactions: any[] = payment.transactions ?? [];
-    if (!transactions.length) throw new Error("No transactions on payment in attachEmptyTxCommentsType");
-
-    // find tx
-    const tx = transactions.find((t: any) =>
-      t.interactionId === pspReference || String(t.interactionId) === String(pspReference)
-    ) ?? transactions[transactions.length - 1];
-
-    if (!tx) throw new Error("Target transaction not found in attachEmptyTxCommentsType");
-    const txId = tx.id;
-    if (!txId) throw new Error("Transaction id missing in attachEmptyTxCommentsType");
-
-    // try attach with empty non-localized
-    const actionEmpty = this.buildSetTransactionCustomTypeAction(txId, typeKey, fieldName, "");
-    const r1 = await this.updatePaymentWithActions(this.ctPaymentService, paymentId, [actionEmpty]);
-    if (r1.ok) return { ok: true, method: "setTransactionCustomType" };
-
-    // fallback localized empty
-    const actionEmptyLocalized = this.buildSetTransactionCustomTypeAction(txId, typeKey, fieldName, { en: "" });
-    const r2 = await this.updatePaymentWithActions(this.ctPaymentService, paymentId, [actionEmptyLocalized]);
-    if (r2.ok) return { ok: true, method: "setTransactionCustomType_localized" };
-
-    return { ok: false, reason: "attach_failed", body: r1.body ?? r2.body ?? r1.error ?? r2.error };
+    return await this.ensureTransactionTypeExistsAndAttach(paymentId, pspReference, fieldName, "", typeKey);
   }
 
   /**
-   * Fast-path when Type already attached: setTransactionCustomField to update single field.
-   * Tries non-localized then localized fallback.
+   * Fast-path to update single field when Type is already attached to the transaction
    */
   public async setTransactionCustomFieldFast(
     paymentId: string,
@@ -613,7 +674,7 @@ export class MockPaymentService extends AbstractPaymentService {
       },
     ];
 
-    // Try non-localized
+    // try non-localized
     const r1 = await this.updatePaymentWithActions(this.ctPaymentService, paymentId, actions);
     if (r1.ok) return { ok: true, method: "setTransactionCustomField", resp: r1.resp };
 
@@ -839,11 +900,10 @@ export class MockPaymentService extends AbstractPaymentService {
     } as any);
 
     // Attach the custom type + field robustly via helper
-    // If your Type field is 'commentDetails' change the third arg accordingly
     const attachResult = await this.attachTransactionCommentsUsingField(
       ctPayment.id,
       pspReference,
-      "transactionComments", // <-- field name in the Type
+      "transactionComments",
       transactionComments,
     );
     log.info("attachTransactionCommentsUsingField result (createPayment):", attachResult);
