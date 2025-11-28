@@ -526,7 +526,7 @@ export class MockPaymentService extends AbstractPaymentService {
     if (first.ok) return first;
 
     // if error suggests Type missing, try creating Type via your imported helper
-    const maybeTypeErr = this.isTypeNotFoundError(first.attachError ?? first.attachLocalizedError ?? first.body);
+    const maybeTypeErr = this.isTypeNotFoundError(first.attachError ?? first.attachLocalizedError);
     if (!maybeTypeErr) {
       // not a type-missing error — return first result
       return first;
