@@ -333,27 +333,26 @@ export class MockPaymentService extends AbstractPaymentService {
     const raw = await this.ctPaymentService.getPayment({ id: parsedData?.ctPaymentId } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
-	const transactions: any[] = payment?.transactions ?? [];
-	if (!transactions.length) throw new Error('No transactions on payment');
+    const transactions: any[] = payment?.transactions ?? [];
+    if (!transactions.length) throw new Error('No transactions on payment');
 
-	const tx = transactions.find((t:any) => t.interactionId === pspReference || String(t.interactionId) === String(pspReference));
-	if (!tx) throw new Error('Transaction not found');
-	const txId = tx.id;
-	if (!txId) throw new Error('Transaction missing id');
-	const ctClient = (this.ctPaymentService as any).client ?? (this as any).client;
-	if (!ctClient) throw new Error('commercetools client not available');
+    const tx = transactions.find((t:any) => t.interactionId === pspReference || String(t.interactionId) === String(pspReference));
+    if (!tx) throw new Error('Transaction not found');
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
 
-	const updateResult = await ctClient.payments().withId({ ID: parsedData?.ctPaymentId }).update({
-	  version,
-	  actions: [
-		{
-		  action: 'setTransactionCustomType',
-		  transactionId: txId,
-		  type: { typeId: 'type', key: 'novalnet-transaction-comments' },
-		  fields: { transactionComments }
-		}
-	  ]
-	} as any);
+    await this.ctPaymentService.updatePayment({
+      id: parsedData?.ctPaymentId,
+      version,
+      actions: [
+      {
+        action: 'setTransactionCustomType',
+        transactionId: txId,
+        type: { typeId: 'type', key: 'novalnet-transaction-comments' },
+        fields: { transactionComments }
+      }
+      ]
+    } as any);
 
     return {
       paymentReference: paymentRef,
