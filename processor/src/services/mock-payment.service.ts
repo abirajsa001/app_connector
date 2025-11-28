@@ -619,13 +619,11 @@ export class MockPaymentService extends AbstractPaymentService {
     try {
       payment = await fetchPayment();
     } catch (ex) {
-      console.error("upsertTxComments: failed to fetch payment:", ex);
       return { ok: false, reason: "fetch_failed", error: ex };
     }
   
     const transactions: any[] = payment?.transactions ?? [];
     if (!transactions.length) {
-      console.error("upsertTxComments: no transactions on payment", { paymentId });
       return { ok: false, reason: "no_transactions" };
     }
   
@@ -636,13 +634,11 @@ export class MockPaymentService extends AbstractPaymentService {
       ) ?? transactions[transactions.length - 1];
   
     if (!tx) {
-      console.error("upsertTxComments: target transaction not found", { paymentId, pspReference });
       return { ok: false, reason: "tx_not_found" };
     }
   
     const txId = tx.id;
     if (!txId) {
-      console.error("upsertTxComments: transaction missing id", { tx });
       return { ok: false, reason: "tx_missing_id" };
     }
   
@@ -676,10 +672,9 @@ export class MockPaymentService extends AbstractPaymentService {
       if (resLoc.ok) return { ok: true, method: "setTransactionCustomField_localized", resp: resLoc.resp };
   
       // both attempts failed -> return debug info
-      console.error("upsertTxComments: setTransactionCustomField failed", { fieldErr: res.body ?? res.error, localizedErr: resLoc.body ?? resLoc.error });
-      return { ok: false, reason: "field_update_failed", fieldError: res.body ?? res.error, localizedError: resLoc.body ?? resLoc.error };
+      return { ok: false, reason: "field_update_failed", fieldError: res.body, localizedError: resLoc.body };
     }
-  
+
     // 3) Type not attached -> attach custom type with the field
     const attachActions = [
       {
@@ -706,17 +701,12 @@ export class MockPaymentService extends AbstractPaymentService {
     const attachLocRes = await runUpdateWithActions(attachActionsLocalized);
     if (attachLocRes.ok) return { ok: true, method: "setTransactionCustomType_localized", resp: attachLocRes.resp };
   
-    // final: return aggregated debug info
-    console.error("upsertTxComments: attach failed", {
-      attachError: attachRes.body ?? attachRes.error,
-      attachLocalizedError: attachLocRes.body ?? attachLocRes.error,
-    });
-  
+
     return {
       ok: false,
       reason: "attach_failed",
-      attachError: attachRes.body ?? attachRes.error,
-      attachLocalizedError: attachLocRes.body ?? attachLocRes.error,
+      attachError: attachRes.body,
+      attachLocalizedError: attachLocRes.body,
     };
   }
   
@@ -774,7 +764,100 @@ private async attachEmptyTxCommentsType(paymentId: string, pspReference: string)
   return { ok: true, method: "setTransactionCustomType" };
 }
 
+public async updatePaymentWithActions(paymentId: string, actions: any[]) {
+  if (!Array.isArray(actions) || actions.length === 0) {
+    throw new Error("updatePaymentWithActions requires a non-empty actions array");
+  }
 
+  const fetchPayment = async () => {
+    const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
+    return (raw as any)?.body ?? raw;
+  };
+
+  const runUpdate = async (payload: any) => {
+    try {
+      const resp = await this.ctPaymentService.updatePayment(payload as any);
+      return { ok: true, resp };
+    } catch (err: any) {
+      // normalize error shape
+      const status = err?.statusCode ?? err?.status ?? null;
+      const body = err?.body ?? err?.response ?? err;
+      return { ok: false, error: err, status, body };
+    }
+  };
+
+  // 1) fetch current version
+  let payment;
+  try {
+    payment = await fetchPayment();
+  } catch (ex) {
+    console.error("updatePaymentWithActions: failed to fetch payment:", ex);
+    return { ok: false, reason: "fetch_failed", error: ex };
+  }
+
+  const version = payment?.version;
+  if (version === undefined) {
+    console.error("updatePaymentWithActions: payment.version is missing", { paymentId, payment });
+    return { ok: false, reason: "missing_version", payment };
+  }
+
+  // build initial payload
+  let payload: any = { id: paymentId, version, actions };
+
+  // 2) first attempt
+  let res = await runUpdate(payload);
+  if (res.ok) {
+    return { ok: true, resp: res.resp, retried: false };
+  }
+
+  // 3) if 409 (concurrent modification), retry once with refreshed version
+  const status = res.status;
+  console.warn("updatePaymentWithActions: first attempt failed", { paymentId, status, body: res.body ?? res.error });
+
+  if (status === 409) {
+    try {
+      payment = await fetchPayment();
+    } catch (ex) {
+      console.error("updatePaymentWithActions: failed to re-fetch payment after 409:", ex);
+      return { ok: false, reason: "refetch_failed", error: ex, firstError: res.body ?? res.error, status: res.status };
+    }
+
+    const version2 = payment?.version;
+    if (version2 === undefined) {
+      console.error("updatePaymentWithActions: missing version on retry", { paymentId, payment });
+      return { ok: false, reason: "missing_version_retry", payment, firstError: res.body ?? res.error };
+    }
+
+    payload.version = version2;
+    const res2 = await runUpdate(payload);
+    if (res2.ok) {
+      return { ok: true, resp: res2.resp, retried: true };
+    }
+
+    // retry also failed
+    console.error("updatePaymentWithActions: retry failed", {
+      paymentId,
+      firstError: res.body ?? res.error,
+      retryError: res2.body ?? res2.error,
+      retryStatus: res2.status,
+    });
+    return {
+      ok: false,
+      reason: "retry_failed",
+      firstError: res.body ?? res.error,
+      retryError: res2.body ?? res2.error,
+      status: res2.status,
+    };
+  }
+
+  // non-409 failure on first attempt
+  console.error("updatePaymentWithActions: update failed (non-409)", {
+    paymentId,
+    status: res.status,
+    body: res.body ?? res.error,
+  });
+  return { ok: false, reason: "update_failed", status: res.status, body: res.body ?? res.error };
+}
   public async createPayments(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
