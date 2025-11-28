@@ -335,7 +335,7 @@ export class MockPaymentService extends AbstractPaymentService {
     const result = await this.upsertTxComments({
       paymentId: parsedData.ctPaymentId,
       pspReference,
-      transactionComments: transactionComments,
+      transactionComments,
     });
     console.log(result);
     
