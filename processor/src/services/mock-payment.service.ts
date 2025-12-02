@@ -363,7 +363,13 @@ export class MockPaymentService extends AbstractPaymentService {
     },
   })
   .execute();
-
+  const comment = await this.getTransactionComment(
+    parsedData.ctPaymentId,
+    parsedData.pspReference
+  );
+  log.info('comment-updated');
+  log.info(comment);
+  log.info('comment-updated-after');
     return {
       paymentReference: paymentRef,
     };
@@ -663,6 +669,36 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
         unique_id: String(request.data.paymentMethod.uniqueId),
     };
 }
+
+const ctPayment = await this.ctPaymentService.createPayment({
+  amountPlanned: await this.ctCartService.getPaymentAmount({
+    cart: ctCart,
+  }),
+  paymentMethodInfo: {
+    paymentInterface: getPaymentInterfaceFromContext() || "mock",
+  },
+  paymentStatus: {
+    interfaceCode: JSON.stringify(parsedResponse),
+    interfaceText: transactiondetails + "\n" + bankDetails,
+  },
+  ...(ctCart.customerId && {
+    customer: { typeId: "customer", id: ctCart.customerId },
+  }),
+  ...(!ctCart.customerId &&
+    ctCart.anonymousId && {
+      anonymousId: ctCart.anonymousId,
+    }),
+});
+
+await this.ctCartService.addPayment({
+  resource: { id: ctCart.id, version: ctCart.version },
+  paymentId: ctPayment.id,
+});
+
+const pspReference = randomUUID().toString();
+
+
+
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
@@ -699,12 +735,12 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
         ),
         input3: "customerEmail",
         inputval3: String(parsedCart.customerEmail ?? "Email not available"),
-        input4: "Payment-Method",
+        input4: "ctpayment-id",
         inputval4: String(
-          request.data.paymentMethod.type ?? "Payment-Method not available",
+          ctPayment.id ?? "ctpayment-id not available",
         ),
-        input5: "TestMode",
-        inputval5: String(testMode ?? "0"),
+        input5: "pspReference",
+        inputval5: String(pspReference ?? "0"),
       },
     };
 
@@ -754,32 +790,7 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       bankDetails = `Please transfer the amount of ${parsedResponse.transaction.amount} to the following account.\nAccount holder: ${parsedResponse.transaction.bank_details.account_holder}\nIBAN: ${parsedResponse.transaction.bank_details.iban}\nBIC: ${parsedResponse.transaction.bank_details.bic}\nBANK NAME: ${parsedResponse.transaction.bank_details.bank_name}\nBANK PLACE: ${parsedResponse.transaction.bank_details.bank_place}\nPlease use the following payment reference for your money transfer:\nPayment Reference 1: ${parsedResponse.transaction.tid}`;
     }
 
-    const ctPayment = await this.ctPaymentService.createPayment({
-      amountPlanned: await this.ctCartService.getPaymentAmount({
-        cart: ctCart,
-      }),
-      paymentMethodInfo: {
-        paymentInterface: getPaymentInterfaceFromContext() || "mock",
-      },
-      paymentStatus: {
-        interfaceCode: JSON.stringify(parsedResponse),
-        interfaceText: transactiondetails + "\n" + bankDetails,
-      },
-      ...(ctCart.customerId && {
-        customer: { typeId: "customer", id: ctCart.customerId },
-      }),
-      ...(!ctCart.customerId &&
-        ctCart.anonymousId && {
-          anonymousId: ctCart.anonymousId,
-        }),
-    });
 
-    await this.ctCartService.addPayment({
-      resource: { id: ctCart.id, version: ctCart.version },
-      paymentId: ctPayment.id,
-    });
-
-    const pspReference = randomUUID().toString();
     // Generate transaction comments
     const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\n${transactiondetails ?? "N/A"}\n${bankDetails ?? ""}`;
     log.info("Payment created with Novalnet details for direct:");
@@ -811,11 +822,43 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       } as unknown as any,
     } as any);
 
-
+    const comment = await this.getTransactionComment(
+      ctPayment.id,
+      pspReference
+    );
+    log.info('comment-updated');
+    log.info(comment);
+    log.info('comment-updated-after');
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
     };
+  }
+
+
+  public async getTransactionComment(paymentId: string, pspReference: string) {
+
+    // 1) Fetch payment from commercetools
+    const response = await projectApiRoot
+      .payments()
+      .withId({ ID: paymentId })
+      .get()
+      .execute();
+    const payment = response.body;
+  
+    // 2) Find the transaction using interactionId (pspReference)
+    const tx = payment.transactions?.find(
+      (t: any) =>
+        t.interactionId === pspReference ||
+        String(t.interactionId) === String(pspReference)
+    );
+  
+    if (!tx) throw new Error("Transaction not found");
+    // 3) If transaction has custom fields, extract the value
+    const comment =
+      tx.custom?.fields?.transactionComments ?? null;
+  
+    return comment;
   }
 
   public async createPayments(
@@ -929,6 +972,7 @@ if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {
       } as unknown as any,
     } as any);
 
+    
     const paymentRef    = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
     const orderNumber   = getFutureOrderNumberFromContext() ?? "";
