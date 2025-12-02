@@ -13,7 +13,6 @@ const authUrl = 'https://auth.europe-west1.gcp.commercetools.com';
 const apiUrl = 'https://api.europe-west1.gcp.commercetools.com';
 const clientId = 'zzykDtn0B_bBov_EVqk0Hvo-';
 const clientSecret = '9vrhw1oyV27jiLvlOvQJpR__UVhd6ETy';
-const scopes = ["manage_payments:commercekey"];
 const authMiddlewareOptions: AuthMiddlewareOptions = {
   host: authUrl,
   projectKey,
@@ -21,7 +20,6 @@ const authMiddlewareOptions: AuthMiddlewareOptions = {
     clientId,
     clientSecret,
   },
-  scopes,
 };
 
 // HTTP middleware
