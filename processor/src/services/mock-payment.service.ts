@@ -48,6 +48,7 @@ import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
 import { createTransactionCommentsType } from '../utils/custom-fields';
+import { projectApiRoot } from '../utils/ct-client';
 
 type NovalnetConfig = {
   testMode: string;
@@ -340,15 +341,50 @@ export class MockPaymentService extends AbstractPaymentService {
 	log.info(txId);
 	log.info(parsedData.ctPaymentId);
 	log.info(transactionComments);
-	await this.updateTransactionComment(
-	  parsedData.ctPaymentId,
-	  parsedData.pspReference,
-	  transactionComments
-	);
-
+  await this.updateTxComment(
+    parsedData.ctPaymentId, 
+    txId,                   
+    transactionComments,
+  );
     return {
       paymentReference: paymentRef,
     };
+    }
+
+    public async updateTxComment(paymentId: string, txId: string, comment: string) {
+      // 1) Fetch latest payment via existing ctPaymentService
+      const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
+      const payment = (raw as any)?.body ?? raw;
+  
+      if (!payment) {
+        throw new Error('Payment not found in updateTxComment');
+      }
+  
+      const version = payment.version;
+      if (version === undefined || version === null) {
+        throw new Error('Payment version missing in updateTxComment');
+      }
+  
+      // 2) Update transaction custom field via commercetools API
+      const result = await projectApiRoot
+        .payments()
+        .withId({ ID: paymentId })
+        .post({
+          body: {
+            version,
+            actions: [
+              {
+                action: 'setTransactionCustomField',
+                transactionId: txId,
+                name: 'transactionComments',
+                value: comment,
+              },
+            ],
+          },
+        })
+        .execute();
+  
+      return (result as any).body ?? result;
     }
 
 async updateTransactionComment(paymentId: string, interactionId: string, comment: string) {
