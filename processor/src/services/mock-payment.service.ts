@@ -329,36 +329,67 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
     log.info("psp reference for redirect:", pspReference);
-	const raw = await this.ctPaymentService.getPayment({ id: parsedData?.ctPaymentId } as any);
-	const payment: any = (raw as any)?.body ?? raw;
-	const paymentId = parsedData.ctPaymentId;
-	const version = payment?.version;
-	const transactions: any[] = payment?.transactions ?? [];
-	if (!transactions.length) throw new Error('No transactions on payment');
-
-	const tx = transactions.find((t:any) => t.interactionId === pspReference || String(t.interactionId) === String(pspReference));
-	if (!tx) throw new Error('Transaction not found');
+	const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
+	const payment = (raw as any)?.body ?? raw;
+	const tx = payment.transactions?.find((t: any) =>
+	  t.interactionId === parsedData.pspReference
+	);
+	if (!tx) throw new Error("Transaction not found");
 	const txId = tx.id;
 	if (!txId) throw new Error('Transaction missing id');
 	log.info(txId);
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: payment.id,
-      version,
-      actions: [
-        {
-          action: "setTransactionCustomField",
-          transactionId: txId,
-          name: "transactionComments",
-          value: transactionComments,   // <-- update ONLY field value
-        }
-      ]
-    }as any);
-    
+	log.info(parsedData.ctPaymentId);
+	log.info(transactionComments);
+	await this.updateTransactionComment(
+	  parsedData.ctPaymentId,
+	  parsedData.pspReference,
+	  transactionComments
+	);
 
     return {
       paymentReference: paymentRef,
     };
     }
+
+async updateTransactionComment(paymentId: string, interactionId: string, comment: string) {
+  // 1) fetch payment
+  const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
+ 	const payment = (raw as any)?.body ?? raw;
+
+  if (!payment) throw new Error("Payment not found");
+
+  const version = payment.version;
+  const tx = (payment.transactions ?? []).find(
+    (t: any) => String(t.interactionId) === String(interactionId)
+  );
+
+  if (!tx) throw new Error("Transaction not found");
+
+  // THIS is the raw commercetools client (required for actions)
+  const ctClient = (this.ctPaymentService as any).client; 
+  if (!ctClient) throw new Error("commercetools client missing");
+
+  // 2) Perform actual update → this is what commercetools expects
+  const updated = await ctClient
+    .payments()
+    .withId({ ID: paymentId })
+    .post({
+      body: {
+        version,
+        actions: [
+          {
+            action: "setTransactionCustomField",
+            transactionId: tx.id,
+            name: "transactionComments",
+            value: comment,
+          },
+        ],
+      },
+    })
+    .execute();
+
+  return updated.body ?? updated;
+}
 
   /**
    * Safe helper: call ctPaymentService.updatePayment only when there are actions.
