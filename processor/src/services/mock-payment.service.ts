@@ -332,6 +332,7 @@ export class MockPaymentService extends AbstractPaymentService {
     log.info("psp reference for redirect:", pspReference);
 	const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentId } as any);
 	const payment = (raw as any)?.body ?? raw;
+  const version = payment.version;
 	const tx = payment.transactions?.find((t: any) =>
 	  t.interactionId === parsedData.pspReference
 	);
@@ -341,11 +342,23 @@ export class MockPaymentService extends AbstractPaymentService {
 	log.info(txId);
 	log.info(parsedData.ctPaymentId);
 	log.info(transactionComments);
-  await this.updateTxComment(
-    parsedData.ctPaymentId, 
-    txId,                   
-    transactionComments,
-  );
+  const updatedPayment = await projectApiRoot
+  .payments()
+  .withId({ ID: parsedData.ctPaymentId })
+  .post({
+    body: {
+      version,
+      actions: [
+        {
+          action: "setTransactionCustomField",
+          transactionId: txId,
+          name: "transactionComments",
+          value: transactionComments,
+        },
+      ],
+    },
+  })
+  .execute();
     return {
       paymentReference: paymentRef,
     };
