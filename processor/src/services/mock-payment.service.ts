@@ -693,8 +693,6 @@ await this.ctCartService.addPayment({
 
 const pspReference = randomUUID().toString();
 
-
-
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
