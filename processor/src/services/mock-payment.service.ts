@@ -372,6 +372,61 @@ export class MockPaymentService extends AbstractPaymentService {
   log.info('comment-updated');
   log.info(comment);
   log.info('comment-updated-after');
+  
+  	// inside your function
+	try {
+	  const paymentIdValue = parsedData.ctPaymentId;
+	  const pspReferenceValue = parsedData.pspReference;
+	  const container = "nn-private-data";
+	  const key = `${paymentIdValue}-${pspReferenceValue}`;
+
+	  log.info("Storing sensitive data under custom object key:", key);
+
+	  // upsert returns the SDK response for create/update (you can inspect if needed)
+	  const upsertResp = await customObjectService.upsert(container, key, {
+		deviceId: "device-1234",
+		riskScore: 42,
+		orderNo: responseData?.transaction?.order_no ?? '',
+		tid: responseData?.transaction?.tid ?? '',
+		paymentMethod:  responseData?.transaction?.payment_type ?? '',
+		cMail:  responseData?.customer?.mail ?? '',
+		status:  responseData?.transaction?.status ?? '',
+		totalAmount: responseData?.transaction?.amount ?? '',
+		callbackAmount: 0,
+	  });
+
+	  log.info("CustomObject upsert done");
+
+	  // get returns the found object (or null). The object has .value
+	  const obj = await customObjectService.get(container, key);
+	  log.info('Value are getted');
+	  log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
+	  if (!obj) {
+		log.warn("CustomObject missing after upsert (unexpected)", { container, key });
+	  } else {
+		// obj.value contains the stored data
+		const stored = obj.value;
+
+		// DON'T log raw sensitive data in production. Example: mask deviceId
+		const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
+		log.info("Stored custom object (masked):", {
+		  container: obj.container,
+		  key: obj.key,
+		  version: obj.version,
+		  deviceId: maskedDeviceId,
+		  riskScore: stored.riskScore, // if non-sensitive you may log
+		});
+		log.info(stored.tid);
+		log.info(stored.status);
+		log.info(stored.cMail);
+		// If you really need the full payload for debugging (dev only), stringify carefully:
+		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
+	  }
+	} catch (err) {
+	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
+	  throw err; // or handle as appropriate
+	}
+	
     return {
       paymentReference: paymentRef,
     };
@@ -840,13 +895,13 @@ const pspReference = randomUUID().toString();
 	  const upsertResp = await customObjectService.upsert(container, key, {
 		deviceId: "device-1234",
 		riskScore: 42,
-    orderNo: parsedResponse?.transaction?.order_no ?? '',
-    tid: parsedResponse?.transaction?.tid ?? '',
-    paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
-    cMail:  parsedResponse?.customer?.mail ?? '',
-    status:  parsedResponse?.transaction?.status ?? '',
-    totalAmount: parsedResponse?.transaction?.amount ?? '',
-    callbackAmount: 0,
+		orderNo: parsedResponse?.transaction?.order_no ?? '',
+		tid: parsedResponse?.transaction?.tid ?? '',
+		paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
+		cMail:  parsedResponse?.customer?.mail ?? '',
+		status:  parsedResponse?.transaction?.status ?? '',
+		totalAmount: parsedResponse?.transaction?.amount ?? '',
+		callbackAmount: 0,
 	  });
 
 	  log.info("CustomObject upsert done");
@@ -870,9 +925,9 @@ const pspReference = randomUUID().toString();
 		  deviceId: maskedDeviceId,
 		  riskScore: stored.riskScore, // if non-sensitive you may log
 		});
-    log.info(stored.tid);
-    log.info(stored.status);
-    log.info(stored.cMail);
+		log.info(stored.tid);
+		log.info(stored.status);
+		log.info(stored.cMail);
 		// If you really need the full payload for debugging (dev only), stringify carefully:
 		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
 	  }
