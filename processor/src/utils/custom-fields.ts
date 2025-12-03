@@ -76,6 +76,7 @@ const DEFAULT_FIELDS: FieldDefSpec[] = [
  *
  * Call this at startup before writing transactions that rely on these fields.
  */
+// src/commercetools/custom-fields.ts  (replace createTransactionCommentsType)
 export const createTransactionCommentsType = async (): Promise<void> => {
   const KEY = "novalnet-transaction-comments";
 
@@ -87,27 +88,38 @@ export const createTransactionCommentsType = async (): Promise<void> => {
       .execute()
       .catch(() => null);
 
+    // helper to create plain, JSON-safe fieldDefinition literal
+    const makeFieldDef = (f: FieldDefSpec) => {
+      const typeObj = typeof f.type === "object" && (f.type as any).name ? { name: (f.type as any).name } : f.type;
+      const base: any = {
+        name: f.name,
+        label: { en: f.label },
+        type: typeObj,
+        required: !!f.required,
+      };
+      // only attach inputHint when present and for string-like fields
+      if (f.inputHint && typeObj && typeObj.name === "String") {
+        base.inputHint = f.inputHint;
+      }
+      return base;
+    };
+
     // If type doesn't exist -> create it with all fieldDefinitions
     if (!existingResp || !existingResp.body) {
+      const body = {
+        key: KEY,
+        name: { en: "Novalnet Transaction Comments (hidden)" },
+        description: { en: "Transaction-level metadata for Novalnet (hidden in MC)" },
+        resourceTypeIds: ["transaction"],
+        fieldDefinitions: DEFAULT_FIELDS.map(makeFieldDef),
+      };
+
+      // debug log: inspect final JSON structure being sent
+      console.debug("Creating type - request body:", JSON.stringify(body, null, 2));
+
       await apiRoot
         .types()
-        .post({
-          body: {
-            key: KEY,
-            name: { en: "Novalnet Transaction Comments (hidden)" },
-            description: { en: "Transaction-level metadata for Novalnet (hidden in MC)" },
-            resourceTypeIds: ["transaction"],
-            // --- CAST to FieldDefinition[] so TS accepts the shape ---
-            fieldDefinitions: DEFAULT_FIELDS.map((f) => ({
-              name: f.name,
-              label: { en: f.label },
-              // cast the `type` into the SDK FieldType union
-              type: (f.type as unknown) as FieldType,
-              required: !!f.required,
-              ...(f.inputHint ? { inputHint: f.inputHint } : {}),
-            })) as unknown as FieldDefinition[],
-          },
-        })
+        .post({ body })
         .execute();
       return;
     }
@@ -122,13 +134,7 @@ export const createTransactionCommentsType = async (): Promise<void> => {
       if (!existingFieldNames.has(f.name)) {
         actions.push({
           addFieldDefinition: {
-            fieldDefinition: {
-              name: f.name,
-              label: { en: f.label },
-              type: (f.type as unknown) as FieldType,
-              required: !!f.required,
-              ...(f.inputHint ? { inputHint: f.inputHint } : {}),
-            } as FieldDefinition,
+            fieldDefinition: makeFieldDef(f),
           },
         });
       }
@@ -139,21 +145,27 @@ export const createTransactionCommentsType = async (): Promise<void> => {
       return;
     }
 
-    // apply update with current version
+    const updateBody = {
+      version: existingType.version,
+      actions,
+    };
+
+    // debug log: inspect final JSON structure being sent for update
+    console.debug("Updating type - request body:", JSON.stringify(updateBody, null, 2));
+
     await apiRoot
       .types()
       .withId({ ID: existingType.id })
-      .post({
-        body: {
-          version: existingType.version,
-          actions,
-        },
-      })
+      .post({ body: updateBody })
       .execute();
 
-    // success
-  } catch (err) {
+  } catch (err: any) {
+    // if CT returned structured error, print it (helps pinpoint invalid fields)
+    if (err && err.body && err.body.errors) {
+      console.error("Commercetools returned errors:", JSON.stringify(err.body.errors, null, 2));
+    }
     console.error("Error creating/updating custom type novalnet-transaction-comments:", err);
     throw err;
   }
 };
+
