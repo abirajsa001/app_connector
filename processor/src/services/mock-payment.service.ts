@@ -840,17 +840,21 @@ const pspReference = randomUUID().toString();
 	  const upsertResp = await customObjectService.upsert(container, key, {
 		deviceId: "device-1234",
 		riskScore: 42,
-		merchantNote: "Checked by connector",
-		fraudStatus: "approved",
-		extraInfo: { ip: "127.0.0.1" },
+    orderNo: parsedResponse?.transaction?.order_no ?? '',
+    tid: parsedResponse?.transaction?.tid ?? '',
+    paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
+    cMail:  parsedResponse?.customer?.mail ?? '',
+    status:  parsedResponse?.transaction?.status ?? '',
+    totalAmount: parsedResponse?.transaction?.amount ?? '',
+    callbackAmount: 0,
 	  });
 
 	  log.info("CustomObject upsert done");
 
 	  // get returns the found object (or null). The object has .value
 	  const obj = await customObjectService.get(container, key);
-	log.info('Value are getted');
-	log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
+	  log.info('Value are getted');
+	  log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
 	  if (!obj) {
 		log.warn("CustomObject missing after upsert (unexpected)", { container, key });
 	  } else {
@@ -866,8 +870,9 @@ const pspReference = randomUUID().toString();
 		  deviceId: maskedDeviceId,
 		  riskScore: stored.riskScore, // if non-sensitive you may log
 		});
-
-
+    log.info(obj.tid);
+    log.info(obj.status);
+    log.info(obj.cMail);
 		// If you really need the full payload for debugging (dev only), stringify carefully:
 		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
 	  }
