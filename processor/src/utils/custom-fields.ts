@@ -14,9 +14,6 @@ const authOptions: AuthMiddlewareOptions = {
     clientId: config.clientId,
     clientSecret: config.clientSecret,
   },
-  // set the scopes that your API client has in Merchant Center,
-  // for example: ["manage_payments:your-project-key"]
-  scopes: config.scopes ?? [`manage_payments:${config.projectKey}`],
 };
 
 const httpOptions: HttpMiddlewareOptions = {
