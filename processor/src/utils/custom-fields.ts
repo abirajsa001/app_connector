@@ -4,7 +4,11 @@ import {
   type AuthMiddlewareOptions,
   type HttpMiddlewareOptions,
 } from "@commercetools/sdk-client-v2";
-import { createApiBuilderFromCtpClient } from "@commercetools/platform-sdk";
+import {
+  createApiBuilderFromCtpClient,
+  type FieldDefinition,
+  type FieldType,
+} from "@commercetools/platform-sdk";
 import { config } from "../config/config";
 
 const authOptions: AuthMiddlewareOptions = {
@@ -32,7 +36,8 @@ export const apiRoot = createApiBuilderFromCtpClient(ctpClient).withProjectKey({
 type FieldDefSpec = {
   name: string;
   label: string;
-  type: { name: string };
+  // use the SDK FieldType for better type-safety; the DEFAULT_FIELDS below use literal names
+  type: FieldType | { name: string };
   required?: boolean;
   inputHint?: string;
 };
@@ -41,7 +46,7 @@ const DEFAULT_FIELDS: FieldDefSpec[] = [
   {
     name: "transactionComments",
     label: "Transaction Comments",
-    type: { name: "String" },
+    type: { name: "String" }, // literal string here is fine
     required: false,
   },
   {
@@ -62,7 +67,6 @@ const DEFAULT_FIELDS: FieldDefSpec[] = [
     label: "Device ID",
     type: { name: "String" },
     required: false,
-    // no inputHint (previous "Hidden" is not valid)
   },
 ];
 
@@ -93,13 +97,15 @@ export const createTransactionCommentsType = async (): Promise<void> => {
             name: { en: "Novalnet Transaction Comments (hidden)" },
             description: { en: "Transaction-level metadata for Novalnet (hidden in MC)" },
             resourceTypeIds: ["transaction"],
+            // --- CAST to FieldDefinition[] so TS accepts the shape ---
             fieldDefinitions: DEFAULT_FIELDS.map((f) => ({
               name: f.name,
               label: { en: f.label },
-              type: f.type,
+              // cast the `type` into the SDK FieldType union
+              type: (f.type as unknown) as FieldType,
               required: !!f.required,
               ...(f.inputHint ? { inputHint: f.inputHint } : {}),
-            })),
+            })) as unknown as FieldDefinition[],
           },
         })
         .execute();
@@ -119,10 +125,10 @@ export const createTransactionCommentsType = async (): Promise<void> => {
             fieldDefinition: {
               name: f.name,
               label: { en: f.label },
-              type: f.type,
+              type: (f.type as unknown) as FieldType,
               required: !!f.required,
               ...(f.inputHint ? { inputHint: f.inputHint } : {}),
-            },
+            } as FieldDefinition,
           },
         });
       }
