@@ -47,7 +47,7 @@ import {
 import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
-import { createTransactionCommentsType } from '../utils/custom-fields';
+import { createTransactionCommentsType, apiRoot } from "../utils/custom-fields";
 import { projectApiRoot } from '../utils/ct-client';
 
 type NovalnetConfig = {
@@ -813,6 +813,9 @@ const pspReference = randomUUID().toString();
           },
           fields: {
           transactionComments,
+          riskScore: 42,
+          merchantNote: "Checked by connector",
+          deviceId: "device-1234",
           },
         },
       } as unknown as any,
