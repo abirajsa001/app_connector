@@ -330,7 +330,8 @@ export class MockPaymentService extends AbstractPaymentService {
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
-    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\nStatus: ${responseData?.result?.status ?? "NN/A"}`;
+    const testModeText = responseData?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\n' 'Payment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\n' '${testModeText ?? "NN/A"}`;
 
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
@@ -754,8 +755,6 @@ await this.ctCartService.addPayment({
 
 const pspReference = randomUUID().toString();
 
-
-
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
@@ -840,16 +839,16 @@ const pspReference = randomUUID().toString();
     }
     const parsedResponse = JSON.parse(responseString);
 
-    const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nTest Order`;
+    const testModeText = parsedResponse?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "NN/A"}\n' 'Payment Type: ${parsedResponse?.transaction?.payment_type ?? "NN/A"}\n' '${testModeText ?? "NN/A"}`;
 
     let bankDetails = "";
     if (parsedResponse?.transaction?.bank_details) {
       bankDetails = `Please transfer the amount of ${parsedResponse.transaction.amount} to the following account.\nAccount holder: ${parsedResponse.transaction.bank_details.account_holder}\nIBAN: ${parsedResponse.transaction.bank_details.iban}\nBIC: ${parsedResponse.transaction.bank_details.bic}\nBANK NAME: ${parsedResponse.transaction.bank_details.bank_name}\nBANK PLACE: ${parsedResponse.transaction.bank_details.bank_place}\nPlease use the following payment reference for your money transfer:\nPayment Reference 1: ${parsedResponse.transaction.tid}`;
     }
 
-
     // Generate transaction comments
-    const transactionComments = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "N/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "N/A"}\n${transactiondetails ?? "N/A"}\n${bankDetails ?? ""}`;
+    const transactionComments = `${transactiondetails ?? "N/A"}\n${bankDetails ?? ""}`;
     log.info("Payment created with Novalnet details for direct:");
     log.info("Payment transactionComments for direct:", transactionComments);
     log.info("ctPayment id for direct:", ctPayment.id);
@@ -902,7 +901,7 @@ const pspReference = randomUUID().toString();
 		orderNo: parsedResponse?.transaction?.order_no ?? '',
 		tid: parsedResponse?.transaction?.tid ?? '',
 		paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
-		cMail:  parsedResponse?.customer?.mail ?? '',
+		cMail:  parsedResponse?.customer?.email ?? '',
 		status:  parsedResponse?.transaction?.status ?? '',
 		totalAmount: parsedResponse?.transaction?.amount ?? '',
 		callbackAmount: 0,
