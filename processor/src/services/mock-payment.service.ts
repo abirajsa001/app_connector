@@ -331,8 +331,8 @@ export class MockPaymentService extends AbstractPaymentService {
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
     const testModeText = responseData?.transaction?.test_mode == 1 ? 'Test Order' : '';
-    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\n' 'Payment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\n' '${testModeText ?? "NN/A"}`;
-
+    const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
+    const statusCode = responseData?.transaction?.status_code ?? '';
     log.info("Payment created with Novalnet details for redirect:");
     log.info("Payment transactionComments for redirect:", transactionComments);
     log.info("ctPayment id for redirect:", parsedData?.ctPaymentId);
@@ -362,6 +362,10 @@ export class MockPaymentService extends AbstractPaymentService {
           name: "transactionComments",
           value: transactionComments,
         },
+        {
+          action: "setStatusInterfaceCode",
+          interfaceCode: statusCode
+        }
       ],
     },
   })
@@ -840,7 +844,7 @@ const pspReference = randomUUID().toString();
     const parsedResponse = JSON.parse(responseString);
 
     const testModeText = parsedResponse?.transaction?.test_mode == 1 ? 'Test Order' : '';
-    const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "NN/A"}\n' 'Payment Type: ${parsedResponse?.transaction?.payment_type ?? "NN/A"}\n' '${testModeText ?? "NN/A"}`;
+    const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "NN/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
 
     let bankDetails = "";
     if (parsedResponse?.transaction?.bank_details) {
