@@ -389,10 +389,13 @@ export class MockPaymentService extends AbstractPaymentService {
 		orderNo: responseData?.transaction?.order_no ?? '',
 		tid: responseData?.transaction?.tid ?? '',
 		paymentMethod:  responseData?.transaction?.payment_type ?? '',
-		cMail:  responseData?.customer?.mail ?? '',
+		cMail:  responseData?.customer?.email ?? '',
 		status:  responseData?.transaction?.status ?? '',
 		totalAmount: responseData?.transaction?.amount ?? '',
 		callbackAmount: 0,
+    additionalInfo:{
+      comments:transactionComments ?? '',
+    }
 	  });
 
 	  log.info("CustomObject upsert done");
@@ -419,6 +422,7 @@ export class MockPaymentService extends AbstractPaymentService {
 		log.info(stored.tid);
 		log.info(stored.status);
 		log.info(stored.cMail);
+    log.info(stored.additionalInfo.comments);
 		// If you really need the full payload for debugging (dev only), stringify carefully:
 		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
 	  }
@@ -902,6 +906,9 @@ const pspReference = randomUUID().toString();
 		status:  parsedResponse?.transaction?.status ?? '',
 		totalAmount: parsedResponse?.transaction?.amount ?? '',
 		callbackAmount: 0,
+    additionalInfo:{
+      comments:transactionComments ?? '',
+    }
 	  });
 
 	  log.info("CustomObject upsert done");
@@ -928,6 +935,7 @@ const pspReference = randomUUID().toString();
 		log.info(stored.tid);
 		log.info(stored.status);
 		log.info(stored.cMail);
+    log.info(stored.additionalInfo.comments);
 		// If you really need the full payload for debugging (dev only), stringify carefully:
 		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
 	  }
