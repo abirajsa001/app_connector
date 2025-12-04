@@ -364,7 +364,7 @@ export class MockPaymentService extends AbstractPaymentService {
         },
         {
           action: "setStatusInterfaceCode",
-          interfaceCode: statusCode
+          interfaceCode: String(statusCode)
         }
       ],
     },
