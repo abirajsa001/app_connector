@@ -214,30 +214,76 @@ export const paymentRoutes = async (
 
   fastify.get("/failure", async (request, reply) => {
     const query = request.query as {
-      tid?: string;
-      status?: string;
       paymentReference?: string;
+      ctsid?: string;
+      orderNumber?: string;
+      ctPaymentID?: string;
+      pspReference?: string;
     };
+  
+    const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
+    const redirectUrl = new URL(baseUrl);
+  
+    if (query.paymentReference) {
+      redirectUrl.searchParams.set("paymentReference", query.paymentReference);
+    }
+    if (query.ctsid) {
+      redirectUrl.searchParams.set("ctsid", query.ctsid);
+    }
+    if (query.orderNumber) {
+      redirectUrl.searchParams.set("orderNumber", query.orderNumber);
+    }
+    if (query.ctPaymentID) {
+      redirectUrl.searchParams.set("ctPaymentID", query.ctPaymentID);
+    }
+    if (query.pspReference) {
+      redirectUrl.searchParams.set("pspReference", query.pspReference);
+    }
+  
+    try {
+      const requestData = {
+        paymentReference: query.paymentReference,
+        ctsid: query.ctsid,
+        orderNumber: query.orderNumber,
+        ctPaymentID: query.ctPaymentID,
+        pspReference: query.pspReference
+      };
+    
+      // Convert to JSON string
+      const jsonBody = JSON.stringify(requestData);
+    
+      const result = await opts.paymentService.failureResponse({
+        data: jsonBody,  // send JSON string
+      });
 
-    const thirdPartyUrl = 'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=c52dc5f2-f1ad-4e9c-9dc7-e60bf80d4a52';
-    return reply.code(302).redirect(thirdPartyUrl);
+      // Let frontend know this is a failed redirect payment
+      redirectUrl.searchParams.set("redirect_status", "failed");
+      return reply.code(302).redirect(redirectUrl.toString());
+    } catch (error) {
+      log.error("Error processing payment:", error);
+      return reply.code(400).send("Payment processing failed");
+    }
   });
+  
 
   fastify.get("/callback", async (request, reply) => {
     return reply.send("sucess");
   });
 
-fastify.post('/webhook', async (req: FastifyRequest, reply: FastifyReply) => {
-  const body = req.body; // already parsed JSON
-  let responseData: any[];
-  if (Array.isArray(body)) {
-    responseData = body; // already an array
-  } else {
-    responseData = [body]; // convert object → array
-  }
-  return reply.send(responseData);
-});
-
+  fastify.post('/webhook', async (req, reply) => {
+    const body = req.body; // already parsed JSON
+  
+    let responseData: any[];
+  
+    if (Array.isArray(body)) {
+      responseData = body; // already an array
+    } else {
+      responseData = [body]; // convert object → array
+    }
+  
+    return reply.send(responseData);
+  });
+  
   fastify.get<{
     Querystring: PaymentRequestSchemaDTO;
     Reply: PaymentResponseSchemaDTO;

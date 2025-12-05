@@ -295,6 +295,45 @@ export class MockPaymentService extends AbstractPaymentService {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
     await createTransactionCommentsType();
+    log.info("Failure Response inserted");
+    const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentID } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === parsedData.pspReference
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    log.info(txId);
+    log.info(parsedData.ctPaymentID);
+    log.info(transactionComments);
+    const transactionComments = `Novalnet Transaction ID:\nPayment Type:\nTestOrder`;
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: parsedData.ctPaymentID })
+    .post({
+      body: {
+        version,
+        actions: [
+          {
+            action: "setTransactionCustomField",
+            transactionId: txId,
+            name: "transactionComments",
+            value: transactionComments,
+          },
+        ],
+      },
+    })
+    .execute();
+
+  }  
+
+
+  public async createPaymentt({ data }: { data: any }) {
+    const parsedData = typeof data === "string" ? JSON.parse(data) : data;
+    const config = getConfig();
+    await createTransactionCommentsType();
     log.info("getMerchantReturnUrlFromContext from context:", getMerchantReturnUrlFromContext());
     const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
 
@@ -439,13 +478,11 @@ export class MockPaymentService extends AbstractPaymentService {
     return {
       paymentReference: paymentRef,
     };
-    }
+  }
 
 public async updateTxComment(paymentId: string, txId: string, comment: string) {
-
   const raw = await this.ctPaymentService.getPayment({ id: paymentId } as any);
   const payment = (raw as any)?.body ?? raw;
-
   const ctClient = (this.ctPaymentService as any).client;
   const version = payment.version;
 
@@ -842,7 +879,7 @@ const pspReference = randomUUID().toString();
       throw new Error("Payment processing failed");
     }
     const parsedResponse = JSON.parse(responseString);
-
+    const statusCode = parsedResponse?.transaction?.status_code;
     const testModeText = parsedResponse?.transaction?.test_mode == 1 ? 'Test Order' : '';
     const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "NN/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
 
@@ -882,6 +919,24 @@ const pspReference = randomUUID().toString();
       } as unknown as any,
     } as any);
 
+    const raw = await this.ctPaymentService.getPayment({ id: ctPayment.id } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: ctPayment.id })
+    .post({
+      body: {
+        version,
+        actions: [
+          {
+            action: "setStatusInterfaceCode",
+            interfaceCode: String(statusCode)
+          }
+        ],
+      },
+    })
+    .execute();
     const comment = await this.getTransactionComment(
       ctPayment.id,
       pspReference
@@ -1105,6 +1160,14 @@ const pspReference = randomUUID().toString();
     url.searchParams.append("pspReference", pspReference);
     const returnUrl = url.toString();
     
+    const urlFailure = new URL("/failure", processorURL);
+    urlFailure.searchParams.append("paymentReference", paymentRef);
+    urlFailure.searchParams.append("ctsid", sessionId);
+    urlFailure.searchParams.append("orderNumber", orderNumber);
+    urlFailure.searchParams.append("ctPaymentID", ctPaymentId);
+    urlFailure.searchParams.append("pspReference", pspReference);
+    const errorReturnUrl = urlFailure.toString();
+
     const ReturnurlContext = getMerchantReturnUrlFromContext();
     const novalnetPayload = {
       merchant: {
@@ -1136,7 +1199,7 @@ const pspReference = randomUUID().toString();
         amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
         currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
         return_url: returnUrl,
-        error_return_url: returnUrl,
+        error_return_url: errorReturnUrl,
         create_token: 1,
       },
       hosted_page: {
