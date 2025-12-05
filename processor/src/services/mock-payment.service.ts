@@ -291,7 +291,7 @@ export class MockPaymentService extends AbstractPaymentService {
     return billingAddress;
   }
 
-  public async createPaymentt({ data }: { data: any }) {
+  public async failureResponse({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
     await createTransactionCommentsType();
@@ -305,10 +305,11 @@ export class MockPaymentService extends AbstractPaymentService {
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
     if (!txId) throw new Error('Transaction missing id');
+    const transactionComments = `Novalnet Transaction ID:\nPayment Type:\nTestOrder`;
     log.info(txId);
     log.info(parsedData.ctPaymentID);
     log.info(transactionComments);
-    const transactionComments = `Novalnet Transaction ID:\nPayment Type:\nTestOrder`;
+    
     const updatedPayment = await projectApiRoot
     .payments()
     .withId({ ID: parsedData.ctPaymentID })
