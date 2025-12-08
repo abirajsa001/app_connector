@@ -1118,7 +1118,7 @@ const pspReference = randomUUID().toString();
       resource: { id: ctCart.id, version: ctCart.version },
       paymentId: ctPayment.id,
     });
-
+ 
     // Generate transaction comments
     const transactionComments = `Novalnet Transaction ID: ${"N/A"}\nPayment Type: ${"N/A"}\nStatus: ${"N/A"}`;
     const pspReference = randomUUID().toString();
@@ -1200,7 +1200,7 @@ const pspReference = randomUUID().toString();
         amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
         currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
         return_url: returnUrl,
-        error_return_url: errorReturnUrl,
+        error_return_url: returnUrl,
         create_token: 1,
       },
       hosted_page: {
