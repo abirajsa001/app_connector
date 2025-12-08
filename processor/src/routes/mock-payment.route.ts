@@ -255,9 +255,6 @@ export const paymentRoutes = async (
       const result = await opts.paymentService.failureResponse({
         data: jsonBody,  // send JSON string
       });
-
-      // Let frontend know this is a failed redirect payment
-      redirectUrl.searchParams.set("redirect_status", "failed");
       return reply.code(302).redirect(redirectUrl.toString());
     } catch (error) {
       log.error("Error processing payment:", error);
