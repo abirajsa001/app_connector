@@ -20,7 +20,7 @@ import {
 import { SupportedPaymentComponentsSchemaDTO } from "../dtos/operations/payment-componets.dto";
 import { PaymentModificationStatus } from "../dtos/operations/payment-intents.dto";
 import packageJSON from "../../package.json";
-
+import { getOrderIdFromOrderNumber } from './order.service';
 import { AbstractPaymentService } from "./abstract-payment.service";
 import { getConfig } from "../config/config";
 import { appLogger, paymentSDK } from "../payment-sdk";
@@ -296,6 +296,9 @@ export class MockPaymentService extends AbstractPaymentService {
     const config = getConfig();
     await createTransactionCommentsType();
     log.info("Failure Response inserted");
+    log.info(parsedData.tid);
+    log.info(parsedData.status_text);
+    log.info(parsedData.payment_type);
     const raw = await this.ctPaymentService.getPayment({ id: parsedData.ctPaymentID } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
@@ -305,7 +308,7 @@ export class MockPaymentService extends AbstractPaymentService {
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
     if (!txId) throw new Error('Transaction missing id');
-    const transactionComments = `Novalnet Transaction ID:\nPayment Type:\nTestOrder`;
+    const transactionComments = `Novalnet Transaction ID: ${parsedData.tid ?? "NN/A"}\nPayment Type: ${parsedData.payment_type ?? "NN/A"}\n${parsedData.status_text ?? "NN/A"}`;
     log.info(txId);
     log.info(parsedData.ctPaymentID);
     log.info(transactionComments);
@@ -932,12 +935,18 @@ const pspReference = randomUUID().toString();
         actions: [
           {
             action: "setStatusInterfaceCode",
-            interfaceCode: String(statusCode)
-          }
+            interfaceCode: String(statusCode),
+          },
         ],
       },
     })
     .execute();
+
+    await this.updatePaymentStateByPaymentId(ctPayment.id, 'Paid');
+
+
+
+
     const comment = await this.getTransactionComment(
       ctPayment.id,
       pspReference
@@ -965,9 +974,9 @@ const pspReference = randomUUID().toString();
 		status:  parsedResponse?.transaction?.status ?? '',
 		totalAmount: parsedResponse?.transaction?.amount ?? '',
 		callbackAmount: 0,
-    additionalInfo:{
-      comments:transactionComments ?? '',
-    }
+		additionalInfo:{
+			comments:transactionComments ?? '',
+		}
 	  });
 
 	  log.info("CustomObject upsert done");
@@ -1002,15 +1011,52 @@ const pspReference = randomUUID().toString();
 	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
 	  throw err; // or handle as appropriate
 	}
-
+  const statusValue = parsedResponse?.transaction?.status;
+  const statusTextValue = parsedResponse?.transaction?.status_text;
 
     // return payment id (ctPayment was created earlier; no inline/custom update)
     return {
       paymentReference: ctPayment.id,
+      novalnetResponse: parsedResponse,  
+      transactionStatus: statusValue,  
+      transactionStatusText: statusTextValue,  
     };
   }
 
+  public async  updatePaymentStateByPaymentId(
+    paymentId: string,
+    newState: 'BalanceDue' | 'Paid' | 'CreditOwed' | 'Failed'
+  ) {
+    // Step 1: Get existing payment to read version
+    const paymentRes = await projectApiRoot
+      .payments()
+      .withId({ ID: paymentId })
+      .get()
+      .execute();
+  
+    const payment = paymentRes.body;
+  
+    // Step 2: Update PaymentStatus (paymentState)
+    const updatedPaymentRes = await projectApiRoot
+      .payments()
+      .withId({ ID: paymentId })
+      .post({
+        body: {
+          version: payment.version,
+          actions: [
+            {
+              action: 'setPaymentState',
+              paymentState: newState,
+            },
+          ],
+        },
+      })
+      .execute();
+  
+    return updatedPaymentRes.body;
+  }
 
+  
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
     // 1) Fetch payment from commercetools
@@ -1200,7 +1246,7 @@ const pspReference = randomUUID().toString();
         amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
         currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
         return_url: returnUrl,
-        error_return_url: returnUrl,
+        error_return_url: errorReturnUrl,
         create_token: 1,
       },
       hosted_page: {
