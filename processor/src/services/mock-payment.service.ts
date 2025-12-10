@@ -853,9 +853,9 @@ const pspReference = randomUUID().toString();
           street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
           zip: String(deliveryAddress?.postalCode ?? "12345"),
         },
-        first_name: "Max",
-        last_name: "Mustermann",
-        email: "abiraj_s@novalnetsolutions.com",
+        first_name: firstName ?? "test",
+        last_name: lastName ?? "test",
+        email: parsedCart.customerEmail ?? "abiraj_s@novalnetsolutions.com",
       },
       transaction,
       custom: {
@@ -1249,6 +1249,33 @@ public async updatePaymentStatusByPaymentId(
     urlFailure.searchParams.append("pspReference", pspReference);
     const errorReturnUrl = urlFailure.toString();
 
+      //  1) Prepare name variables
+  let firstName = "";
+  let lastName = "";
+
+  //  2) If the cart is linked to a CT customer, fetch it directly from CT
+  if (ctCart.customerId) {
+    const customerRes = await projectApiRoot
+      .customers()
+      .withId({ ID: ctCart.customerId })
+      .get()
+      .execute();
+
+    const ctCustomer: Customer = customerRes.body;
+
+    firstName = ctCustomer.firstName ?? "";
+    lastName = ctCustomer.lastName ?? "";
+    log.info('customer-first-name');
+    log.info(firstName);
+  } else {
+    //  3) Guest checkout → fallback to shipping address
+    firstName = ctCart.shippingAddress?.firstName ?? "";
+    lastName = ctCart.shippingAddress?.lastName ?? "";
+    log.info('shipping-first-name');
+    log.info(firstName);
+  }
+
+
     const ReturnurlContext = getMerchantReturnUrlFromContext();
     const novalnetPayload = {
       merchant: {
@@ -1270,9 +1297,9 @@ public async updatePaymentStatusByPaymentId(
           street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
           zip: String(deliveryAddress?.postalCode ?? "12345"),
         },
-        first_name: "Max",
-        last_name: "Mustermann",
-        email: "abiraj_s@novalnetsolutions.com",
+        first_name: firstName ?? "test",
+        last_name: lastName ?? "test",
+        email: parsedCart.customerEmail ?? "abiraj_s@novalnetsolutions.com",
       },
       transaction: {
         test_mode: testMode === "1" ? "1" : "0",
