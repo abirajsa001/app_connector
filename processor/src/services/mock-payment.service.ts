@@ -805,6 +805,30 @@ await this.ctCartService.addPayment({
 
 const pspReference = randomUUID().toString();
 
+
+
+  // 2️⃣ Get customer name (if logged-in)
+  let firstName = "";
+  let lastName = "";
+
+  if (ctCart.customerId) {
+    // Load the full Customer object
+    const ctCustomer = await this.ctCustomerService.getCustomer({
+      id: ctCart.customerId,
+    });
+
+    firstName = ctCustomer.firstName ?? "";
+    lastName = ctCustomer.lastName ?? "";
+  } else {
+    // fallback to shipping address for guest user
+    firstName = ctCart.shippingAddress?.firstName ?? "";
+    lastName = ctCart.shippingAddress?.lastName ?? "";
+  }
+
+  // 3️⃣ You can use names anywhere below
+  console.log("Customer First Name:", firstName);
+  console.log("Customer Last Name:", lastName);
+
     const novalnetPayload = {
       merchant: {
         signature: String(getConfig()?.novalnetPrivateKey ?? ""),
@@ -839,12 +863,10 @@ const pspReference = randomUUID().toString();
         inputval2: String(
           deliveryAddress.firstName ?? "delivery firstname empty",
         ),
-        input3: "customerEmail",
-        inputval3: String(parsedCart.customerEmail ?? "Email not available"),
-        input4: "ctpayment-id",
-        inputval4: String(
-          ctPayment.id ?? "ctpayment-id not available",
-        ),
+        input3: "firstName",
+        inputval3: String(firstName),
+        input4: "lastName",
+        inputval4: String(lastName),
         input5: "pspReference",
         inputval5: String(pspReference ?? "0"),
       },
