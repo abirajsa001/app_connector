@@ -408,7 +408,12 @@ export class MockPaymentService extends AbstractPaymentService {
         {
           action: "setStatusInterfaceCode",
           interfaceCode: String(statusCode)
-        }
+        },
+        {
+          action: 'changeTransactionState',
+          transactionId: txId,
+          state: 'Pending',
+        },
       ],
     },
   })
