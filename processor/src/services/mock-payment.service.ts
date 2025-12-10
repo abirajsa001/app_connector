@@ -16,7 +16,7 @@ import {
   ReversePaymentRequest,
   StatusResponse,
 } from "./types/operation.type";
-
+import { PaymentState } from '@commercetools/platform-sdk';
 import { SupportedPaymentComponentsSchemaDTO } from "../dtos/operations/payment-componets.dto";
 import { PaymentModificationStatus } from "../dtos/operations/payment-intents.dto";
 import packageJSON from "../../package.json";
@@ -926,6 +926,11 @@ const pspReference = randomUUID().toString();
     const raw = await this.ctPaymentService.getPayment({ id: ctPayment.id } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === pspReference
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
     const updatedPayment = await projectApiRoot
     .payments()
     .withId({ ID: ctPayment.id })
@@ -942,10 +947,7 @@ const pspReference = randomUUID().toString();
     })
     .execute();
 
-    await this.updatePaymentStateByPaymentId(ctPayment.id, 'Paid');
-
-
-
+    await this.updatePaymentStatusByPaymentId(ctPayment.id, txId, 'Paid');
 
     const comment = await this.getTransactionComment(
       ctPayment.id,
@@ -1023,38 +1025,39 @@ const pspReference = randomUUID().toString();
     };
   }
 
-  public async  updatePaymentStateByPaymentId(
-    paymentId: string,
-    newState: 'BalanceDue' | 'Paid' | 'CreditOwed' | 'Failed'
-  ) {
-    // Step 1: Get existing payment to read version
-    const paymentRes = await projectApiRoot
-      .payments()
-      .withId({ ID: paymentId })
-      .get()
-      .execute();
-  
-    const payment = paymentRes.body;
-  
-    // Step 2: Update PaymentStatus (paymentState)
-    const updatedPaymentRes = await projectApiRoot
-      .payments()
-      .withId({ ID: paymentId })
-      .post({
-        body: {
-          version: payment.version,
-          actions: [
-            {
-              action: 'setPaymentState',
-              paymentState: newState,
-            },
-          ],
-        },
-      })
-      .execute();
-  
-    return updatedPaymentRes.body;
-  }
+public async updatePaymentStatusByPaymentId(
+  paymentId: string,
+  transactionId: string,
+  newState: 'Initial' | 'Pending' | 'Success' | 'Failure' | 'Paid'
+) {
+  const paymentRes = await projectApiRoot
+    .payments()
+    .withId({ ID: paymentId })
+    .get()
+    .execute();
+
+  const payment = paymentRes.body;
+
+  const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: paymentId })
+    .post({
+      body: {
+        version: payment.version,
+        actions: [
+          {
+            action: 'changeTransactionState',
+            transactionId,
+            state: newState,
+          },
+        ],
+      },
+    })
+    .execute();
+
+  return updatedPayment.body;
+}
+
 
   
   public async getTransactionComment(paymentId: string, pspReference: string) {
