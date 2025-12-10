@@ -16,7 +16,7 @@ import {
   ReversePaymentRequest,
   StatusResponse,
 } from "./types/operation.type";
-import { PaymentState } from '@commercetools/platform-sdk';
+import { Customer } from '@commercetools/platform-sdk';
 import { SupportedPaymentComponentsSchemaDTO } from "../dtos/operations/payment-componets.dto";
 import { PaymentModificationStatus } from "../dtos/operations/payment-intents.dto";
 import packageJSON from "../../package.json";
@@ -807,27 +807,31 @@ const pspReference = randomUUID().toString();
 
 
 
-  // 2️⃣ Get customer name (if logged-in)
+  //  1) Prepare name variables
   let firstName = "";
   let lastName = "";
 
+  //  2) If the cart is linked to a CT customer, fetch it directly from CT
   if (ctCart.customerId) {
-    // Load the full Customer object
-    const ctCustomer = await this.ctCustomerService.getCustomer({
-      id: ctCart.customerId,
-    });
+    const customerRes = await projectApiRoot
+      .customers()
+      .withId({ ID: ctCart.customerId })
+      .get()
+      .execute();
+
+    const ctCustomer: Customer = customerRes.body;
 
     firstName = ctCustomer.firstName ?? "";
     lastName = ctCustomer.lastName ?? "";
+    log.info('customer-first-name');
+    log.info(firstName);
   } else {
-    // fallback to shipping address for guest user
+    //  3) Guest checkout → fallback to shipping address
     firstName = ctCart.shippingAddress?.firstName ?? "";
     lastName = ctCart.shippingAddress?.lastName ?? "";
+    log.info('shipping-first-name');
+    log.info(firstName);
   }
-
-  // 3️⃣ You can use names anywhere below
-  console.log("Customer First Name:", firstName);
-  console.log("Customer Last Name:", lastName);
 
     const novalnetPayload = {
       merchant: {
@@ -857,11 +861,11 @@ const pspReference = randomUUID().toString();
       custom: {
         input1: "Billing Address Firstname",
         inputval1: String(
-          billingAddress.firstName ?? "billing firstname empty",
+          billingAddress?.firstName ?? "billing firstname empty",
         ),
         input2: "Shipping Address Lastname",
         inputval2: String(
-          deliveryAddress.firstName ?? "delivery firstname empty",
+          deliveryAddress?.firstName ?? "delivery firstname empty",
         ),
         input3: "firstName",
         inputval3: String(firstName),
