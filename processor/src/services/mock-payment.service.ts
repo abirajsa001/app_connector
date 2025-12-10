@@ -910,7 +910,7 @@ const pspReference = randomUUID().toString();
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        state: "Pending",
         custom: {
           type: {
           typeId: "type",
@@ -947,7 +947,7 @@ const pspReference = randomUUID().toString();
     })
     .execute();
 
-    await this.updatePaymentStatusByPaymentId(ctPayment.id, txId, 'Paid');
+
 
     const comment = await this.getTransactionComment(
       ctPayment.id,
