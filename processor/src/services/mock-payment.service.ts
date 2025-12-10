@@ -831,13 +831,13 @@ const pspReference = randomUUID().toString();
       },
       transaction,
       custom: {
-        input1: "currencyCode",
+        input1: "Billing Address Firstname",
         inputval1: String(
-          parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "empty",
+          billingAddress.firstName ?? "billing firstname empty",
         ),
-        input2: "transaction amount",
+        input2: "Shipping Address Lastname",
         inputval2: String(
-          parsedCart?.taxedPrice?.totalGross?.centAmount ?? "empty",
+          deliveryAddress.firstName ?? "delivery firstname empty",
         ),
         input3: "customerEmail",
         inputval3: String(parsedCart.customerEmail ?? "Email not available"),
