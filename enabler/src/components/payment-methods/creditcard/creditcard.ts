@@ -1,4 +1,4 @@
- import {
+import {
   ComponentOptions,
   PaymentComponent,
   PaymentComponentBuilder,
@@ -13,6 +13,15 @@ import {
 } from "../../../dtos/mock-payment.dto";
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
 
+/**
+ * CreditcardBuilder / Creditcard
+ *
+ * - _getTemplate() is synchronous and returns only HTML.
+ * - mount() is non-blocking: it inserts HTML then starts background tasks
+ *   (script load, config fetch) but never throws or blocks the UI.
+ * - All browser-only operations are guarded with typeof window !== "undefined".
+ */
+
 export class CreditcardBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
@@ -25,24 +34,38 @@ export class CreditcardBuilder implements PaymentComponentBuilder {
 
 export class Creditcard extends BaseComponent {
   private showPayButton: boolean;
+  private clientKey: string = "";
+  private _nnLoadingPromise?: Promise<void>;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
     super(PaymentMethod.creditcard, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
+  /**
+   * mount: synchronous entry point called by the consumer.
+   * We insert the template synchronously and then run safe async tasks.
+   */
   mount(selector: string) {
+    // Ensure DOM is present
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      // Running on server - do not attempt DOM / network calls
+      // Use console here because server-side log may differ
+      console.warn("Creditcard.mount called on non-browser environment. Skipping DOM mount.");
+      return;
+    }
+
     const root = document.querySelector(selector);
     if (!root) {
       console.error("Mount selector not found:", selector);
       return;
     }
 
+    // Insert HTML synchronously
     root.insertAdjacentHTML("afterbegin", this._getTemplate());
 
-    const payButton = document.querySelector(
-      "#purchaseOrderForm-paymentButton"
-    ) as HTMLButtonElement | null;
+    // Grab references to elements we will use
+    const payButton = document.querySelector("#purchaseOrderForm-paymentButton") as HTMLButtonElement | null;
 
     if (this.showPayButton && payButton) {
       payButton.disabled = true;
@@ -52,13 +75,22 @@ export class Creditcard extends BaseComponent {
       });
     }
 
-    this._loadNovalnetScriptOnce()
-      .then(() => this._initNovalnetCreditCardForm(payButton))
-      .catch((err) => console.error("Failed to load Novalnet SDK:", err));
+    // Load Novalnet SDK and initialize the credit card form (browser-only).
+    // This is safe: _loadNovalnetScriptOnce resolves or rejects; errors are logged.
+    void this._loadNovalnetScriptOnce()
+      .then(() => {
+        try {
+          this._initNovalnetCreditCardForm(payButton);
+        } catch (initErr) {
+          console.error("Novalnet init failed:", initErr);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load Novalnet SDK:", err);
+      });
 
-    const reviewOrderButton = document.querySelector(
-      '[data-ctc-selector="confirmMethod"]'
-    );
+    // Wire review order button logic (safe check)
+    const reviewOrderButton = document.querySelector('[data-ctc-selector="confirmMethod"]');
     if (reviewOrderButton) {
       reviewOrderButton.addEventListener("click", async (event) => {
         event.preventDefault();
@@ -75,27 +107,87 @@ export class Creditcard extends BaseComponent {
         }
       });
     }
+
+    // SAFE: background fetch to get connector config (/getconfig)
+    // This never throws upward and will not block mount. Uses timeout via AbortController.
+    void (async () => {
+      if (!this.processorUrl) {
+        console.warn("processorUrl missing; skipping getconfig fetch");
+        return;
+      }
+
+      const requestData: PaymentRequestSchemaDTO = {
+        paymentMethod: { type: "CREDITCARD" },
+        paymentOutcome: "Success",
+      };
+
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (this.sessionId) headers["X-Session-Id"] = this.sessionId;
+
+      const controller = new AbortController();
+      const timeoutMs = 8_000; // adjust as needed
+      const t = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const resp = await fetch(`${this.processorUrl}/getconfig`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(requestData),
+          signal: controller.signal,
+        });
+
+        if (!resp.ok) {
+          console.warn(`getconfig returned status ${resp.status}`);
+          return;
+        }
+
+        const body = await resp.json().catch(() => ({}));
+        this.clientKey = String(body?.paymentReference ?? "");
+        console.info("Fetched clientKey for Novalnet:", this.clientKey);
+        // Optionally, if you want to set client key into NovalnetUtility if already loaded:
+        if ((window as any).NovalnetUtility && this.clientKey) {
+          try {
+            (window as any).NovalnetUtility.setClientKey(this.clientKey);
+          } catch (err) {
+            console.warn("Failed to set Novalnet client key dynamically:", err);
+          }
+        }
+      } catch (err) {
+        if ((err as any)?.name === "AbortError") {
+          console.warn("getconfig fetch aborted (timeout)");
+        } else {
+          console.error("getconfig fetch failed:", err);
+        }
+      } finally {
+        clearTimeout(t);
+      }
+    })();
   }
 
+  /**
+   * submit: triggered by the pay button. Uses values populated by NovalnetUtility callbacks.
+   */
   async submit() {
-    this.sdk.init({ environment: this.environment });
+    // SDK init - keep as you had it
+    try {
+      this.sdk.init({ environment: this.environment });
+    } catch (err) {
+      console.warn("SDK init failed (non-fatal):", err);
+    }
 
     try {
-      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement;
-      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement;
-      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement;
-      
-      const panhash = panhashInput?.value.trim();
-      const uniqueId = uniqueIdInput?.value.trim();
-      const doRedirect = doRedirectInput?.value.trim();
+      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement | null;
+      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement | null;
+      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement | null;
+
+      const panhash = panhashInput?.value?.trim() ?? "";
+      const uniqueId = uniqueIdInput?.value?.trim() ?? "";
+      const doRedirect = doRedirectInput?.value?.trim() ?? "";
 
       console.log("PAN HASH:", panhash);
       console.log("UNIQUE ID:", uniqueId);
       console.log("DO REDIRECT:", doRedirect);
-      
 
-
-      
       if (!panhash || !uniqueId) {
         this.onError("Credit card information is missing or invalid.");
         return;
@@ -111,54 +203,51 @@ export class Creditcard extends BaseComponent {
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
 
-      const response = await fetch(this.processorUrl + "/payment", {
+      if (!this.processorUrl) {
+        this.onError("Payment processor URL is not configured.");
+        return;
+      }
+
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (this.sessionId) headers["X-Session-Id"] = this.sessionId;
+
+      const response = await fetch(`${this.processorUrl}/payment`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-        },
+        headers,
         body: JSON.stringify(requestData),
       });
 
-      const data = await response.json();
-      if (data.paymentReference) {
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        console.error("Payment POST failed:", response.status, text);
+        this.onError("Payment failed. Please try again.");
+        return;
+      }
+
+      const data = await response.json().catch(() => ({}));
+      if (data?.paymentReference) {
         this.onComplete?.({
           isSuccess: true,
-          paymentReference: data.paymentReference,
+          paymentReference: String(data.paymentReference),
         });
       } else {
+        console.error("Payment response missing paymentReference:", data);
         this.onError("Payment failed. Please try again.");
       }
     } catch (e) {
-      console.error(e);
+      console.error("submit error:", e);
       this.onError("Some error occurred. Please try again.");
     }
   }
 
-  private _getTemplate() {
+  /**
+   * _getTemplate - synchronous. no network calls / no DOM references.
+   */
+  private _getTemplate(): string {
     const payButton = this.showPayButton
       ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
       : "";
-      const requestData: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: "CREDITCARD",
-        },
-        paymentOutcome: 'Success',
-      };
-  
-      const response = await fetch(this.processorUrl + "/getconfig", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-        },
-        body: JSON.stringify(requestData),
-      });
-      log.info('client-key-before');
-      const data = await response.json();
-      console.log('client-key');
-      console.log(data.paymentReference ?? '');
-      
+
     return `
       <div class="${styles.wrapper}">
           <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
@@ -170,60 +259,151 @@ export class Creditcard extends BaseComponent {
     `;
   }
 
+  /**
+   * _loadNovalnetScriptOnce - idempotent script loader with timeout.
+   */
   private async _loadNovalnetScriptOnce(): Promise<void> {
+    // Browser guard
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    // If NovalnetUtility already present, nothing to do
     if ((window as any).NovalnetUtility) return;
 
+    // If we already started loading, reuse the same promise
+    if (this._nnLoadingPromise) return this._nnLoadingPromise;
+
+    // Script src
     const src = "https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js";
     const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
 
     if (existing) {
-      if ((existing as any)._nnLoadingPromise) {
-        await (existing as any)._nnLoadingPromise;
-        return;
+      // If script tag already has a stored promise, reuse it
+      const existingPromise = (existing as any)._nnLoadingPromise as Promise<void> | undefined;
+      if (existingPromise) {
+        this._nnLoadingPromise = existingPromise;
+        return existingPromise;
       }
+
+      // If NovalnetUtility loaded already, resolve
+      if ((window as any).NovalnetUtility) {
+        this._nnLoadingPromise = Promise.resolve();
+        return this._nnLoadingPromise;
+      }
+
+      // Otherwise fall through to attach load handlers
+    }
+
+    // Create script element and attach promise
+    const script = existing ?? document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    if (!existing) script.setAttribute("data-novalnet-sdk", "true");
+
+    const timeoutMs = 10_000;
+    this._nnLoadingPromise = new Promise<void>((resolve, reject) => {
+      let cleared = false;
+      const timer = window.setTimeout(() => {
+        cleared = true;
+        // cleanup event listeners
+        script.onload = null;
+        script.onerror = null;
+        reject(new Error(`Novalnet SDK load timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+
+      script.onload = () => {
+        if (cleared) return;
+        window.clearTimeout(timer);
+        // it is expected the script exports NovalnetUtility to window
+        if ((window as any).NovalnetUtility) {
+          resolve();
+        } else {
+          // Some SDKs load asynchronously after onload; small delay to check
+          setTimeout(() => {
+            if ((window as any).NovalnetUtility) resolve();
+            else reject(new Error("Novalnet SDK loaded but NovalnetUtility not found on window"));
+          }, 50);
+        }
+      };
+
+      script.onerror = (ev) => {
+        if (cleared) return;
+        window.clearTimeout(timer);
+        reject(new Error("Novalnet SDK failed to load"));
+      };
+
+      // store the promise on the element so duplicate inserts reuse it
+      (script as any)._nnLoadingPromise = this._nnLoadingPromise;
+
+      if (!existing) document.head.appendChild(script);
+    });
+
+    return this._nnLoadingPromise;
+  }
+
+  /**
+   * _initNovalnetCreditCardForm - safe init of Novalnet form; uses callbacks to set hidden inputs.
+   * This will not throw if NovalnetUtility is missing; it will log instead.
+   */
+  private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
+    if (typeof window === "undefined") {
+      console.warn("_initNovalnetCreditCardForm called on non-browser environment.");
       return;
     }
 
-    const script = document.createElement("script");
-    script.src = src;
-    script.crossOrigin = "anonymous";
-
-    const loadPromise = new Promise<void>((resolve, reject) => {
-      script.onload = () => resolve();
-      script.onerror = (e) => reject(e);
-    });
-
-    (script as any)._nnLoadingPromise = loadPromise;
-    document.head.appendChild(script);
-    await loadPromise;
-  }
-
-  private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
     const NovalnetUtility = (window as any).NovalnetUtility;
     if (!NovalnetUtility) {
       console.warn("NovalnetUtility not available.");
       return;
     }
 
-    NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
-
-
+    // Prefer clientKey fetched from server, fallback to developer/test key if you must
+    // TODO: Replace this fallback with secure retrieval. Do not hard-code production keys here.
+    const clientKey = this.clientKey || "88fcbbceb1948c8ae106c3fe2ccffc12";
+    try {
+      if (typeof NovalnetUtility.setClientKey === "function") {
+        NovalnetUtility.setClientKey(clientKey);
+      } else {
+        console.warn("NovalnetUtility.setClientKey is not a function");
+      }
+    } catch (err) {
+      console.warn("Failed to set Novalnet client key:", err);
+    }
 
     const configurationObject = {
       callback: {
         on_success: (data: any) => {
-          (document.getElementById("pan_hash") as HTMLInputElement).value = data["hash"];
-          (document.getElementById("unique_id") as HTMLInputElement).value = data["unique_id"];
-          (document.getElementById("do_redirect") as HTMLInputElement).value = data["do_redirect"];
-          if (payButton) payButton.disabled = false;
-          payButton.click(); 
-          return true;
+          try {
+            const ph = document.getElementById("pan_hash") as HTMLInputElement | null;
+            const uid = document.getElementById("unique_id") as HTMLInputElement | null;
+            const dr = document.getElementById("do_redirect") as HTMLInputElement | null;
+
+            if (ph) ph.value = data["hash"] ?? "";
+            if (uid) uid.value = data["unique_id"] ?? "";
+            if (dr) dr.value = String(data["do_redirect"] ?? "");
+
+            if (payButton) {
+              payButton.disabled = false;
+              // do not auto-click in all cases; but if original flow required it:
+              try {
+                payButton.click();
+              } catch (e) {
+                // Some browsers block synthetic clicks; ignore
+              }
+            }
+            return true;
+          } catch (err) {
+            console.error("Error in on_success callback:", err);
+            return false;
+          }
         },
         on_error: (data: any) => {
-          if (data?.error_message) {
-            alert(data.error_message);
+          try {
+            if (data?.error_message) alert(String(data.error_message));
+            if (payButton) payButton.disabled = true;
+          } catch (err) {
+            console.error("Error in on_error callback:", err);
           }
-          if (payButton) payButton.disabled = true;
           return false;
         },
         on_show_overlay: () => {
@@ -292,6 +472,10 @@ export class Creditcard extends BaseComponent {
       },
     };
 
-    NovalnetUtility.createCreditCardForm(configurationObject);
+    try {
+      NovalnetUtility.createCreditCardForm(configurationObject);
+    } catch (err) {
+      console.error("createCreditCardForm threw an error:", err);
+    }
   }
 }
