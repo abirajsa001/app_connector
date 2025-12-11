@@ -110,58 +110,54 @@ export class Creditcard extends BaseComponent {
 
     // SAFE: background fetch to get connector config (/getconfig)
     // This never throws upward and will not block mount. Uses timeout via AbortController.
-    void (async () => {
+    (async () => {
       if (!this.processorUrl) {
         console.warn("processorUrl missing; skipping getconfig fetch");
         return;
       }
-
-      const requestData: PaymentRequestSchemaDTO = {
+    
+      const requestData = {
         paymentMethod: { type: "CREDITCARD" },
         paymentOutcome: "Success",
       };
-
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+    
+      const url = `${this.processorUrl}/getconfig`;
+      const raw = JSON.stringify(requestData);
+      console.log("POST ->", url);
+      console.log("Request payload:", raw);
+    
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      };
       if (this.sessionId) headers["X-Session-Id"] = this.sessionId;
-
-      const controller = new AbortController();
-      const timeoutMs = 8_000; // adjust as needed
-      const t = setTimeout(() => controller.abort(), timeoutMs);
-
+    
       try {
-        const resp = await fetch(`${this.processorUrl}/getconfig`, {
+        const resp = await fetch(url, {
           method: "POST",
           headers,
-          body: JSON.stringify(requestData),
-          signal: controller.signal,
+          body: raw,
         });
-
+    
+        console.log("status:", resp.status, "statusText:", resp.statusText);
+        const text = await resp.text(); // read raw response
+        try {
+          const json = JSON.parse(text);
+          console.log("response JSON:", json);
+        } catch (e) {
+          console.log("response text (non-json):", text);
+        }
+    
         if (!resp.ok) {
           console.warn(`getconfig returned status ${resp.status}`);
           return;
         }
-
-        const body = await resp.json().catch(() => ({}));
-        this.clientKey = String(body?.paymentReference ?? "");
-        console.info("Fetched clientKey for Novalnet:", this.clientKey);
-        // Optionally, if you want to set client key into NovalnetUtility if already loaded:
-        if ((window as any).NovalnetUtility && this.clientKey) {
-          try {
-            (window as any).NovalnetUtility.setClientKey(this.clientKey);
-          } catch (err) {
-            console.warn("Failed to set Novalnet client key dynamically:", err);
-          }
-        }
+        // success...
       } catch (err) {
-        if ((err as any)?.name === "AbortError") {
-          console.warn("getconfig fetch aborted (timeout)");
-        } else {
-          console.error("getconfig fetch failed:", err);
-        }
-      } finally {
-        clearTimeout(t);
+        console.error("getconfig fetch error:", err);
       }
     })();
+    
   }
 
   /**
