@@ -290,6 +290,32 @@ export const paymentRoutes = async (
     return reply.send(responseData);
   });
   
+  fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
+    "/getconfig",
+    {
+      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+      schema: { body: PaymentRequestSchema, response: { 200: PaymentResponseSchema } },
+    },
+    async (request, reply) => {
+      try {
+        const resp = await opts.paymentService.getConfigValues({ data: request.body });
+        request.log.info('getconfigValues route function');
+        request.log.info(resp);
+        // ensure resp matches the schema or map it:
+        const safeResp = {
+          paymentReference: String(resp.paymentReference ?? ""),
+        };
+        return reply.code(200).send(safeResp);
+      } catch (err: any) {
+        request.log.error('getconfig error', err);
+        return reply.code(500).send({ paymentReference: '' });
+      }
+    },
+  );
+  
+
+
+
   fastify.get<{
     Querystring: PaymentRequestSchemaDTO;
     Reply: PaymentResponseSchemaDTO;
