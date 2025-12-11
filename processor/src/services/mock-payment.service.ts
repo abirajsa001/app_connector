@@ -725,13 +725,15 @@ public async updateTxComment(paymentId: string, txId: string, comment: string) {
     return { ok: true, method: "setTransactionCustomType" };
   }
 
-  public async getConfigValues({ data }: { data: any }) {
+  public async getConfigValues({ data }: { data: any }): Promise<GetConfigValuesResult> {
     try {
-      const clientKey = String(getConfig()?.novalnetClientkey ?? '');
-      log.info('getconfigValues function - clientKey: %s', clientKey);
+      // getConfig() should safely return an object that may contain novalnetClientkey
+      const clientKey = String(getConfig()?.novalnetClientkey ?? "");
+      this.log.info('getconfigValues function - clientKey: %s', clientKey);
       return { paymentReference: clientKey };
     } catch (err) {
-      log.error('getConfigValues failed', err);
+      this.log.error('getConfigValues failed', err);
+      // rethrow or normalize error depending on your error-handling strategy
       throw err;
     }
   }

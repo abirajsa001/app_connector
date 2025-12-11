@@ -112,55 +112,57 @@ export class Creditcard extends BaseComponent {
     // This never throws upward and will not block mount. Uses timeout via AbortController.
     (async () => {
       const requestData = {
-        paymentMethod: { type: "CREDITCARD" },
-        paymentOutcome: "Success",
+        paymentMethod: { type: 'CREDITCARD' },
+        paymentOutcome: 'Success',
       };
-    
+
       const url = `${this.processorUrl}/getconfig`;
       let raw: string;
       try {
         raw = JSON.stringify(requestData);
       } catch (err) {
-        console.error("Failed to stringify requestData:", err);
+        console.error('Failed to stringify requestData:', err);
         return;
       }
-      console.log("POST ->", url);
-      console.log("Outgoing payload string:", raw);
-    
+      console.log('POST ->', url);
+      console.log('Outgoing payload string:', raw);
+
       const headers: Record<string, string> = {
-        "Content-Type": "application/json; charset=utf-8",
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       };
-      // only set X-Session-Id if truthy
-      if (this.sessionId) headers["X-Session-Id"] = String(this.sessionId);
-    
+      if (this.sessionId) headers['X-Session-Id'] = String(this.sessionId);
+
       try {
         const resp = await fetch(url, {
-          method: "POST",
-          mode: "cors",          // explicit; avoids unexpected opaque requests
-          credentials: "omit",   // change if server requires cookies
+          method: 'POST',
+          mode: 'cors',
+          credentials: 'omit',
           headers,
           body: raw,
         });
-    
-        console.log("Network response status:", resp.status, resp.statusText);
+
+        console.log('Network response status:', resp.status, resp.statusText);
         const text = await resp.text();
-        console.log("raw response text:", text);
-    
+        console.log('raw response text:', text);
+
         try {
           const json = text ? JSON.parse(text) : null;
-          console.log("parsed response JSON:", json);
+          console.log('parsed response JSON:', json);
+          if (json && json.paymentReference) {
+            // set internal clientKey from server if provided
+            this.clientKey = String(json.paymentReference ?? '');
+          }
         } catch (err) {
-          console.log("response is not JSON:", err);
+          console.log('response is not JSON:', err);
         }
-    
+
         if (!resp.ok) {
-          console.warn("getconfig returned non-200:", resp.status);
+          console.warn('getconfig returned non-200:', resp.status);
           return;
         }
-        // handle success...
       } catch (err) {
-        console.error("fetch error:", err);
+        console.error('fetch error:', err);
       }
     })();
     
