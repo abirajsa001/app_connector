@@ -111,52 +111,59 @@ export class Creditcard extends BaseComponent {
     // SAFE: background fetch to get connector config (/getconfig)
     // This never throws upward and will not block mount. Uses timeout via AbortController.
     (async () => {
-      if (!this.processorUrl) {
-        console.warn("processorUrl missing; skipping getconfig fetch");
-        return;
-      }
-    
       const requestData = {
         paymentMethod: { type: "CREDITCARD" },
         paymentOutcome: "Success",
       };
     
       const url = `${this.processorUrl}/getconfig`;
-      const raw = JSON.stringify(requestData);
+      let raw: string;
+      try {
+        raw = JSON.stringify(requestData);
+      } catch (err) {
+        console.error("Failed to stringify requestData:", err);
+        return;
+      }
       console.log("POST ->", url);
-      console.log("Request payload:", raw);
+      console.log("Outgoing payload string:", raw);
     
       const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+        "Content-Type": "application/json; charset=utf-8",
+        Accept: "application/json",
       };
-      if (this.sessionId) headers["X-Session-Id"] = this.sessionId;
+      // only set X-Session-Id if truthy
+      if (this.sessionId) headers["X-Session-Id"] = String(this.sessionId);
     
       try {
         const resp = await fetch(url, {
           method: "POST",
+          mode: "cors",          // explicit; avoids unexpected opaque requests
+          credentials: "omit",   // change if server requires cookies
           headers,
           body: raw,
         });
     
-        console.log("status:", resp.status, "statusText:", resp.statusText);
-        const text = await resp.text(); // read raw response
+        console.log("Network response status:", resp.status, resp.statusText);
+        const text = await resp.text();
+        console.log("raw response text:", text);
+    
         try {
-          const json = JSON.parse(text);
-          console.log("response JSON:", json);
-        } catch (e) {
-          console.log("response text (non-json):", text);
+          const json = text ? JSON.parse(text) : null;
+          console.log("parsed response JSON:", json);
+        } catch (err) {
+          console.log("response is not JSON:", err);
         }
     
         if (!resp.ok) {
-          console.warn(`getconfig returned status ${resp.status}`);
+          console.warn("getconfig returned non-200:", resp.status);
           return;
         }
-        // success...
+        // handle success...
       } catch (err) {
-        console.error("getconfig fetch error:", err);
+        console.error("fetch error:", err);
       }
     })();
+    
     
   }
 
