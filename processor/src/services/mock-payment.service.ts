@@ -1247,6 +1247,27 @@ public async updatePaymentStatusByPaymentId(
     const paymentCartId = ctCart.id;
     const orderNumber   = getFutureOrderNumberFromContext() ?? "";
     const ctPaymentId   = ctPayment.id;
+  // 🔹 1) Prepare name variables
+  let firstName = "";
+  let lastName = "";
+
+  // 🔹 2) If the cart is linked to a CT customer, fetch it directly from CT
+  if (ctCart.customerId) {
+    const customerRes = await projectApiRoot
+      .customers()
+      .withId({ ID: ctCart.customerId })
+      .get()
+      .execute();
+
+    const ctCustomer: Customer = customerRes.body;
+
+    firstName = ctCustomer.firstName ?? "";
+    lastName = ctCustomer.lastName ?? "";
+  } else {
+    // 🔹 3) Guest checkout → fallback to shipping address
+    firstName = ctCart.shippingAddress?.firstName ?? "";
+    lastName = ctCart.shippingAddress?.lastName ?? "";
+  }
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
