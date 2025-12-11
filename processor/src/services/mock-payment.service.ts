@@ -354,6 +354,49 @@ export class MockPaymentService extends AbstractPaymentService {
       return { paymentReference: '' };
     }
   }
+
+  public async getCustomerAddress({ data }: { data: any }) {
+    const ctCart = await this.ctCartService.getCart({
+      id: getCartIdFromContext(),
+    });
+  
+    let customer: Customer | null = null;
+  
+    // Logged-in customer
+    if (ctCart.customerId) {
+      const customerRes = await projectApiRoot
+        .customers()
+        .withId({ ID: ctCart.customerId })
+        .get()
+        .execute();
+  
+      customer = customerRes.body;
+    }
+  
+    // Extract name
+    const firstName =
+      customer?.firstName ?? ctCart.shippingAddress?.firstName ?? "";
+    const lastName =
+      customer?.lastName ?? ctCart.shippingAddress?.lastName ?? "";
+  
+    // Extract addresses
+    const addresses = customer?.addresses ?? [];
+    const defaultShippingId = customer?.defaultShippingAddressId;
+    const defaultBillingId = customer?.defaultBillingAddressId;
+  
+    const shippingAddress = addresses.find((a) => a.id === defaultShippingId);
+    const billingAddress = addresses.find((a) => a.id === defaultBillingId);
+  
+    // If guest checkout → use CT Cart shipping address
+    const shipping = shippingAddress ?? ctCart.shippingAddress ?? null;
+  
+    return {
+      firstName,
+      lastName,
+      shippingAddress: shipping,
+      billingAddress: billingAddress ?? null,
+    };
+  }
   
 
   public async createPaymentt({ data }: { data: any }) {
