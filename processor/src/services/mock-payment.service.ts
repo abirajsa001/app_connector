@@ -86,7 +86,9 @@ function getPaymentDueDate(configuredDueDate: number | string): string | null {
   const formattedDate = dueDate.toISOString().split("T")[0];
   return formattedDate;
 }
-
+export interface GetConfigValuesResult {
+  paymentReference: string;
+}
 export class MockPaymentService extends AbstractPaymentService {
   constructor(opts: MockPaymentServiceOptions) {
     super(opts.ctCartService, opts.ctPaymentService);
@@ -368,7 +370,7 @@ export class MockPaymentService extends AbstractPaymentService {
 
       responseData = await novalnetResponse.json();
     } catch (error) {
-      log.error("Failed to fetch transaction details from Novalnet:", error);
+      log.info("Failed to fetch transaction details from Novalnet:", error);
       throw new Error("Payment verification failed");
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
@@ -480,7 +482,7 @@ export class MockPaymentService extends AbstractPaymentService {
 		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
 	  }
 	} catch (err) {
-	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
+	  log.info("Error storing / reading CustomObject", { error: (err as any).message ?? err });
 	  throw err; // or handle as appropriate
 	}
 	
@@ -729,10 +731,10 @@ public async updateTxComment(paymentId: string, txId: string, comment: string) {
     try {
       // getConfig() should safely return an object that may contain novalnetClientkey
       const clientKey = String(getConfig()?.novalnetClientkey ?? "");
-      this.log.info('getconfigValues function - clientKey: %s', clientKey);
+      log.info('getconfigValues function - clientKey: %s', clientKey);
       return { paymentReference: clientKey };
     } catch (err) {
-      this.log.error('getConfigValues failed', err);
+      log.info('getConfigValues failed', err);
       // rethrow or normalize error depending on your error-handling strategy
       throw err;
     }
@@ -923,7 +925,7 @@ const pspReference = randomUUID().toString();
       responseData = await novalnetResponse.json();
       responseString = JSON.stringify(responseData);
     } catch (err) {
-      log.error("Failed to process payment with Novalnet:", err);
+      log.info("Failed to process payment with Novalnet:", err);
       throw new Error("Payment processing failed");
     }
     const parsedResponse = JSON.parse(responseString);
