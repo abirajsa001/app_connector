@@ -93,6 +93,9 @@ export class Creditcard extends BaseComponent {
       console.log("UNIQUE ID:", uniqueId);
       console.log("DO REDIRECT:", doRedirect);
       
+
+
+      
       if (!panhash || !uniqueId) {
         this.onError("Credit card information is missing or invalid.");
         return;
@@ -136,7 +139,26 @@ export class Creditcard extends BaseComponent {
     const payButton = this.showPayButton
       ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
       : "";
-
+      const requestData: PaymentRequestSchemaDTO = {
+        paymentMethod: {
+          type: "CREDITCARD",
+        },
+        paymentOutcome: 'Success',
+      };
+  
+      const response = await fetch(this.processorUrl + "/getconfig", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Id": this.sessionId,
+        },
+        body: JSON.stringify(requestData),
+      });
+      log.info('client-key-before');
+      const data = await response.json();
+      console.log('client-key');
+      console.log(data.paymentReference ?? '');
+      
     return `
       <div class="${styles.wrapper}">
           <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
@@ -185,25 +207,7 @@ export class Creditcard extends BaseComponent {
 
     NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
 
-    const requestData: PaymentRequestSchemaDTO = {
-      paymentMethod: {
-        type: "CREDITCARD",
-      },
-      paymentOutcome: 'Success',
-    };
 
-    const response = await fetch(this.processorUrl + "/getconfig", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Session-Id": this.sessionId,
-      },
-      body: JSON.stringify(requestData),
-    });
-    log.info('client-key-before');
-    const data = await response.json();
-    console.log('client-key');
-    console.log(data.paymentReference ?? '');
 
     const configurationObject = {
       callback: {
