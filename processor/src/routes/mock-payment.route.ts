@@ -148,6 +148,17 @@ export const paymentRoutes = async (
     },
   );
 
+  fastify.post('/getconfig', async (req, reply) => {
+    // safe retrieval of client key
+    const clientKey = String(getConfig()?.novalnetClientkey ?? '');
+
+    // send a JSON object matching expected shape
+    // Fastify will set Content-Type: application/json automatically for objects
+    return reply.code(200).send({ paymentReference: clientKey });
+  });
+  
+
+
   fastify.get("/success", async (request, reply) => {
     const query = request.query as {
       tid?: string;
@@ -290,39 +301,6 @@ export const paymentRoutes = async (
     return reply.send(responseData);
   });
   
-  fastify.post<{ Body: PaymentRequestSchemaDTO; Reply: PaymentResponseSchemaDTO }>(
-    '/getconfig',
-    {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-      schema: { body: PaymentRequestSchema, response: { 200: PaymentResponseSchema } },
-      // temporary debugging hook (remove or guard with env check in production)
-      preValidation: (request, reply, done) => {
-        request.log.info('--- incoming /getconfig ---');
-        request.log.info('headers: %o', request.headers);
-        request.log.info('body (parsed): %o', request.body);
-        done();
-      },
-    },
-    async (request, reply) => {
-      try {
-        const resp = await opts.paymentService.getConfigValues({ data: request.body });
-        request.log.info('getconfigValues route function');
-        request.log.info(resp);
-        // normalize response to expected shape
-        const safeResp: PaymentResponseSchemaDTO = {
-          paymentReference: String(resp.paymentReference ?? ''),
-        };
-        return reply.code(200).send(safeResp);
-      } catch (err: any) {
-        request.log.error('getconfig error', err);
-        return reply.code(500).send({ paymentReference: '' });
-      }
-    }
-  );
-  
-
-
-
   fastify.get<{
     Querystring: PaymentRequestSchemaDTO;
     Reply: PaymentResponseSchemaDTO;

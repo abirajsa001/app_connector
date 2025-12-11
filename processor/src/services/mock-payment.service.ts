@@ -16,7 +16,12 @@ import {
   ReversePaymentRequest,
   StatusResponse,
 } from "./types/operation.type";
-import { Customer } from '@commercetools/platform-sdk';
+import {
+  Address,
+  Customer,
+  CustomerSetCustomFieldAction,
+  CustomerSetCustomTypeAction,
+} from '@commercetools/platform-sdk';
 import { SupportedPaymentComponentsSchemaDTO } from "../dtos/operations/payment-componets.dto";
 import { PaymentModificationStatus } from "../dtos/operations/payment-intents.dto";
 import packageJSON from "../../package.json";
@@ -86,9 +91,7 @@ function getPaymentDueDate(configuredDueDate: number | string): string | null {
   const formattedDate = dueDate.toISOString().split("T")[0];
   return formattedDate;
 }
-export interface GetConfigValuesResult {
-  paymentReference: string;
-}
+
 export class MockPaymentService extends AbstractPaymentService {
   constructor(opts: MockPaymentServiceOptions) {
     super(opts.ctCartService, opts.ctPaymentService);
@@ -293,6 +296,10 @@ export class MockPaymentService extends AbstractPaymentService {
     return billingAddress;
   }
 
+  public async customerDetails(customer: Customer) {
+    return customer;
+  }
+
   public async failureResponse({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
@@ -335,6 +342,19 @@ export class MockPaymentService extends AbstractPaymentService {
 
   }  
 
+  public async getConfigValues({ data }: { data: any }) {
+    try {
+      const clientKey = String(getConfig()?.novalnetClientkey ?? '');
+      log.info('getconfigValues function');
+      log.info(clientKey);
+      return { paymentReference: clientKey };
+    } catch (err) {
+      log.info('getConfigValues error', err);
+      // return safe fallback so Merchant Center gets JSON
+      return { paymentReference: '' };
+    }
+  }
+  
 
   public async createPaymentt({ data }: { data: any }) {
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
@@ -370,7 +390,7 @@ export class MockPaymentService extends AbstractPaymentService {
 
       responseData = await novalnetResponse.json();
     } catch (error) {
-      log.info("Failed to fetch transaction details from Novalnet:", error);
+      log.error("Failed to fetch transaction details from Novalnet:", error);
       throw new Error("Payment verification failed");
     }
     const paymentRef = responseData?.custom?.paymentRef ?? "";
@@ -464,25 +484,22 @@ export class MockPaymentService extends AbstractPaymentService {
 	  } else {
 		// obj.value contains the stored data
 		const stored = obj.value;
-
-		// DON'T log raw sensitive data in production. Example: mask deviceId
 		const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
 		log.info("Stored custom object (masked):", {
 		  container: obj.container,
 		  key: obj.key,
 		  version: obj.version,
 		  deviceId: maskedDeviceId,
-		  riskScore: stored.riskScore, // if non-sensitive you may log
+		  riskScore: stored.riskScore, 
 		});
 		log.info(stored.tid);
 		log.info(stored.status);
 		log.info(stored.cMail);
     log.info(stored.additionalInfo.comments);
-		// If you really need the full payload for debugging (dev only), stringify carefully:
-		// log.debug("Stored full payload (dev only):", JSON.stringify(stored, null, 2));
+
 	  }
 	} catch (err) {
-	  log.info("Error storing / reading CustomObject", { error: (err as any).message ?? err });
+	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
 	  throw err; // or handle as appropriate
 	}
 	
@@ -727,19 +744,6 @@ public async updateTxComment(paymentId: string, txId: string, comment: string) {
     return { ok: true, method: "setTransactionCustomType" };
   }
 
-  public async getConfigValues({ data }: { data: any }): Promise<GetConfigValuesResult> {
-    try {
-      // getConfig() should safely return an object that may contain novalnetClientkey
-      const clientKey = String(getConfig()?.novalnetClientkey ?? "");
-      log.info('getconfigValues function - clientKey: %s', clientKey);
-      return { paymentReference: clientKey };
-    } catch (err) {
-      log.info('getConfigValues failed', err);
-      // rethrow or normalize error depending on your error-handling strategy
-      throw err;
-    }
-  }
-  
   public async createPayment(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
@@ -820,13 +824,11 @@ await this.ctCartService.addPayment({
 
 const pspReference = randomUUID().toString();
 
-
-
-  //  1) Prepare name variables
+  // 🔹 1) Prepare name variables
   let firstName = "";
   let lastName = "";
 
-  //  2) If the cart is linked to a CT customer, fetch it directly from CT
+  // 🔹 2) If the cart is linked to a CT customer, fetch it directly from CT
   if (ctCart.customerId) {
     const customerRes = await projectApiRoot
       .customers()
@@ -838,14 +840,10 @@ const pspReference = randomUUID().toString();
 
     firstName = ctCustomer.firstName ?? "";
     lastName = ctCustomer.lastName ?? "";
-    log.info('customer-first-name');
-    log.info(firstName);
   } else {
-    //  3) Guest checkout → fallback to shipping address
+    // 🔹 3) Guest checkout → fallback to shipping address
     firstName = ctCart.shippingAddress?.firstName ?? "";
     lastName = ctCart.shippingAddress?.lastName ?? "";
-    log.info('shipping-first-name');
-    log.info(firstName);
   }
 
     const novalnetPayload = {
@@ -868,24 +866,26 @@ const pspReference = randomUUID().toString();
           street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
           zip: String(deliveryAddress?.postalCode ?? "12345"),
         },
-        first_name: firstName ?? "test",
-        last_name: lastName ?? "test",
-        email: parsedCart.customerEmail ?? "abiraj_s@novalnetsolutions.com",
+        first_name: firstName,
+        last_name: lastName,
+        email: parsedCart.customerEmail,
       },
       transaction,
       custom: {
-        input1: "Billing Address Firstname",
+        input1: "currencyCode",
         inputval1: String(
-          billingAddress?.firstName ?? "billing firstname empty",
+          parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "empty",
         ),
-        input2: "Shipping Address Lastname",
+        input2: "transaction amount",
         inputval2: String(
-          deliveryAddress?.firstName ?? "delivery firstname empty",
+          parsedCart?.taxedPrice?.totalGross?.centAmount ?? "empty",
         ),
-        input3: "firstName",
-        inputval3: String(firstName),
-        input4: "lastName",
-        inputval4: String(lastName),
+        input3: "customerEmail",
+        inputval3: String(parsedCart.customerEmail ?? "Email not available"),
+        input4: "ctpayment-id",
+        inputval4: String(
+          ctPayment.id ?? "ctpayment-id not available",
+        ),
         input5: "pspReference",
         inputval5: String(pspReference ?? "0"),
       },
@@ -925,7 +925,7 @@ const pspReference = randomUUID().toString();
       responseData = await novalnetResponse.json();
       responseString = JSON.stringify(responseData);
     } catch (err) {
-      log.info("Failed to process payment with Novalnet:", err);
+      log.error("Failed to process payment with Novalnet:", err);
       throw new Error("Payment processing failed");
     }
     const parsedResponse = JSON.parse(responseString);
@@ -1264,33 +1264,6 @@ public async updatePaymentStatusByPaymentId(
     urlFailure.searchParams.append("pspReference", pspReference);
     const errorReturnUrl = urlFailure.toString();
 
-      //  1) Prepare name variables
-  let firstName = "";
-  let lastName = "";
-
-  //  2) If the cart is linked to a CT customer, fetch it directly from CT
-  if (ctCart.customerId) {
-    const customerRes = await projectApiRoot
-      .customers()
-      .withId({ ID: ctCart.customerId })
-      .get()
-      .execute();
-
-    const ctCustomer: Customer = customerRes.body;
-
-    firstName = ctCustomer.firstName ?? "";
-    lastName = ctCustomer.lastName ?? "";
-    log.info('customer-first-name');
-    log.info(firstName);
-  } else {
-    //  3) Guest checkout → fallback to shipping address
-    firstName = ctCart.shippingAddress?.firstName ?? "";
-    lastName = ctCart.shippingAddress?.lastName ?? "";
-    log.info('shipping-first-name');
-    log.info(firstName);
-  }
-
-
     const ReturnurlContext = getMerchantReturnUrlFromContext();
     const novalnetPayload = {
       merchant: {
@@ -1312,9 +1285,9 @@ public async updatePaymentStatusByPaymentId(
           street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
           zip: String(deliveryAddress?.postalCode ?? "12345"),
         },
-        first_name: firstName ?? "test",
-        last_name: lastName ?? "test",
-        email: parsedCart.customerEmail ?? "abiraj_s@novalnetsolutions.com",
+        first_name: firstName,
+        last_name: lastName,
+        email: parsedCart.customerEmail,
       },
       transaction: {
         test_mode: testMode === "1" ? "1" : "0",
