@@ -156,50 +156,26 @@ export const paymentRoutes = async (
   fastify.post('/getconfig', async (req, reply) => {
     // safe retrieval of client key
     const clientKey = String(getConfig()?.novalnetClientkey ?? '');
+
     // send a JSON object matching expected shape
     // Fastify will set Content-Type: application/json automatically for objects
     return reply.code(200).send({ paymentReference: clientKey });
   });
+  
+fastify.post<{ Body: PaymentRequestSchemaDTO }>(
+  '/getCustomerAddress',
+  async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
+    log.info('route-customer-address');
 
-// routes/payment-routes.ts
-fastify.post<{
-  Body: PaymentRequestSchemaDTO;
-  Reply: PaymentResponseSchemaDTO;
-}>(
-  "/getCustomerAddress",
-  {
-    preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-    schema: {
-      body: PaymentRequestSchema,
-      response: { 200: PaymentResponseSchema },
-    },
-  },
-  async (request, reply) => {
-    try {
-      fastify.log.info('route-customer-address - headers: %o', request.headers);
-      fastify.log.info('route-customer-address - parsed request.body: %o', request.body);
+    // req.body is typed as PaymentRequestSchemaDTO now
+    const resp = await opts.paymentService.getCustomerAddress({
+      data: req.body,
+    });
 
-      const resp = await opts.paymentService.getCustomerAddress({
-        data: request.body,
-      });
-
-      return reply.code(200).send(resp);
-    } catch (err: any) {
-      // Distinguish parsing/validation vs internal errors
-      fastify.log.error('route-customer-address - handler error: %o', err);
-      const msg = err?.message ?? 'unknown error';
-      // If it's a validation/parse error from fastify/ajv it will often be an Error with message 'Invalid JSON' or AJV messages:
-      if (msg.includes('Invalid JSON') || msg.includes('body should')) {
-        log.info( 'Request body does not contain valid JSON.' );
-      }
-      log.info(  'Internal server error' );
-    }
+   return reply.code(200).send(resp);
   }
-);
-
-  
-  
-
+);	
+   
   fastify.get("/success", async (request, reply) => {
     const query = request.query as {
       tid?: string;

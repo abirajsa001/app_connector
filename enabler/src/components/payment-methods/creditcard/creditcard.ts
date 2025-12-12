@@ -270,53 +270,54 @@ export class Creditcard extends BaseComponent {
         paymentMethod: { type: "CREDITCARD" },
         paymentOutcome: "AUTHORIZED",
       };
-  
+    
       const body = JSON.stringify(requestData);
-      if (!body || body === 'undefined' || body === 'null') {
-        console.error('fetchCustomerAddress - body is invalid:', body);
-        throw new Error('Request body invalid');
-      }
-  
-      console.log('Outgoing body string:', body);
-  
+      console.log("Outgoing body string:", body);
+      const currentCartId = window.localStorage.getItem('cartId');
+      console.log(currentCartId ?? 'not-current-cart-id');
+
+      const currentCartId2 = window.localStorage.getItem('cart-id');
+      console.log(currentCartId2 ?? 'not-current-cart-id2');
+
       const response = await fetch(this.processorUrl + "/getCustomerAddress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
+          // no X-Session-Id for public client call
         },
         body,
       });
-  
-      const contentType = response.headers.get('content-type') || '';
-      console.log('Response status:', response.status, 'content-type:', contentType);
-  
-      // If non-2xx, try to parse JSON error body or fallback to text
+    
+      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
+    
+      // Inspect content-type header before parsing
+      const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
+      console.log("Response Content-Type:", contentType);
+    
       if (!response.ok) {
-        let errBody;
-        try {
-          errBody = await response.json();
-        } catch (e) {
-          errBody = await response.text();
+        const text = await response.text().catch(() => "");
+        console.warn("getconfig returned non-200:", response.status, text);
+      } else if (contentType && contentType.includes("application/json")) {
+        const json = await response.json().catch((err) => {
+          console.error("Failed to parse JSON response:", err);
+          return null;
+        });
+        console.log("parsed response JSON:", json);
+    
+        if (json && json.paymentReference) {
+          this.clientKey = String(json.paymentReference);
+          console.log("Customer Address set from server:", this.clientKey);
+        } else {
+          console.warn("JSON response missing paymentReference:", json);
         }
-        console.warn('fetchCustomerAddress - server returned non-2xx:', response.status, errBody);
-        throw new Error('Server returned non-2xx: ' + response.status);
+      } else {
+        // fallback: treat as plain text
+        const text = await response.text().catch(() => "");
+        console.log("Response text (non-JSON):", text);
       }
-  
-      // parse expected JSON
-      const json = await response.json();
-      console.log("Customer JSON:", json);
-  
-      const firstName = json.firstName ?? '';
-      const lastName = json.lastName ?? '';
-      const shipping = json.shippingAddress ?? '';
-      const billing = json.billingAddress ?? '';
-  
-      console.log({ firstName, lastName, shipping, billing });
-      return { firstName, lastName, shipping, billing };
     } catch (err) {
-      console.warn("fetchCustomerAddress failed:", err);
-      throw err;
+      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
     }
 
     // If you have a client key from config, you can set it here. Keep secret values on server!
