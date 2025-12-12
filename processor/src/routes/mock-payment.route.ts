@@ -168,22 +168,35 @@ export const paymentRoutes = async (
     "/getCustomerAddress",
     {
       preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-
       schema: {
         body: PaymentRequestSchema,
-        response: {
-          200: PaymentResponseSchema,
-        },
+        response: { 200: PaymentResponseSchema },
       },
     },
     async (request, reply) => {
-      log.info('route-customer-address');
-      const resp = await opts.paymentService.getCustomerAddress({
-        data: request.body,
-      });
-      return reply.code(200).send(resp);
-    },
+      try {
+        log.info('route-customer-address - headers: %o', request.headers);
+  
+        // Log body that fastify has parsed (if any)
+        log.info('route-customer-address - parsed request.body: %o', request.body);
+  
+        // If you also want to capture raw body bytes (only if parser didn't run),
+        // you can try to read from raw stream (be careful, don't do this in production)
+        // But usually request.body or the curl test is sufficient.
+  
+        const resp = await opts.paymentService.getCustomerAddress({
+          data: request.body,
+        });
+  
+        return reply.code(200).send(resp);
+      } catch (err) {
+        log.error('route-customer-address - handler error: %o', err);
+        // Return the error so you can see the exact message during testing:
+        return reply.code(500).send({ message: String(err) });
+      }
+    }
   );
+  
   
 
   fastify.get("/success", async (request, reply) => {

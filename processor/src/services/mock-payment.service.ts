@@ -370,21 +370,23 @@ export class MockPaymentService extends AbstractPaymentService {
 
 // Replace/patch this method in your service class
 public async getCustomerAddress({ data }: { data: any }): Promise<PaymentResponseSchemaDTO> {
+  // Log the incoming payload so we know what Fastify parsed
+  log.info('getCustomerAddress - incoming request data: %o', data);
+
   // 1) Fetch cart (will throw if not found)
   const ctCart = await this.ctCartService.getCart({
     id: getCartIdFromContext(),
   });
 
-  // Debugging: help identify why customerId could be missing
   log.info('getCustomerAddress - cart id=%s customerId=%s anonymousId=%s', ctCart?.id, ctCart?.customerId, ctCart?.anonymousId);
 
-  // Prepare defaults
+  // Defaults
   let firstName = '';
   let lastName = '';
   let shippingAddress: Address | null = null;
   let billingAddress: Address | null = null;
 
-  // 2) If cart has a linked customerId, try to fetch the Customer
+  // 2) Try to fetch customer if cart has customerId
   const rawCustomerId = ctCart?.customerId;
   const customerId =
     typeof rawCustomerId === 'string' && rawCustomerId.trim() !== '' && rawCustomerId.trim().toLowerCase() !== 'undefined'
@@ -399,18 +401,15 @@ public async getCustomerAddress({ data }: { data: any }): Promise<PaymentRespons
         .get()
         .execute();
 
-      const ctCustomer = customerRes.body; // inferred type
-
+      const ctCustomer = customerRes.body;
       log.info('getCustomerAddress - fetched customer id=%s email=%s', ctCustomer.id, ctCustomer.email);
 
-      // Names
       firstName = ctCustomer.firstName ?? '';
       lastName = ctCustomer.lastName ?? '';
 
-      // Addresses array (may be empty)
-      const addresses: Address[] = ctCustomer.addresses ?? [];
+      const addresses: Address[] = Array.isArray(ctCustomer.addresses) ? ctCustomer.addresses : [];
 
-      // SHIPPING: prefer defaultShippingAddressId, then shippingAddressIds, then first address
+      // Shipping
       if (ctCustomer.defaultShippingAddressId) {
         shippingAddress = addresses.find(a => a.id === ctCustomer.defaultShippingAddressId) ?? null;
       } else if (Array.isArray(ctCustomer.shippingAddressIds) && ctCustomer.shippingAddressIds.length > 0) {
@@ -419,46 +418,39 @@ public async getCustomerAddress({ data }: { data: any }): Promise<PaymentRespons
         shippingAddress = addresses[0] ?? null;
       }
 
-      // BILLING: prefer defaultBillingAddressId, then billingAddressIds, else pick an address different from shipping
+      // Billing
       if (ctCustomer.defaultBillingAddressId) {
         billingAddress = addresses.find(a => a.id === ctCustomer.defaultBillingAddressId) ?? null;
       } else if (Array.isArray(ctCustomer.billingAddressIds) && ctCustomer.billingAddressIds.length > 0) {
         billingAddress = addresses.find(a => ctCustomer.billingAddressIds!.includes(a.id!)) ?? null;
       } else {
-        // If no explicit billing found, choose any address that is not the shipping address (if possible)
         billingAddress = addresses.find(a => a.id !== shippingAddress?.id) ?? null;
       }
     } catch (err: any) {
-      // If the customer fetch fails (404 or other), log and fall back to cart addresses
       log.warn('getCustomerAddress - failed to fetch customer id=%s : %s', customerId, err?.message ?? err);
     }
   } else {
-    log.info('getCustomerAddress - no valid customerId on cart, skipping customer fetch');
+    log.info('getCustomerAddress - no valid customerId on cart, will use cart addresses');
   }
 
-  // 3) Fallbacks for guest checkout or missing customer data in the customer object
+  // Fallback to cart shipping info if customer fields are missing
   if (!firstName) firstName = ctCart.shippingAddress?.firstName ?? '';
   if (!lastName) lastName = ctCart.shippingAddress?.lastName ?? '';
   if (!shippingAddress) shippingAddress = ctCart.shippingAddress ?? null;
+  if (!billingAddress) billingAddress = ctCart.billingAddress ?? null;
 
-  // 4) Final response: include required paymentReference so it satisfies PaymentResponseSchemaDTO
+  // Construct response that matches PaymentResponseSchemaDTO minimally
   const response: PaymentResponseSchemaDTO = {
-    // required field the route schema expects
+    // required minimal field
     paymentReference: 'customAddress',
-
-    // optional fields from your PaymentResponseSchemaDTO are left undefined by default.
-    // If you want to fill other optional fields (txnSecret, transactionStatus, etc.), set them here.
-
-    // attach the address/name info so caller gets the customer addresses too
-    // (extend your DTO if necessary — many DTOs allow extra fields; if not, consider adding these to the DTO)
+    // optional / helpful fields for the client
     firstName,
     lastName,
-    // If your PaymentResponseSchemaDTO has typed fields for these addresses, use those types.
     shippingAddress,
     billingAddress,
-  } as unknown as PaymentResponseSchemaDTO; // cast only if PaymentResponseSchemaDTO doesn't currently declare these fields
+  } as unknown as PaymentResponseSchemaDTO;
 
-  log.info('getCustomerAddress - response: %o', {
+  log.info('getCustomerAddress - response prepared: %o', {
     paymentReference: response.paymentReference,
     firstName,
     lastName,

@@ -270,37 +270,50 @@ export class Creditcard extends BaseComponent {
         paymentMethod: { type: "CREDITCARD" },
         paymentOutcome: "AUTHORIZED",
       };
-    
+  
       const body = JSON.stringify(requestData);
       console.log("Outgoing body string:", body);
-    
-      const response = await fetch(this.processorUrl + "/getCustomerAddress", {
+  
+      const response = await fetch(processorUrl.replace(/\/+$/, '') + "/getCustomerAddress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
+          // If your server expects a custom session header, include it here:
+          // "X-Session-Id": "..."
         },
-        body: JSON.stringify({
-          paymentMethod: { type: "CREDITCARD" },
-          paymentOutcome: "AUTHORIZED",
-        }),
+        body,
       });
-      
-
+  
+      // Debug: log status and text if not JSON
+      const contentType = response.headers.get('content-type') || '';
+      console.log('Response status:', response.status, 'content-type:', contentType);
+  
+      if (!response.ok) {
+        // try to read JSON error body if present
+        let errBody: any;
+        try {
+          errBody = await response.json();
+        } catch (e) {
+          errBody = await response.text();
+        }
+        console.warn('fetchCustomerAddress - server returned non-2xx:', response.status, errBody);
+        throw new Error('Server returned non-2xx: ' + response.status);
+      }
+  
       const json = await response.json();
       console.log("Customer JSON:", json);
-      
-      // You now have:
+  
       const firstName = json.firstName ?? '';
       const lastName = json.lastName ?? '';
       const shipping = json.shippingAddress ?? '';
       const billing = json.billingAddress ?? '';
-      console.log(firstName);
-      console.log(lastName);
-      console.log(shipping);
-      console.log(billing);
+  
+      console.log({ firstName, lastName, shipping, billing });
+      return { firstName, lastName, shipping, billing };
     } catch (err) {
-      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
+      console.warn("initPaymentProcessor: getCustomerAddress fetch failed (non-fatal):", err);
+      throw err;
     }
 
     // If you have a client key from config, you can set it here. Keep secret values on server!
