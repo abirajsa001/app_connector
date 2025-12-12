@@ -156,17 +156,34 @@ export const paymentRoutes = async (
   fastify.post('/getconfig', async (req, reply) => {
     // safe retrieval of client key
     const clientKey = String(getConfig()?.novalnetClientkey ?? '');
-
     // send a JSON object matching expected shape
     // Fastify will set Content-Type: application/json automatically for objects
     return reply.code(200).send({ paymentReference: clientKey });
   });
-  
-  fastify.post('/getCustomerAddress', async (req, reply) => {
-    log.info('route-customer-address');
-    const resp = await opts.paymentService.getCustomerAddress({ data: req.body });
-    return reply.code(200).send(resp);
-  });
+
+  fastify.post<{
+    Body: PaymentRequestSchemaDTO;
+    Reply: PaymentResponseSchemaDTO;
+  }>(
+    "/getCustomerAddress",
+    {
+      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+
+      schema: {
+        body: PaymentRequestSchema,
+        response: {
+          200: PaymentResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      log.info('route-customer-address');
+      const resp = await opts.paymentService.getCustomerAddress({
+        data: request.body,
+      });
+      return reply.code(200).send(resp);
+    },
+  );
   
 
   fastify.get("/success", async (request, reply) => {
