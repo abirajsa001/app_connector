@@ -286,21 +286,15 @@ export class Creditcard extends BaseComponent {
         }),
       });
       
-      console.log("Response status:", response.status);
-      
-      if (!response.ok) {
-        console.error("Server error:", await response.text());
-        return;
-      }
-      
+
       const json = await response.json();
       console.log("Customer JSON:", json);
       
       // You now have:
-      const firstName = json.firstName;
-      const lastName = json.lastName;
-      const shipping = json.shippingAddress;
-      const billing = json.billingAddress;
+      const firstName = json.firstName ?? '';
+      const lastName = json.lastName ?? '';
+      const shipping = json.shippingAddress ?? '';
+      const billing = json.billingAddress ?? '';
       console.log(firstName);
       console.log(lastName);
       console.log(shipping);

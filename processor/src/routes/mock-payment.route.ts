@@ -163,15 +163,11 @@ export const paymentRoutes = async (
   });
   
   fastify.post('/getCustomerAddress', async (req, reply) => {
-    // safe retrieval of client key
-    const resp = await opts.paymentService.getCustomerAddress({
-      data: req.body,
-    });
-
-    // send a JSON object matching expected shape
-    // Fastify will set Content-Type: application/json automatically for objects
-    return reply.code(200).send({ paymentReference: resp });
+    log.info('route-customer-address');
+    const resp = await opts.paymentService.getCustomerAddress({ data: req.body });
+    return reply.code(200).send(resp);
   });
+  
 
   fastify.get("/success", async (request, reply) => {
     const query = request.query as {

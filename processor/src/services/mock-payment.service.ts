@@ -355,48 +355,88 @@ export class MockPaymentService extends AbstractPaymentService {
     }
   }
 
-  public async getCustomerAddress({ data }: { data: any }) {
-    const ctCart = await this.ctCartService.getCart({
-      id: getCartIdFromContext(),
-    });
-  
-    let customer: Customer | null = null;
-  
-    // Logged-in customer
-    if (ctCart.customerId) {
+// import at top if not already present
+// import { Customer, Address } from '@commercetools/platform-sdk';
+
+public async getCustomerAddress({ data }: { data: any }) {
+  log.info('service-getcustomerAddress');
+  // 1) Get cart
+  const ctCart = await this.ctCartService.getCart({
+    id: getCartIdFromContext(),
+  });
+  log.info('getCartIdFromContext()');
+  log.info(getCartIdFromContext());
+  // Debug logs to identify why ID was undefined
+  log.info('getCustomerAddress - cart id: %s, customerId: %s, anonymousId: %s', ctCart?.id, ctCart?.customerId, ctCart?.anonymousId);
+
+  // Prepare return fields
+  let firstName = "";
+  let lastName = "";
+  let shippingAddress: Address | null = null;
+  let billingAddress: Address | null = null;
+
+  // If the cart has a customerId, attempt to fetch
+  if (ctCart?.customerId) {
+    try {
       const customerRes = await projectApiRoot
         .customers()
         .withId({ ID: ctCart.customerId })
         .get()
         .execute();
-  
-      customer = customerRes.body;
+
+      const ctCustomer: Customer = customerRes.body;
+
+      // log customer basic info for debugging
+      log.info('getCustomerAddress - found customer id=%s email=%s', ctCustomer.id, ctCustomer.email);
+
+      // name
+      firstName = ctCustomer.firstName ?? "";
+      lastName = ctCustomer.lastName ?? "";
+
+      // addresses: prefer defaultShipping/defaultBilling, else fallbacks
+      const addresses = ctCustomer.addresses ?? [];
+      if (ctCustomer.defaultShippingAddressId) {
+        shippingAddress = addresses.find(a => a.id === ctCustomer.defaultShippingAddressId) ?? null;
+      } else if (ctCustomer.shippingAddressIds?.length) {
+        shippingAddress = addresses.find(a => ctCustomer.shippingAddressIds.includes(a.id!)) ?? null;
+      } else {
+        shippingAddress = addresses[0] ?? null;
+      }
+
+      if (ctCustomer.defaultBillingAddressId) {
+        billingAddress = addresses.find(a => a.id === ctCustomer.defaultBillingAddressId) ?? null;
+      } else if (ctCustomer.billingAddressIds?.length) {
+        billingAddress = addresses.find(a => ctCustomer.billingAddressIds.includes(a.id!)) ?? null;
+      } else {
+        billingAddress = addresses.find(a => a.id !== shippingAddress?.id) ?? null;
+      }
+
+    } catch (err: any) {
+      // If customer was deleted / not found / other error, log it and fallback to cart addresses
+      log.error('getCustomerAddress - failed fetching customer %s: %o', ctCart.customerId, err?.message ?? err);
+      // If the error is ResourceNotFound/404, just fallback to cart shipping address (do not throw)
     }
-  
-    // Extract name
-    const firstName =
-      customer?.firstName ?? ctCart.shippingAddress?.firstName ?? "";
-    const lastName =
-      customer?.lastName ?? ctCart.shippingAddress?.lastName ?? "";
-  
-    // Extract addresses
-    const addresses = customer?.addresses ?? [];
-    const defaultShippingId = customer?.defaultShippingAddressId;
-    const defaultBillingId = customer?.defaultBillingAddressId;
-  
-    const shippingAddress = addresses.find((a) => a.id === defaultShippingId);
-    const billingAddress = addresses.find((a) => a.id === defaultBillingId);
-  
-    // If guest checkout → use CT Cart shipping address
-    const shipping = shippingAddress ?? ctCart.shippingAddress ?? null;
-  
-    return {
-      firstName,
-      lastName,
-      shippingAddress: shipping,
-      billingAddress: billingAddress ?? null,
-    };
   }
+
+  // If still no name or shipping address, use cart.shippingAddress (guest path)
+  if (!firstName) firstName = ctCart.shippingAddress?.firstName ?? "";
+  if (!lastName) lastName = ctCart.shippingAddress?.lastName ?? "";
+  if (!shippingAddress) shippingAddress = ctCart.shippingAddress ?? null;
+
+  // Build the response object (explicit shape)
+  const resp = {
+    firstName,
+    lastName,
+    shippingAddress,
+    billingAddress,
+  };
+
+  // debug log full response
+  log.info('getCustomerAddress - response: %o', resp);
+
+  return resp;
+}
+
   
 
   public async createPaymentt({ data }: { data: any }) {
