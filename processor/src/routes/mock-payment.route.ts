@@ -190,9 +190,9 @@ fastify.post<{
       const msg = err?.message ?? 'unknown error';
       // If it's a validation/parse error from fastify/ajv it will often be an Error with message 'Invalid JSON' or AJV messages:
       if (msg.includes('Invalid JSON') || msg.includes('body should')) {
-        return reply.code(400).send({ message: 'Request body does not contain valid JSON.', details: msg });
+        log.info( 'Request body does not contain valid JSON.' );
       }
-      return reply.code(500).send({ message: 'Internal server error', details: msg });
+      log.info(  'Internal server error' );
     }
   }
 );
