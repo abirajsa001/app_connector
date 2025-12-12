@@ -192,7 +192,7 @@ export const paymentRoutes = async (
       } catch (err) {
         log.error('route-customer-address - handler error: %o', err);
         // Return the error so you can see the exact message during testing:
-        return reply.code(500).send({ message: String(err) });
+        return reply.code(500).send(err);
       }
     }
   );
