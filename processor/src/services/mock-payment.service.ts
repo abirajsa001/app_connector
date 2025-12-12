@@ -370,95 +370,95 @@ export class MockPaymentService extends AbstractPaymentService {
 
 // Replace/patch this method in your service class
 public async getCustomerAddress({ data }: { data: any }): Promise<PaymentResponseSchemaDTO> {
-  // Log the incoming payload so we know what Fastify parsed
   log.info('getCustomerAddress - incoming request data: %o', data);
 
-  // 1) Fetch cart (will throw if not found)
-  const ctCart = await this.ctCartService.getCart({
-    id: getCartIdFromContext(),
-  });
+  try {
+    const ctCart = await this.ctCartService.getCart({
+      id: getCartIdFromContext(),
+    });
 
-  log.info('getCustomerAddress - cart id=%s customerId=%s anonymousId=%s', ctCart?.id, ctCart?.customerId, ctCart?.anonymousId);
+    log.info('getCustomerAddress - cart id=%s customerId=%s anonymousId=%s', ctCart?.id, ctCart?.customerId, ctCart?.anonymousId);
 
-  // Defaults
-  let firstName = '';
-  let lastName = '';
-  let shippingAddress: Address | null = null;
-  let billingAddress: Address | null = null;
+    // Defaults
+    let firstName = '';
+    let lastName = '';
+    let shippingAddress: Address | null = null;
+    let billingAddress: Address | null = null;
 
-  // 2) Try to fetch customer if cart has customerId
-  const rawCustomerId = ctCart?.customerId;
-  const customerId =
-    typeof rawCustomerId === 'string' && rawCustomerId.trim() !== '' && rawCustomerId.trim().toLowerCase() !== 'undefined'
-      ? rawCustomerId.trim()
-      : undefined;
+    const rawCustomerId = ctCart?.customerId;
+    const customerId =
+      typeof rawCustomerId === 'string' && rawCustomerId.trim() !== '' && rawCustomerId.trim().toLowerCase() !== 'undefined'
+        ? rawCustomerId.trim()
+        : undefined;
 
-  if (customerId) {
-    try {
-      const customerRes = await projectApiRoot
-        .customers()
-        .withId({ ID: customerId })
-        .get()
-        .execute();
+    if (customerId) {
+      try {
+        const customerRes = await projectApiRoot
+          .customers()
+          .withId({ ID: customerId })
+          .get()
+          .execute();
 
-      const ctCustomer = customerRes.body;
-      log.info('getCustomerAddress - fetched customer id=%s email=%s', ctCustomer.id, ctCustomer.email);
+        const ctCustomer = customerRes.body;
+        log.info('getCustomerAddress - fetched customer id=%s email=%s', ctCustomer.id, ctCustomer.email);
 
-      firstName = ctCustomer.firstName ?? '';
-      lastName = ctCustomer.lastName ?? '';
+        firstName = ctCustomer.firstName ?? '';
+        lastName = ctCustomer.lastName ?? '';
 
-      const addresses: Address[] = Array.isArray(ctCustomer.addresses) ? ctCustomer.addresses : [];
+        const addresses: Address[] = Array.isArray(ctCustomer.addresses) ? ctCustomer.addresses : [];
 
-      // Shipping
-      if (ctCustomer.defaultShippingAddressId) {
-        shippingAddress = addresses.find(a => a.id === ctCustomer.defaultShippingAddressId) ?? null;
-      } else if (Array.isArray(ctCustomer.shippingAddressIds) && ctCustomer.shippingAddressIds.length > 0) {
-        shippingAddress = addresses.find(a => ctCustomer.shippingAddressIds!.includes(a.id!)) ?? null;
-      } else {
-        shippingAddress = addresses[0] ?? null;
+        // Shipping
+        if (ctCustomer.defaultShippingAddressId) {
+          shippingAddress = addresses.find(a => a.id === ctCustomer.defaultShippingAddressId) ?? null;
+        } else if (Array.isArray(ctCustomer.shippingAddressIds) && ctCustomer.shippingAddressIds.length > 0) {
+          shippingAddress = addresses.find(a => ctCustomer.shippingAddressIds!.includes(a.id!)) ?? null;
+        } else {
+          shippingAddress = addresses[0] ?? null;
+        }
+
+        // Billing
+        if (ctCustomer.defaultBillingAddressId) {
+          billingAddress = addresses.find(a => a.id === ctCustomer.defaultBillingAddressId) ?? null;
+        } else if (Array.isArray(ctCustomer.billingAddressIds) && ctCustomer.billingAddressIds.length > 0) {
+          billingAddress = addresses.find(a => ctCustomer.billingAddressIds!.includes(a.id!)) ?? null;
+        } else {
+          billingAddress = addresses.find(a => a.id !== shippingAddress?.id) ?? null;
+        }
+      } catch (err: any) {
+        log.warn('getCustomerAddress - failed to fetch customer id=%s : %s', customerId, err?.message ?? err);
+        // proceed — we fallback to cart addresses below
       }
-
-      // Billing
-      if (ctCustomer.defaultBillingAddressId) {
-        billingAddress = addresses.find(a => a.id === ctCustomer.defaultBillingAddressId) ?? null;
-      } else if (Array.isArray(ctCustomer.billingAddressIds) && ctCustomer.billingAddressIds.length > 0) {
-        billingAddress = addresses.find(a => ctCustomer.billingAddressIds!.includes(a.id!)) ?? null;
-      } else {
-        billingAddress = addresses.find(a => a.id !== shippingAddress?.id) ?? null;
-      }
-    } catch (err: any) {
-      log.warn('getCustomerAddress - failed to fetch customer id=%s : %s', customerId, err?.message ?? err);
+    } else {
+      log.info('getCustomerAddress - no valid customerId on cart, will use cart addresses');
     }
-  } else {
-    log.info('getCustomerAddress - no valid customerId on cart, will use cart addresses');
+
+    // Fallback to cart shipping info if customer fields are missing
+    if (!firstName) firstName = ctCart.shippingAddress?.firstName ?? '';
+    if (!lastName) lastName = ctCart.shippingAddress?.lastName ?? '';
+    if (!shippingAddress) shippingAddress = ctCart.shippingAddress ?? null;
+    if (!billingAddress) billingAddress = ctCart.billingAddress ?? null;
+
+    const response: PaymentResponseSchemaDTO = {
+      paymentReference: 'customAddress',
+      firstName,
+      lastName,
+      shippingAddress,
+      billingAddress,
+    } as unknown as PaymentResponseSchemaDTO;
+
+    log.info('getCustomerAddress - response prepared: %o', {
+      paymentReference: response.paymentReference,
+      firstName,
+      lastName,
+      shippingAddressPresent: !!shippingAddress,
+      billingAddressPresent: !!billingAddress,
+    });
+
+    return response;
+  } catch (err) {
+    log.error('getCustomerAddress - fatal error: %o', err);
+    throw err; // let route handler convert to 500
   }
-
-  // Fallback to cart shipping info if customer fields are missing
-  if (!firstName) firstName = ctCart.shippingAddress?.firstName ?? '';
-  if (!lastName) lastName = ctCart.shippingAddress?.lastName ?? '';
-  if (!shippingAddress) shippingAddress = ctCart.shippingAddress ?? null;
-  if (!billingAddress) billingAddress = ctCart.billingAddress ?? null;
-
-  // Construct response that matches PaymentResponseSchemaDTO minimally
-  const response: PaymentResponseSchemaDTO = {
-    // required minimal field
-    paymentReference: 'customAddress',
-    // optional / helpful fields for the client
-    firstName,
-    lastName,
-    shippingAddress,
-    billingAddress,
-  } as unknown as PaymentResponseSchemaDTO;
-
-  log.info('getCustomerAddress - response prepared: %o', {
-    paymentReference: response.paymentReference,
-    firstName,
-    lastName,
-    shippingAddressPresent: !!shippingAddress,
-    billingAddressPresent: !!billingAddress,
-  });
-
-  return response;
 }
 
   

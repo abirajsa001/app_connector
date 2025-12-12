@@ -161,39 +161,42 @@ export const paymentRoutes = async (
     return reply.code(200).send({ paymentReference: clientKey });
   });
 
-  fastify.post<{
-    Body: PaymentRequestSchemaDTO;
-    Reply: PaymentResponseSchemaDTO;
-  }>(
-    "/getCustomerAddress",
-    {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-      schema: {
-        body: PaymentRequestSchema,
-        response: { 200: PaymentResponseSchema },
-      },
+// routes/payment-routes.ts
+fastify.post<{
+  Body: PaymentRequestSchemaDTO;
+  Reply: PaymentResponseSchemaDTO;
+}>(
+  "/getCustomerAddress",
+  {
+    preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+    schema: {
+      body: PaymentRequestSchema,
+      response: { 200: PaymentResponseSchema },
     },
-    async (request, reply) => {
-      try {
-        log.info('route-customer-address - headers: %o', request.headers);
-  
-        // Log body that fastify has parsed (if any)
-        log.info('route-customer-address - parsed request.body: %o', request.body);
-  
-        // If you also want to capture raw body bytes (only if parser didn't run),
-        // you can try to read from raw stream (be careful, don't do this in production)
-        // But usually request.body or the curl test is sufficient.
-  
-        const resp = await opts.paymentService.getCustomerAddress({
-          data: request.body,
-        });
-  
-        return reply.code(200).send(resp);
-      } catch (err) {
-        log.error('route-customer-address - handler error: %o', err);
+  },
+  async (request, reply) => {
+    try {
+      fastify.log.info('route-customer-address - headers: %o', request.headers);
+      fastify.log.info('route-customer-address - parsed request.body: %o', request.body);
+
+      const resp = await opts.paymentService.getCustomerAddress({
+        data: request.body,
+      });
+
+      return reply.code(200).send(resp);
+    } catch (err: any) {
+      // Distinguish parsing/validation vs internal errors
+      fastify.log.error('route-customer-address - handler error: %o', err);
+      const msg = err?.message ?? 'unknown error';
+      // If it's a validation/parse error from fastify/ajv it will often be an Error with message 'Invalid JSON' or AJV messages:
+      if (msg.includes('Invalid JSON') || msg.includes('body should')) {
+        return reply.code(400).send({ message: 'Request body does not contain valid JSON.', details: msg });
       }
+      return reply.code(500).send({ message: 'Internal server error', details: msg });
     }
-  );
+  }
+);
+
   
   
 

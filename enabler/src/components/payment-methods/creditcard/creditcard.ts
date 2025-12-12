@@ -272,26 +272,28 @@ export class Creditcard extends BaseComponent {
       };
   
       const body = JSON.stringify(requestData);
-      console.log("Outgoing body string:", body);
+      if (!body || body === 'undefined' || body === 'null') {
+        console.error('fetchCustomerAddress - body is invalid:', body);
+        throw new Error('Request body invalid');
+      }
   
-      const response = await fetch(this.processorUrl +  "/getCustomerAddress", {
+      console.log('Outgoing body string:', body);
+  
+      const response = await fetch(processorUrl + "/getCustomerAddress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          // If your server expects a custom session header, include it here:
-          // "X-Session-Id": "..."
         },
         body,
       });
   
-      // Debug: log status and text if not JSON
       const contentType = response.headers.get('content-type') || '';
       console.log('Response status:', response.status, 'content-type:', contentType);
   
+      // If non-2xx, try to parse JSON error body or fallback to text
       if (!response.ok) {
-        // try to read JSON error body if present
-        let errBody: any;
+        let errBody;
         try {
           errBody = await response.json();
         } catch (e) {
@@ -301,6 +303,7 @@ export class Creditcard extends BaseComponent {
         throw new Error('Server returned non-2xx: ' + response.status);
       }
   
+      // parse expected JSON
       const json = await response.json();
       console.log("Customer JSON:", json);
   
@@ -312,7 +315,7 @@ export class Creditcard extends BaseComponent {
       console.log({ firstName, lastName, shipping, billing });
       return { firstName, lastName, shipping, billing };
     } catch (err) {
-      console.warn("initPaymentProcessor: getCustomerAddress fetch failed (non-fatal):", err);
+      console.warn("fetchCustomerAddress failed:", err);
       throw err;
     }
 
