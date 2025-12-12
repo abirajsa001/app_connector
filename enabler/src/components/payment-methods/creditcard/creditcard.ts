@@ -274,7 +274,7 @@ export class Creditcard extends BaseComponent {
       const body = JSON.stringify(requestData);
       console.log("Outgoing body string:", body);
   
-      const response = await fetch(processorUrl.replace(/\/+$/, '') + "/getCustomerAddress", {
+      const response = await fetch(this.processorUrl +  "/getCustomerAddress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
