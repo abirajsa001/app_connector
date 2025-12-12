@@ -349,7 +349,6 @@ export class MockPaymentService extends AbstractPaymentService {
       },
     })
     .execute();
-
   }  
 
   public async getConfigValues({ data }: { data: any }) {
@@ -371,6 +370,7 @@ export class MockPaymentService extends AbstractPaymentService {
 // Replace/patch this method in your service class
 public async getCustomerAddress({ data }: { data: any }): Promise<PaymentResponseSchemaDTO> {
   log.info('getCustomerAddress - incoming request data: %o', data);
+  log.info(getCartIdFromContext());
 
   try {
     const ctCart = await this.ctCartService.getCart({
