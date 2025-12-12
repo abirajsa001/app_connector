@@ -368,7 +368,8 @@ export class MockPaymentService extends AbstractPaymentService {
 // import at top if not already present
 // import { Customer, Address } from '@commercetools/platform-sdk';
 
-public async getCustomerAddress({ data }: { data: any }): Promise<CustomerAddressResponse> {
+// Replace/patch this method in your service class
+public async getCustomerAddress({ data }: { data: any }): Promise<PaymentResponseSchemaDTO> {
   // 1) Fetch cart (will throw if not found)
   const ctCart = await this.ctCartService.getCart({
     id: getCartIdFromContext(),
@@ -384,11 +385,17 @@ public async getCustomerAddress({ data }: { data: any }): Promise<CustomerAddres
   let billingAddress: Address | null = null;
 
   // 2) If cart has a linked customerId, try to fetch the Customer
-  if (ctCart?.customerId) {
+  const rawCustomerId = ctCart?.customerId;
+  const customerId =
+    typeof rawCustomerId === 'string' && rawCustomerId.trim() !== '' && rawCustomerId.trim().toLowerCase() !== 'undefined'
+      ? rawCustomerId.trim()
+      : undefined;
+
+  if (customerId) {
     try {
       const customerRes = await projectApiRoot
         .customers()
-        .withId({ ID: ctCart.customerId })
+        .withId({ ID: customerId })
         .get()
         .execute();
 
@@ -423,8 +430,10 @@ public async getCustomerAddress({ data }: { data: any }): Promise<CustomerAddres
       }
     } catch (err: any) {
       // If the customer fetch fails (404 or other), log and fall back to cart addresses
-      log.warn('getCustomerAddress - failed to fetch customer id=%s : %s', ctCart.customerId, err?.message ?? err);
+      log.warn('getCustomerAddress - failed to fetch customer id=%s : %s', customerId, err?.message ?? err);
     }
+  } else {
+    log.info('getCustomerAddress - no valid customerId on cart, skipping customer fetch');
   }
 
   // 3) Fallbacks for guest checkout or missing customer data in the customer object
@@ -432,16 +441,32 @@ public async getCustomerAddress({ data }: { data: any }): Promise<CustomerAddres
   if (!lastName) lastName = ctCart.shippingAddress?.lastName ?? '';
   if (!shippingAddress) shippingAddress = ctCart.shippingAddress ?? null;
 
-  // 4) Final response object
-  const resp: CustomerAddressResponse = {
+  // 4) Final response: include required paymentReference so it satisfies PaymentResponseSchemaDTO
+  const response: PaymentResponseSchemaDTO = {
+    // required field the route schema expects
+    paymentReference: 'customAddress',
+
+    // optional fields from your PaymentResponseSchemaDTO are left undefined by default.
+    // If you want to fill other optional fields (txnSecret, transactionStatus, etc.), set them here.
+
+    // attach the address/name info so caller gets the customer addresses too
+    // (extend your DTO if necessary — many DTOs allow extra fields; if not, consider adding these to the DTO)
     firstName,
     lastName,
+    // If your PaymentResponseSchemaDTO has typed fields for these addresses, use those types.
     shippingAddress,
     billingAddress,
-  };
+  } as unknown as PaymentResponseSchemaDTO; // cast only if PaymentResponseSchemaDTO doesn't currently declare these fields
 
-  log.info('getCustomerAddress - response: %o', resp);
-  return resp;
+  log.info('getCustomerAddress - response: %o', {
+    paymentReference: response.paymentReference,
+    firstName,
+    lastName,
+    shippingAddressPresent: !!shippingAddress,
+    billingAddressPresent: !!billingAddress,
+  });
+
+  return response;
 }
 
   
