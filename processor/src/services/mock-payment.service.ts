@@ -463,15 +463,7 @@ export class MockPaymentService extends AbstractPaymentService {
     // 6) Return shape expected by route (always include paymentReference)
     const result: PaymentResponseSchemaDTO = {
       paymentReference: 'customAddress',
-      // If your DTO actually declares other optional fields, you can set them; these extra fields
-      // may require you to extend the DTO. If they are not declared, safely put them under
-      // an optional field like novalnetResponse or similar.
     } as PaymentResponseSchemaDTO;
-  
-    // If you want to include address data in the response, either:
-    // - add these fields to PaymentResponseSchemaDTO in your DTO file, OR
-    // - put the data inside an allowed optional field (e.g. novalnetResponse) as a JSON string/object.
-    // Example: pack addresses into 'novalnetResponse' (string) to avoid TypeScript mismatch:
     try {
       (result as any).firstName = firstName;
       (result as any).lastName = lastName;

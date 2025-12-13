@@ -26,6 +26,7 @@ import {
 import { MockPaymentService } from "../services/mock-payment.service";
 import { log } from "../libs/logger";
 import { getConfig } from "../config/config";
+import { projectApiRoot } from '../utils/ct-client';
 type PaymentRoutesOptions = {
   paymentService: MockPaymentService;
   sessionHeaderAuthHook: SessionHeaderAuthenticationHook;
@@ -165,9 +166,14 @@ export const paymentRoutes = async (
 fastify.post<{ Body: PaymentRequestSchemaDTO }>(
   '/getCustomerAddress',
   async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
-    log.info('route-customer-address');
+    log.info('route-customer-address'); 
     log.info("getCartIdFromContext():");
     log.info(getCartIdFromContext());
+    const apiRoot = (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
+    const activeCart = await apiRoot.me().activeCart().get().execute();
+    const cartId = activeCart.body.id;
+    log.info('cartId');
+    log.info(cartId);
     // req.body is typed as PaymentRequestSchemaDTO now
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,
