@@ -169,11 +169,6 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     log.info('route-customer-address'); 
     log.info("getCartIdFromContext():");
     log.info(getCartIdFromContext());
-    const apiRoot = (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
-    const activeCart = await apiRoot.me().activeCart().get().execute();
-    const cartId = activeCart.body.id;
-    log.info('cartId');
-    log.info(cartId);
     // req.body is typed as PaymentRequestSchemaDTO now
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,
