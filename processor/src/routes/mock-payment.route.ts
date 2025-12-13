@@ -166,7 +166,8 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
   '/getCustomerAddress',
   async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
     log.info('route-customer-address');
-
+    log.info("getCartIdFromContext():");
+    log.info(getCartIdFromContext());
     // req.body is typed as PaymentRequestSchemaDTO now
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,

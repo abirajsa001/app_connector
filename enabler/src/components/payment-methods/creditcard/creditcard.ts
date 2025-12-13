@@ -278,6 +278,7 @@ export class Creditcard extends BaseComponent {
 
       const currentCartId2 = window.localStorage.getItem('cart-id');
       console.log(currentCartId2 ?? 'not-current-cart-id2');
+      console.log(this.sessionId ?? 'sessionId');
 
       const response = await fetch(this.processorUrl + "/getCustomerAddress", {
         method: "POST",
