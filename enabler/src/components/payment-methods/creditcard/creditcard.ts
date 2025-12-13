@@ -284,7 +284,7 @@ export class Creditcard extends BaseComponent {
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          // no X-Session-Id for public client call
+          "X-Session-Id": this.sessionId, 
         },
         body,
       });
