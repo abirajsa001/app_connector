@@ -177,7 +177,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,
       cartId,
-    });
+    }as any);
 
    return reply.code(200).send(resp);
   }
