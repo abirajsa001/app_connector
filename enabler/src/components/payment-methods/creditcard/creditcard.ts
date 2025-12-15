@@ -310,7 +310,7 @@ export class Creditcard extends BaseComponent {
           this.firstName = String(json.firstName);
           this.lastName = String(json.lastName);
           this.email = String(json.email);
-          this.json = String(json);
+          this.json = json;
           console.log("Customer Address set from server:", this.firstName);
           console.log(String(json.billingAddress.firstName));
           console.log(String(json.shippingAddress.lastName));
