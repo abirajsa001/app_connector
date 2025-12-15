@@ -418,11 +418,6 @@ export class Creditcard extends BaseComponent {
           country_code: String(this.json.billingAddress.country),
         },
       },
-      transaction: {
-        amount: 123,
-        currency: "EUR",
-        test_mode: 1,
-      },
       custom: {
         lang: "EN",
       },

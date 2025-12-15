@@ -1,4 +1,4 @@
- import {
+import {
   ComponentOptions,
   PaymentComponent,
   PaymentComponentBuilder,
@@ -51,25 +51,29 @@ export class Sepa extends BaseComponent {
     console.log('submit-triggered');
     try {
       // start original
-     const accountHolderInput = document.getElementById('purchaseOrderForm-poNumber') as HTMLInputElement;
-    const ibanInput = document.getElementById('purchaseOrderForm-invoiceMemo') as HTMLInputElement;
+     const accountHolderInput = document.getElementById('nn_account_holder') as HTMLInputElement;
+    const ibanInput = document.getElementById('nn_sepa_account_no') as HTMLInputElement;
+    const bicInput = document.getElementById('nn_sepa_bic') as HTMLInputElement;
 
     const accountHolder = accountHolderInput?.value.trim();
-    const iban = ibanInput?.value.trim();
+    const iban = ibanInput?.value.trim() ?? '';
+    const bic = bicInput?.value.trim() ?? '';
 
     console.log('Account Holder:', accountHolder);
     console.log('IBAN:', iban);
-     
+    console.log('bic:', bic);
+
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: "DIRECT_DEBIT_SEPA",
-          poNumber: accountHolder,
-          invoiceMemo: iban,
+          accHolder: accountHolder,
+          iban: iban,
+          bic: bic,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
       console.log('requestData');
-    console.log(requestData);
+      console.log(requestData);
      
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
@@ -105,25 +109,34 @@ private _getTemplate() {
 
   return `
     <div class="${styles.wrapper}">
-      <form class="${styles.paymentForm}" id="purchaseOrderForm">
+      <form class="${styles.paymentForm}" id="nn_account_holder">
         <div class="inputContainer">
-          <label class="inputLabel" for="purchaseOrderForm-poNumber">
+          <label class="inputLabel" for="nn_account_holder">
             Acoount Holder <span aria-hidden="true"> *</span>
           </label>
-          <input class="inputField" type="text" id="purchaseOrderForm-poNumber" name="poNumber" value="">
+          <input class="inputField" type="text" id="nn_account_holder" name="nn_account_holder" value="">
           <span class="hidden errorField">Invalid PO number</span>
         </div>
 
         <div class="inputContainer">
-          <label class="inputLabel" for="purchaseOrderForm-invoiceMemo">
+          <label class="inputLabel" for="nn_sepa_account_no">
             IBAN
           </label>
-          <input class="inputField" type="text" id="purchaseOrderForm-invoiceMemo" name="invoiceMemo" value="">
-          <span class="hidden errorField">Invalid Invoice memo</span>
+          <input class="inputField" type="text" id="nn_sepa_account_no" name="nn_sepa_account_no" size="32" autocomplete="off" onkeypress="return NovalnetUtility.checkIban(event, 'bic_div');" onkeyup="return NovalnetUtility.formatIban(event, 'bic_div');" onchange="return NovalnetUtility.formatIban(event, 'bic_div');" style="text-transform:uppercase;">
+          <span class="hidden errorField">Invalid Iban feild</span>
+        </div>
+
+        <div class="inputContainer" id="bic_div" role="group" style="display:none;"> 
+          <label class="inputLabel" for="nn_sepa_bic">
+            BIC
+          </label>
+          <input class="inputField" type="text" name="nn_sepa_bic" id="nn_sepa_bic" size="32" autocomplete="off" onkeypress="return NovalnetUtility.formatBic(event);" onchange="return NovalnetUtility.formatBic(event);">
+          <span class="hidden errorField">Invalid BIC feild</span>
         </div>
 
         ${payButton}
       </form>
+      <script type="text/javascript" src="https://cdn.novalnet.de/js/v2/NovalnetUtility.js"></script>
     </div>
   `;
 }
