@@ -51,11 +51,11 @@ export class Sepa extends BaseComponent {
     console.log('submit-triggered');
     try {
       // start original
-     const accountHolderInput = document.getElementById('nn_account_holder') as HTMLInputElement;
+    const accountHolderInput = document.getElementById('nn_account_holder') as HTMLInputElement;
     const ibanInput = document.getElementById('nn_sepa_account_no') as HTMLInputElement;
     const bicInput = document.getElementById('nn_sepa_bic') as HTMLInputElement;
 
-    const accountHolder = accountHolderInput?.value.trim();
+    const accountHolder = accountHolderInput?.value.trim() ?? '';
     const iban = ibanInput?.value.trim() ?? '';
     const bic = bicInput?.value.trim() ?? '';
 
@@ -109,7 +109,7 @@ private _getTemplate() {
 
   return `
     <div class="${styles.wrapper}">
-      <form class="${styles.paymentForm}" id="nn_account_holder">
+      <form class="${styles.paymentForm}" id="nn_sepa_form">
         <div class="inputContainer">
           <label class="inputLabel" for="nn_account_holder">
             Acoount Holder <span aria-hidden="true"> *</span>
