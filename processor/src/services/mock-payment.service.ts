@@ -888,7 +888,7 @@ public async updateTxComment(paymentId: string, txId: string, comment: string) {
       };
     }
     if (String(request.data.paymentMethod.type).toUpperCase() ===
-    "DIRECT_DEBIT_SEPA" && !empty(String(request.data.paymentMethod.bic))) {
+    "DIRECT_DEBIT_SEPA" && (String(request.data.paymentMethod.bic) != '')) {
       transaction.payment_data = {
           bic: String(request.data.paymentMethod.bic),
       };
