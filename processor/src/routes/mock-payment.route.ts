@@ -172,9 +172,11 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     const carts = await projectApiRoot.carts().get().execute();
     log.info("CART LIST:", carts.body.results);
     log.info(carts.body.results[0]?.id ?? 'empty1');
+    const cartId = carts.body.results[0]?.id ?? 'empty1';
     // req.body is typed as PaymentRequestSchemaDTO now
     const resp = await opts.paymentService.getCustomerAddress({
       data: req.body,
+      cartId,
     });
 
    return reply.code(200).send(resp);
