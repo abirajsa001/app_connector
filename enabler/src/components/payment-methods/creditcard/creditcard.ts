@@ -103,53 +103,77 @@ export class Creditcard extends BaseComponent {
      SUBMIT — called after panHash is generated
   ========================================================================= */
   async submit() {
-      try {
-          const panHash = (document.getElementById("pan_hash") as HTMLInputElement)?.value;
-          const uniqueId = (document.getElementById("unique_id") as HTMLInputElement)?.value;
+    // initialize sdk for the request if needed
+    try {
+      this.sdk.init({ environment: this.environment });
+    } catch (e) {
+      console.warn("SDK init failed (continuing):", e);
+    }
 
-          if (!panHash || !uniqueId) {
-              this.onError("Invalid or missing card token.");
-              return;
-          }
+    try {
+      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement | null;
+      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement | null;
+      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement | null;
 
-          const payload: PaymentRequestSchemaDTO = {
-              paymentMethod: {
-                  type: "CREDITCARD",
-                  panHash,
-                  uniqueId,
-              },
-              paymentOutcome: PaymentOutcome.AUTHORIZED,
-          };
+      const panhash = panhashInput?.value?.trim() ?? "";
+      const uniqueId = uniqueIdInput?.value?.trim() ?? "";
+      const doRedirect = doRedirectInput?.value?.trim() ?? "";
 
-          const res = await fetch(this.processorUrl + "/payment", {
-              method: "POST",
-              headers: {
-                  "Content-Type": "application/json",
-                  "X-Session-Id": this.sessionId,
-              },
-              body: JSON.stringify(payload),
-          });
+      console.log("PAN HASH:", panhash);
+      console.log("UNIQUE ID:", uniqueId);
+      console.log("DO REDIRECT:", doRedirect);
 
-          if (!res.ok) {
-              this.onError("Payment failed.");
-              return;
-          }
-
-          const json = await res.json();
-
-          if (json?.paymentReference) {
-              this.onComplete?.({
-                  isSuccess: true,
-                  paymentReference: json.paymentReference,
-              });
-          } else {
-              this.onError("Payment failed.");
-          }
-      } catch (err) {
-          this.onError("Unexpected error occurred.");
+      if (!panhash || !uniqueId) {
+        this.onError("Credit card information is missing or invalid.");
+        return;
       }
-  }
 
+      const requestData: PaymentRequestSchemaDTO = {
+        paymentMethod: {
+          type: "CREDITCARD",
+          panHash: panhash,
+          uniqueId: uniqueId,
+          doRedirect: doRedirect,
+        },
+        paymentOutcome: PaymentOutcome.AUTHORIZED,
+      };
+
+      const response = await fetch(this.processorUrl + "/payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Id": this.sessionId,
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        console.error("Payment endpoint returned non-200:", response.status);
+        const text = await response.text().catch(() => "");
+        console.error("Payment response body:", text);
+        this.onError("Payment failed. Please try again.");
+        return;
+      }
+
+      const data = await response.json().catch((e) => {
+        console.error("Failed parsing payment response JSON:", e);
+        return null;
+      });
+
+      if (data && data.paymentReference) {
+        this.onComplete?.({
+          isSuccess: true,
+          paymentReference: data.paymentReference,
+        });
+      } else {
+        console.warn("Payment response missing paymentReference:", data);
+        this.onError("Payment failed. Please try again.");
+      }
+    } catch (e) {
+      console.error("submit() error:", e);
+      this.onError("Some error occurred. Please try again.");
+    }
+  }
   /* =========================================================================
      TEMPLATE
   ========================================================================= */
