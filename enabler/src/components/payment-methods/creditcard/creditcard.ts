@@ -75,7 +75,7 @@ export class Creditcard extends BaseComponent {
       
         if (el?.name === "payment-selector-list") {
           if (el.value.startsWith("creditcard-")) {
-            this.initializeCreditCard(payButton);
+            this.initialize(payButton);
           }
         }
       });
@@ -94,7 +94,7 @@ export class Creditcard extends BaseComponent {
           await this.loadCustomerAddress();
           await this.initIframe(payButton);
       } catch (err) {
-          console.error("Creditcard initialization failed:", err);
+          console.error("Creditcard initialization failed:", err); 
           this.onError?.("Failed to load credit card form.");
       }
   }
