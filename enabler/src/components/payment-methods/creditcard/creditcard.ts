@@ -192,15 +192,55 @@ export class Creditcard extends BaseComponent {
      LOAD CONFIG (must contain clientKey)
   ========================================================================= */
   private async getConfigValues() {
-      const res = await fetch(this.processorUrl + "/getconfig", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paymentMethod: { type: "CREDITCARD" } }),
+    try {
+      const requestData = {
+        paymentMethod: { type: "CREDITCARD" },
+        paymentOutcome: "AUTHORIZED",
+      };
+    
+      const body = JSON.stringify(requestData);
+      console.log("Outgoing body string:", body);
+    
+      const response = await fetch(this.processorUrl + "/getconfig", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          // no X-Session-Id for public client call
+        },
+        body,
       });
-
-      const json = await res.json();
-
-      this.clientKey = json?.clientKey;
+    
+      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
+    
+      // Inspect content-type header before parsing
+      const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
+      console.log("Response Content-Type:", contentType);
+    
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        console.warn("getconfig returned non-200:", response.status, text);
+      } else if (contentType && contentType.includes("application/json")) {
+        const json = await response.json().catch((err) => {
+          console.error("Failed to parse JSON response:", err);
+          return null;
+        });
+        console.log("parsed response JSON:", json);
+    
+        if (json && json.paymentReference) {
+          this.clientKey = String(json.paymentReference);
+          console.log("Client key set from server:", this.clientKey);
+        } else {
+          console.warn("JSON response missing paymentReference:", json);
+        }
+      } else {
+        // fallback: treat as plain text
+        const text = await response.text().catch(() => "");
+        console.log("Response text (non-JSON):", text);
+      }
+    } catch (err) {
+      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
+    }
       if (!this.clientKey) throw new Error("Missing clientKey");
 
       const NovalnetUtility = (window as any).NovalnetUtility;

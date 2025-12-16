@@ -113,7 +113,7 @@ private _getTemplate() {
       <form class="${styles.paymentForm}" id="nn_sepa_form">
         <div class="inputContainer">
           <label class="inputLabel" for="nn_account_holder">
-            Acoount Holder <span aria-hidden="true"> *</span>
+            Account Holder <span aria-hidden="true"> *</span>
           </label>
           <input class="inputField" type="text" id="nn_account_holder" name="nn_account_holder" value="">
           <span class="hidden errorField">Invalid PO number</span>
