@@ -178,21 +178,19 @@ export class Creditcard extends BaseComponent {
      TEMPLATE
   ========================================================================= */
   private template() {
-      return `
+    const payButton = this.showPayButton
+      ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
+      : "";
+
+    return `
       <div class="${styles.wrapper}">
           <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
-
-          <input type="hidden" id="pan_hash" />
-          <input type="hidden" id="unique_id" />
-
-          ${
-              this.showPayButton
-                  ? `<button id="purchaseOrderForm-paymentButton" class="${buttonStyles.button} ${buttonStyles.fullWidth}">
-                      Pay
-                    </button>`
-                  : ""
-          }
-      </div>`;
+          <input type="hidden" id="pan_hash" name="pan_hash"/>
+          <input type="hidden" id="unique_id" name="unique_id"/>
+          <input type="hidden" id="do_redirect" name="do_redirect"/>
+          ${payButton}
+      </div>
+    `;
   }
 
   /* =========================================================================
