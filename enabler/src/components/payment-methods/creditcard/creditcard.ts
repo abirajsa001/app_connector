@@ -191,7 +191,7 @@ export class Creditcard extends BaseComponent {
   /* =========================================================================
      LOAD CONFIG (must contain clientKey)
   ========================================================================= */
-  private async loadConfig() {
+  private async getConfigValues() {
       const res = await fetch(this.processorUrl + "/getconfig", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
