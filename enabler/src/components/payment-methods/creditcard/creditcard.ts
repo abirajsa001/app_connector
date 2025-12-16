@@ -4,429 +4,262 @@ import {
   PaymentComponentBuilder,
   PaymentMethod,
 } from "../../../payment-enabler/payment-enabler";
+
 import { BaseComponent } from "../../base";
 import styles from "../../../style/style.module.scss";
 import buttonStyles from "../../../style/button.module.scss";
+
 import {
   PaymentOutcome,
   PaymentRequestSchemaDTO,
 } from "../../../dtos/mock-payment.dto";
+
 import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
 
+/* ============================================================================
+ BUILDER
+============================================================================ */
 export class CreditcardBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
 
   build(config: ComponentOptions): PaymentComponent {
-    return new Creditcard(this.baseOptions, config);
+      return new Creditcard(this.baseOptions, config);
   }
 }
 
+/* ============================================================================
+ CREDIT CARD COMPONENT
+============================================================================ */
 export class Creditcard extends BaseComponent {
-  private showPayButton: boolean;
-  private clientKey?: string;
+  private initialized = false;
+  private clientKey: string = "";
+  private showPayButton = false;
+  private customer: any = {};
 
-  constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.creditcard, baseOptions, componentOptions);
-    this.showPayButton = componentOptions?.showPayButton ?? false;
+  constructor(baseOptions: BaseOptions, options: ComponentOptions) {
+      super(PaymentMethod.creditcard, baseOptions, options);
+      this.showPayButton = options?.showPayButton ?? false;
   }
 
+  /* =========================================================================
+     MOUNT — Only renders template, does *NOT* init Novalnet
+  ========================================================================= */
   mount(selector: string) {
-    // Ensure this runs only in the browser
-    if (typeof window === "undefined") {
-      // Server-side render or build: do nothing
-      return;
-    }
+      if (typeof window === "undefined") return;
 
-    const root = document.querySelector(selector);
-    if (!root) {
-      console.error("Mount selector not found:", selector);
-      return;
-    }
+      const root = document.querySelector(selector);
+      if (!root) {
+          console.error("Creditcard mount selector not found:", selector);
+          return;
+      }
 
-    root.insertAdjacentHTML("afterbegin", this._getTemplate());
+      root.insertAdjacentHTML("afterbegin", this.template());
 
-    const payButton = document.querySelector(
-      "#purchaseOrderForm-paymentButton"
-    ) as HTMLButtonElement | null;
+      const payButton = document.getElementById(
+          "purchaseOrderForm-paymentButton"
+      ) as HTMLButtonElement | null;
 
-    if (this.showPayButton && payButton) {
-      payButton.disabled = true; // disabled until SDK returns success
-      payButton.addEventListener("click", async (e) => {
-        e.preventDefault();
-        await this.submit();
-      });
-    }
+      if (this.showPayButton && payButton) {
+          payButton.disabled = true;
+          payButton.onclick = (e) => {
+              e.preventDefault();
+              this.submit();
+          };
+      }
 
-    // Load Novalnet SDK and initialize the form (non-blocking)
-    this._loadNovalnetScriptOnce()
-      .then(() => this._initNovalnetCreditCardForm(payButton))
-      .catch((err) => console.error("Failed to load Novalnet SDK:", err));
-
-    // Hook into the review/confirm button if present (optional)
-    const reviewOrderButton = document.querySelector(
-      '[data-ctc-selector="confirmMethod"]'
-    );
-    if (reviewOrderButton) {
-      reviewOrderButton.addEventListener("click", async (event) => {
-        event.preventDefault();
-        const NovalnetUtility = (window as any).NovalnetUtility;
-        if (NovalnetUtility?.getPanHash) {
-          try {
-            console.log("Calling NovalnetUtility.getPanHash()");
-            await NovalnetUtility.getPanHash();
-          } catch (error) {
-            console.error("Error getting pan hash:", error);
+      // Wait for user to select "creditcard"
+      document.addEventListener("change", (event) => {
+        const el = event.target;
+      
+        if (el?.name === "payment-selector-list") {
+          if (el.value.startsWith("creditcard-")) {
+            this.initializeCreditCard(payButton);
           }
-        } else {
-          console.warn("NovalnetUtility.getPanHash() not available.");
         }
       });
-    }
   }
 
+  /* =========================================================================
+     INITIALIZE (only once)
+  ========================================================================= */
+  private async initialize(payButton: HTMLButtonElement | null) {
+      if (this.initialized) return;
+      this.initialized = true;
+
+      try {
+          await this.loadNovalnetScript();
+          await this.loadConfig();
+          await this.loadCustomerAddress();
+          await this.initIframe(payButton);
+      } catch (err) {
+          console.error("Creditcard initialization failed:", err);
+          this.onError?.("Failed to load credit card form.");
+      }
+  }
+
+  /* =========================================================================
+     SUBMIT — called after panHash is generated
+  ========================================================================= */
   async submit() {
-    // initialize sdk for the request if needed
-    try {
-      this.sdk.init({ environment: this.environment });
-    } catch (e) {
-      console.warn("SDK init failed (continuing):", e);
-    }
+      try {
+          const panHash = (document.getElementById("pan_hash") as HTMLInputElement)?.value;
+          const uniqueId = (document.getElementById("unique_id") as HTMLInputElement)?.value;
 
-    try {
-      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement | null;
-      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement | null;
-      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement | null;
+          if (!panHash || !uniqueId) {
+              this.onError("Invalid or missing card token.");
+              return;
+          }
 
-      const panhash = panhashInput?.value?.trim() ?? "";
-      const uniqueId = uniqueIdInput?.value?.trim() ?? "";
-      const doRedirect = doRedirectInput?.value?.trim() ?? "";
+          const payload: PaymentRequestSchemaDTO = {
+              paymentMethod: {
+                  type: "CREDITCARD",
+                  panHash,
+                  uniqueId,
+              },
+              paymentOutcome: PaymentOutcome.AUTHORIZED,
+          };
 
-      console.log("PAN HASH:", panhash);
-      console.log("UNIQUE ID:", uniqueId);
-      console.log("DO REDIRECT:", doRedirect);
+          const res = await fetch(this.processorUrl + "/payment", {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+                  "X-Session-Id": this.sessionId,
+              },
+              body: JSON.stringify(payload),
+          });
 
-      if (!panhash || !uniqueId) {
-        this.onError("Credit card information is missing or invalid.");
-        return;
+          if (!res.ok) {
+              this.onError("Payment failed.");
+              return;
+          }
+
+          const json = await res.json();
+
+          if (json?.paymentReference) {
+              this.onComplete?.({
+                  isSuccess: true,
+                  paymentReference: json.paymentReference,
+              });
+          } else {
+              this.onError("Payment failed.");
+          }
+      } catch (err) {
+          this.onError("Unexpected error occurred.");
       }
-
-      const requestData: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: "CREDITCARD",
-          panHash: panhash,
-          uniqueId: uniqueId,
-          doRedirect: doRedirect,
-        },
-        paymentOutcome: PaymentOutcome.AUTHORIZED,
-      };
-
-      const response = await fetch(this.processorUrl + "/payment", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-        },
-        body: JSON.stringify(requestData),
-      });
-
-      if (!response.ok) {
-        console.error("Payment endpoint returned non-200:", response.status);
-        const text = await response.text().catch(() => "");
-        console.error("Payment response body:", text);
-        this.onError("Payment failed. Please try again.");
-        return;
-      }
-
-      const data = await response.json().catch((e) => {
-        console.error("Failed parsing payment response JSON:", e);
-        return null;
-      });
-
-      if (data && data.paymentReference) {
-        this.onComplete?.({
-          isSuccess: true,
-          paymentReference: data.paymentReference,
-        });
-      } else {
-        console.warn("Payment response missing paymentReference:", data);
-        this.onError("Payment failed. Please try again.");
-      }
-    } catch (e) {
-      console.error("submit() error:", e);
-      this.onError("Some error occurred. Please try again.");
-    }
   }
 
-  private _getTemplate() {
-    const payButton = this.showPayButton
-      ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
-      : "";
-
-    return `
+  /* =========================================================================
+     TEMPLATE
+  ========================================================================= */
+  private template() {
+      return `
       <div class="${styles.wrapper}">
           <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
-          <input type="hidden" id="pan_hash" name="pan_hash"/>
-          <input type="hidden" id="unique_id" name="unique_id"/>
-          <input type="hidden" id="do_redirect" name="do_redirect"/>
-          ${payButton}
-      </div>
-    `;
+
+          <input type="hidden" id="pan_hash" />
+          <input type="hidden" id="unique_id" />
+
+          ${
+              this.showPayButton
+                  ? `<button id="purchaseOrderForm-paymentButton" class="${buttonStyles.button} ${buttonStyles.fullWidth}">
+                      Pay
+                    </button>`
+                  : ""
+          }
+      </div>`;
   }
 
-  private async _loadNovalnetScriptOnce(): Promise<void> {
-    if (typeof window === "undefined") return;
-    if ((window as any).NovalnetUtility) return;
+  /* =========================================================================
+     LOAD Novalnet JS (only once)
+  ========================================================================= */
+  private loadNovalnetScript(): Promise<void> {
+      return new Promise((resolve, reject) => {
+          if ((window as any).NovalnetUtility) return resolve();
 
-    const src = "https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js";
-    const existing = document.querySelector(`script[src="${src}"]`) as HTMLScriptElement | null;
+          const script = document.createElement("script");
+          script.src = "https://cdn.novalnet.de/js/v2/NovalnetUtility-1.1.2.js";
 
-    if (existing) {
-      if ((existing as any)._nnLoadingPromise) {
-        await (existing as any)._nnLoadingPromise;
-        return;
-      }
-      return;
-    }
+          script.onload = () => resolve();
+          script.onerror = () => reject("Novalnet script failed to load");
 
-    const script = document.createElement("script");
-    script.src = src;
-    script.crossOrigin = "anonymous";
-
-    const loadPromise = new Promise<void>((resolve, reject) => {
-      script.onload = () => resolve();
-      script.onerror = (e) => reject(e);
-    });
-
-    (script as any)._nnLoadingPromise = loadPromise;
-    document.head.appendChild(script);
-    await loadPromise;
+          document.head.appendChild(script);
+      });
   }
 
-  private async _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
-    if (typeof window === "undefined") return;
-
-    const NovalnetUtility = (window as any).NovalnetUtility;
-    if (!NovalnetUtility) {
-      console.warn("NovalnetUtility not available.");
-      return;
-    }
-
-    // Try to fetch any runtime config from the processor. This must not throw or block.
-    try {
-      const requestData = {
-        paymentMethod: { type: "CREDITCARD" },
-        paymentOutcome: "AUTHORIZED",
-      };
-    
-      const body = JSON.stringify(requestData);
-      console.log("Outgoing body string:", body);
-    
-      const response = await fetch(this.processorUrl + "/getconfig", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          // no X-Session-Id for public client call
-        },
-        body,
+  /* =========================================================================
+     LOAD CONFIG (must contain clientKey)
+  ========================================================================= */
+  private async loadConfig() {
+      const res = await fetch(this.processorUrl + "/getconfig", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paymentMethod: { type: "CREDITCARD" } }),
       });
-    
-      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
-    
-      // Inspect content-type header before parsing
-      const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
-      console.log("Response Content-Type:", contentType);
-    
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        console.warn("getconfig returned non-200:", response.status, text);
-      } else if (contentType && contentType.includes("application/json")) {
-        const json = await response.json().catch((err) => {
-          console.error("Failed to parse JSON response:", err);
-          return null;
-        });
-        console.log("parsed response JSON:", json);
-    
-        if (json && json.paymentReference) {
-          this.clientKey = String(json.paymentReference);
-          console.log("Client key set from server:", this.clientKey);
-        } else {
-          console.warn("JSON response missing paymentReference:", json);
-        }
-      } else {
-        // fallback: treat as plain text
-        const text = await response.text().catch(() => "");
-        console.log("Response text (non-JSON):", text);
-      }
-    } catch (err) {
-      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
-    }
 
+      const json = await res.json();
 
-    try {
-      const requestData = {
-        paymentMethod: { type: "CREDITCARD" },
-        paymentOutcome: "AUTHORIZED",
-      };
-    
-      const body = JSON.stringify(requestData);
-      console.log("Outgoing body string:", body);
-      const currentCartId = window.localStorage.getItem('cartId');
-      console.log(currentCartId ?? 'not-current-cart-id');
+      this.clientKey = json?.clientKey;
+      if (!this.clientKey) throw new Error("Missing clientKey");
 
-      const currentCartId2 = window.localStorage.getItem('cart-id');
-      console.log(currentCartId2 ?? 'not-current-cart-id2');
-      console.log(this.sessionId ?? 'sessionId');
-
-      const response = await fetch(this.processorUrl + "/getCustomerAddress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "X-Session-Id": this.sessionId, 
-        },
-        body,
-      });
-    
-      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
-    
-      // Inspect content-type header before parsing
-      const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
-      console.log("Response Content-Type:", contentType);
-    
-      if (!response.ok) {
-        const text = await response.text().catch(() => "");
-        console.warn("getconfig returned non-200:", response.status, text);
-      } else if (contentType && contentType.includes("application/json")) {
-        const json = await response.json().catch((err) => {
-          console.error("Failed to parse JSON response:", err);
-          return null;
-        });
-        console.log("parsed response JSON:", json);
-    
-        if (json && json.firstName) {
-          this.firstName = String(json.firstName);
-          this.lastName = String(json.lastName);
-          this.email = String(json.email);
-          this.json = json;
-          console.log("Customer Address set from server:", this.firstName);
-          console.log(String(json.billingAddress.firstName));
-          console.log(String(json.shippingAddress.lastName));
-        } else {
-          console.warn("JSON response missing paymentReference:", json);
-        }
-      } else {
-        // fallback: treat as plain text
-        const text = await response.text().catch(() => "");
-        console.log("Response text (non-JSON):", text);
-      }
-    } catch (err) {
-      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
-    }
-
-    // If you have a client key from config, you can set it here. Keep secret values on server!
-    try {
+      const NovalnetUtility = (window as any).NovalnetUtility;
       NovalnetUtility.setClientKey(this.clientKey);
-    } catch (e) {
-      console.warn("setClientKey failed (continuing):", e);
-    }
-    const configurationObject = {
-      callback: {
-        on_success: (data: any) => {
-          try {
-            (document.getElementById("pan_hash") as HTMLInputElement).value = data?.hash ?? "";
-            (document.getElementById("unique_id") as HTMLInputElement).value = data?.unique_id ?? "";
-            (document.getElementById("do_redirect") as HTMLInputElement).value = data?.do_redirect ?? "";
-          } catch (e) {
-            console.error("Failed to set hidden inputs:", e);
-          }
+  }
 
-          if (payButton) {
-            // enable the pay button so the user can click to submit
-            payButton.disabled = false;
-          }
+  /* =========================================================================
+     LOAD CUSTOMER DETAILS
+  ========================================================================= */
+  private async loadCustomerAddress() {
+      const res = await fetch(this.processorUrl + "/getCustomerAddress", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "X-Session-Id": this.sessionId,
+          },
+          body: JSON.stringify({ paymentMethod: { type: "CREDITCARD" } }),
+      });
 
-          // IMPORTANT: do NOT auto-click the pay button. Let the user submit.
-          return true;
-        },
-        on_error: (data: any) => {
-          try {
-            if (data?.error_message) {
-              // use alert for now — replace with nicer UI as needed
-              alert(data.error_message);
-            }
-          } catch (e) {
-            console.error("on_error handler failed:", e);
-          }
-          if (payButton) payButton.disabled = true;
-          return false;
-        },
-        on_show_overlay: () => {
-          document.getElementById("novalnet_iframe")?.classList.add("overlay");
-        },
-        on_hide_overlay: () => {
-          document.getElementById("novalnet_iframe")?.classList.remove("overlay");
-        },
-      },
-      iframe: {
-        id: "novalnet_iframe",
-        inline: 1,
-        style: { container: "", input: "", label: "" },
-        text: {
-          lang: "EN",
-          error: "Your credit card details are invalid",
-          card_holder: {
-            label: "Card holder name",
-            place_holder: "Name on card",
-            error: "Please enter the valid card holder name",
-          },
-          card_number: {
-            label: "Card number",
-            place_holder: "XXXX XXXX XXXX XXXX",
-            error: "Please enter the valid card number",
-          },
-          expiry_date: {
-            label: "Expiry date",
-            error: "Please enter the valid expiry month / year in the given format",
-          },
-          cvc: {
-            label: "CVC/CVV/CID",
-            place_holder: "XXX",
-            error: "Please enter the valid CVC/CVV/CID",
-          },
-        },
-      },
-      customer: {
-        first_name: this.firstName,
-        last_name: this.lastName,
-        email: this.email,
-        billing: {
-          street: String(this.json.billingAddress.streetName),
-          city: String(this.json.billingAddress.city),
-          zip: String(this.json.billingAddress.postalCode),
-          country_code: String(this.json.billingAddress.country),
-        },
-        shipping: {
-          same_as_billing: 1,
-          first_name: String(this.json.billingAddress.firstName),
-          last_name: String(this.json.billingAddress.lastName),
-          street: String(this.json.billingAddress.streetName),
-          city: String(this.json.billingAddress.city),
-          zip: String(this.json.billingAddress.postalCode),
-          country_code: String(this.json.billingAddress.country),
-        },
-      },
-      custom: {
-        lang: "EN",
-      },
-    };
+      this.customer = res.ok ? await res.json() : {};
+  }
 
-    try {
-      NovalnetUtility.createCreditCardForm(configurationObject);
-    } catch (err) {
-      console.error("Failed to create Novalnet credit card form:", err);
-    }
+  /* =========================================================================
+     INIT CREDIT CARD IFRAME
+  ========================================================================= */
+  private async initIframe(payButton: HTMLButtonElement | null) {
+      const NovalnetUtility = (window as any).NovalnetUtility;
+
+      const config = {
+          callback: {
+              on_success: (data: any) => {
+                  (document.getElementById("pan_hash") as HTMLInputElement).value = data.hash;
+                  (document.getElementById("unique_id") as HTMLInputElement).value = data.unique_id;
+                  if (payButton) payButton.disabled = false;
+              },
+              on_error: () => {
+                  if (payButton) payButton.disabled = true;
+              },
+          },
+          iframe: {
+              id: "novalnet_iframe",
+              inline: 1,
+          },
+          customer: {
+              first_name: this.customer?.firstName ?? "",
+              last_name: this.customer?.lastName ?? "",
+              email: this.customer?.email ?? "",
+              billing: {
+                  street: this.customer?.billingAddress?.streetName ?? "",
+                  city: this.customer?.billingAddress?.city ?? "",
+                  zip: this.customer?.billingAddress?.postalCode ?? "",
+                  country_code: this.customer?.billingAddress?.country ?? "",
+              },
+              shipping: {
+                  same_as_billing: 1,
+              },
+          },
+      };
+
+      NovalnetUtility.createCreditCardForm(config);
   }
 }
