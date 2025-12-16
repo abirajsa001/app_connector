@@ -90,7 +90,7 @@ export class Creditcard extends BaseComponent {
 
       try {
           await this.loadNovalnetScript();
-          await this.loadConfig();
+          await this.getConfigValues();
           await this.loadCustomerAddress();
           await this.initIframe(payButton);
       } catch (err) {
