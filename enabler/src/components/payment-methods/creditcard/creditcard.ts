@@ -44,45 +44,50 @@ export class Creditcard extends BaseComponent {
       "#purchaseOrderForm-paymentButton"
     ) as HTMLButtonElement | null;
 
-    if (this.showPayButton && payButton) {
-      payButton.disabled = true;
-      payButton.addEventListener("click", async (e) => {
-        e.preventDefault();
-        await this.submit();
-      });
-    }
-    
+
     document.addEventListener("click", (event: any) => {
       if (
         event?.target?.name === "payment-selector-list" &&
         event.target.value?.startsWith("creditcard-")
       ) {
+
+        if (this.showPayButton && payButton) {
+          payButton.disabled = true;
+          payButton.addEventListener("click", async (e) => {
+            e.preventDefault();
+            await this.submit();
+          });
+        }
+        
         this._loadNovalnetScriptOnce()
         .then(() => this._initNovalnetCreditCardForm(payButton))
         .catch((err) => console.error("Failed to load Novalnet SDK:", err));
       }
+
+      const reviewOrderButton = document.querySelector(
+        '[data-ctc-selector="confirmMethod"]'
+      );
+      if (reviewOrderButton) {
+        reviewOrderButton.addEventListener("click", async (event) => {
+          event.preventDefault();
+          const NovalnetUtility = (window as any).NovalnetUtility;
+          if (NovalnetUtility?.getPanHash) {
+            try {
+              console.log("Calling NovalnetUtility.getPanHash()");
+              await NovalnetUtility.getPanHash();
+            } catch (error) {
+              console.error("Error getting pan hash:", error);
+            }
+          } else {
+            console.warn("NovalnetUtility.getPanHash() not available.");
+          }
+        });
+      }
+      
     });
 
 
-    const reviewOrderButton = document.querySelector(
-      '[data-ctc-selector="confirmMethod"]'
-    );
-    if (reviewOrderButton) {
-      reviewOrderButton.addEventListener("click", async (event) => {
-        event.preventDefault();
-        const NovalnetUtility = (window as any).NovalnetUtility;
-        if (NovalnetUtility?.getPanHash) {
-          try {
-            console.log("Calling NovalnetUtility.getPanHash()");
-            await NovalnetUtility.getPanHash();
-          } catch (error) {
-            console.error("Error getting pan hash:", error);
-          }
-        } else {
-          console.warn("NovalnetUtility.getPanHash() not available.");
-        }
-      });
-    }
+
   }
 
   async submit() {
