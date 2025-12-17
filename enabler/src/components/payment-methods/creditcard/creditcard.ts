@@ -157,7 +157,8 @@ export class Creditcard extends BaseComponent {
     }
 
     this.clientKey = String(json.paymentReference);
-
+    console.log('clientKey');
+    console.log(this.clientKey);
     (window as any).NovalnetUtility.setClientKey(this.clientKey);
   }
 

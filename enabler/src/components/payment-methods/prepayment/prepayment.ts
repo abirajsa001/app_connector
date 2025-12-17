@@ -71,7 +71,6 @@ export class Prepayment extends BaseComponent {
       });
       console.log('responseData-newdata');
       console.log(response);
-      console.log(response);
       const data = await response.json();
       console.log(data);
       if (data.paymentReference) {
