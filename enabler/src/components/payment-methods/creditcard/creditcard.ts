@@ -37,7 +37,6 @@ export class Creditcard extends BaseComponent {
   private showPayButton = false;
 
   private clientKey = "";
-  private customer: any = {};
   private json: any = {};
 
   constructor(baseOptions: BaseOptions, options: ComponentOptions) {
@@ -65,8 +64,22 @@ export class Creditcard extends BaseComponent {
 
     if (payButton) {
       payButton.disabled = true;
+
       payButton.onclick = (e) => {
         e.preventDefault();
+
+        const panHash = (document.getElementById("pan_hash") as HTMLInputElement)
+          ?.value;
+        const uniqueId = (document.getElementById("unique_id") as HTMLInputElement)
+          ?.value;
+
+        // If token already exists → submit
+        if (panHash && uniqueId) {
+          this.submit();
+          return;
+        }
+
+        // Otherwise generate PAN hash
         (window as any).NovalnetUtility?.getPanHash();
       };
     }
@@ -186,7 +199,7 @@ export class Creditcard extends BaseComponent {
   }
 
   /* =========================================================================
-     INIT CREDIT CARD IFRAME (CRITICAL FIX)
+     INIT CREDIT CARD IFRAME (FINAL FIX)
   ========================================================================= */
   private async initIframe(payButton: HTMLButtonElement | null) {
     const NovalnetUtility = (window as any).NovalnetUtility;
@@ -214,7 +227,6 @@ export class Creditcard extends BaseComponent {
       },
 
       callback: {
-        /** 🔥 THIS IS WHERE PAN HASH IS GENERATED */
         on_submit: (data: any) => {
           console.log("Novalnet on_submit:", data);
 
@@ -232,8 +244,6 @@ export class Creditcard extends BaseComponent {
 
           if (payButton) payButton.disabled = false;
 
-          /** submit ONLY AFTER panhash exists */
-          this.submit();
           return true;
         },
 
@@ -255,9 +265,7 @@ export class Creditcard extends BaseComponent {
         ?.value;
       const uniqueId = (document.getElementById("unique_id") as HTMLInputElement)
         ?.value;
-      console.log('panhash');
-      console.log(panHash);
-      console.log(uniqueId);
+
       if (!panHash || !uniqueId) {
         this.onError?.("Missing credit card token");
         return;
@@ -271,8 +279,7 @@ export class Creditcard extends BaseComponent {
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
-      console.log('request-data');
-      console.log(requestData);
+
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
@@ -281,11 +288,9 @@ export class Creditcard extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-      console.log('response-data');
-      console.log(response);
+
       const data = await response.json();
-      console.log('data-data');
-      console.log(data);
+
       if (data?.paymentReference) {
         this.onComplete?.({
           isSuccess: true,
