@@ -255,7 +255,9 @@ export class Creditcard extends BaseComponent {
         ?.value;
       const uniqueId = (document.getElementById("unique_id") as HTMLInputElement)
         ?.value;
-
+      console.log('panhash');
+      console.log(panHash);
+      console.log(uniqueId);
       if (!panHash || !uniqueId) {
         this.onError?.("Missing credit card token");
         return;
@@ -269,7 +271,8 @@ export class Creditcard extends BaseComponent {
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
-
+      console.log('request-data');
+      console.log(requestData);
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
@@ -278,9 +281,11 @@ export class Creditcard extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-
+      console.log('response-data');
+      console.log(response);
       const data = await response.json();
-
+      console.log('data-data');
+      console.log(data);
       if (data?.paymentReference) {
         this.onComplete?.({
           isSuccess: true,
