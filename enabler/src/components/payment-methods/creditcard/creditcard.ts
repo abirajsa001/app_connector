@@ -104,16 +104,16 @@ export class Creditcard extends BaseComponent {
   ========================================================================= */
   private template() {
     const payButton = this.showPayButton
-      ? `<button id="purchaseOrderForm-paymentButton"
-          class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}">
-          Pay
-        </button>`
+      ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
       : "";
 
     return `
       <div class="${styles.wrapper}">
-        <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
-        ${payButton}
+          <iframe id="novalnet_iframe" frameborder="0" scrolling="no"></iframe>
+          <input type="hidden" id="pan_hash" name="pan_hash"/>
+          <input type="hidden" id="unique_id" name="unique_id"/>
+          <input type="hidden" id="do_redirect" name="do_redirect"/>
+          ${payButton}
       </div>
     `;
   }
@@ -228,6 +228,62 @@ export class Creditcard extends BaseComponent {
     }
   }
 
+
+  async submit() {
+    this.sdk.init({ environment: this.environment });
+
+    try {
+      const panhashInput = document.getElementById("pan_hash") as HTMLInputElement;
+      const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement;
+      const doRedirectInput = document.getElementById("do_redirect") as HTMLInputElement;
+      
+      const panhash = panhashInput?.value.trim();
+      const uniqueId = uniqueIdInput?.value.trim();
+      const doRedirect = doRedirectInput?.value.trim();
+
+      console.log("PAN HASH:", panhash);
+      console.log("UNIQUE ID:", uniqueId);
+      console.log("DO REDIRECT:", doRedirect);
+      
+      if (!panhash || !uniqueId) {
+        this.onError("Credit card information is missing or invalid.");
+        return;
+      }
+
+      const requestData: PaymentRequestSchemaDTO = {
+        paymentMethod: {
+          type: "CREDITCARD",
+          panHash: panhash,
+          uniqueId: uniqueId,
+          doRedirect: doRedirect,
+        },
+        paymentOutcome: PaymentOutcome.AUTHORIZED,
+      };
+
+      const response = await fetch(this.processorUrl + "/payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Session-Id": this.sessionId,
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      const data = await response.json();
+      if (data.paymentReference) {
+        this.onComplete?.({
+          isSuccess: true,
+          paymentReference: data.paymentReference,
+        });
+      } else {
+        this.onError("Payment failed. Please try again.");
+      }
+    } catch (e) {
+      console.error(e);
+      this.onError("Some error occurred. Please try again.");
+    }
+  }
+  
   /* =========================================================================
      INIT CREDIT CARD IFRAME
   ========================================================================= */
@@ -266,47 +322,26 @@ export class Creditcard extends BaseComponent {
       },
 
       callback: {
-        on_success: async (data: any) => {
-          if (!data?.hash || !data?.unique_id) {
-            this.onError("Failed to tokenize card.");
-            return;
-          }
-
-          const payload: PaymentRequestSchemaDTO = {
-            paymentMethod: {
-              type: "CREDITCARD",
-              panHash: data.hash,
-              uniqueId: data.unique_id,
-            },
-            paymentOutcome: PaymentOutcome.AUTHORIZED,
-          };
-          console.log('panhash'); 
-          console.log(panHash); 
-          console.log(uniqueId); 
-          const res = await fetch(this.processorUrl + "/payment", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Session-Id": this.sessionId,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          const json = await res.json();
-
-          if (json?.paymentReference) {
-            this.onComplete?.({
-              isSuccess: true,
-              paymentReference: json.paymentReference,
-            });
-          } else {
-            this.onError("Payment failed.");
-          }
+        on_success: (data: any) => {
+          (document.getElementById("pan_hash") as HTMLInputElement).value = data["hash"];
+          (document.getElementById("unique_id") as HTMLInputElement).value = data["unique_id"];
+          (document.getElementById("do_redirect") as HTMLInputElement).value = data["do_redirect"];
+          if (payButton) payButton.disabled = false;
+          payButton.click(); 
+          return true;
         },
-
-        on_error: () => {
+        on_error: (data: any) => {
+          if (data?.error_message) {
+            alert(data.error_message);
+          }
           if (payButton) payButton.disabled = true;
-          this.onError("Invalid credit card details.");
+          return false;
+        },
+        on_show_overlay: () => {
+          document.getElementById("novalnet_iframe")?.classList.add("overlay");
+        },
+        on_hide_overlay: () => {
+          document.getElementById("novalnet_iframe")?.classList.remove("overlay");
         },
       },
     };
