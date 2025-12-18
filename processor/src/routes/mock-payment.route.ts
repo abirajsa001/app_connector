@@ -323,8 +323,8 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       log.info('checksum:', webhook?.event?.checksum);
   
       // Call service
-      const serviceResponse = await opts.paymentService.createWebhook(responseData);
-  
+      const serviceResponse = await opts.paymentService.createWebhook(responseData, req);
+
       // Novalnet expects 200 OK
       return reply.code(200).send({
         success: true,

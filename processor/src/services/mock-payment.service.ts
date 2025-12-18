@@ -30,6 +30,8 @@ import { AbstractPaymentService } from "./abstract-payment.service";
 import { getConfig } from "../config/config";
 import { appLogger, paymentSDK } from "../payment-sdk";
 import crypto from 'crypto';
+import dns from 'dns/promises';
+import { FastifyRequest } from 'fastify';
 import {
   CreatePaymentRequest,
   MockPaymentServiceOptions,
@@ -950,7 +952,10 @@ const pspReference = randomUUID().toString();
   // ==================================================
   // ENTRY POINT
   // ==================================================
-  public async createWebhook(webhookData: any[]): Promise<any> {
+  public async createWebhook(
+    webhookData: any[],
+    req?: FastifyRequest
+  ): Promise<any> {
     if (!Array.isArray(webhookData) || webhookData.length === 0) {
       throw new Error('Invalid webhook payload');
     }
@@ -964,7 +969,9 @@ const pspReference = randomUUID().toString();
     // === VALIDATIONS (PHP equivalent)
     this.validateRequiredParameters(webhook);
     this.validateChecksum(webhook);
-
+    if (req) {
+      this.validateIpAddress(req);
+    }
     const eventType = webhook.event?.type;
     const status = webhook.result?.status;
 
@@ -1089,7 +1096,7 @@ const pspReference = randomUUID().toString();
   // VALIDATIONS (PHP equivalents)
   // ==================================================
 
-  private validateRequiredParameters(payload: any) {
+  public async validateRequiredParameters(payload: any) {
     const mandatory: Record<string, string[]> = {
       event: ['type', 'checksum', 'tid'],
       merchant: ['vendor', 'project'],
@@ -1110,7 +1117,29 @@ const pspReference = randomUUID().toString();
     }
   }
 
-  private validateChecksum(payload: any) {
+  public async validateIpAddress(req: FastifyRequest): Promise<void> {
+    const novalnetHost = 'pay-nn.de';
+
+    // PHP: gethostbyname()
+    const { address: novalnetHostIP } = await dns.lookup(novalnetHost);
+
+    if (!novalnetHostIP) {
+      throw new Error('Novalnet HOST IP missing');
+    }
+
+    const requestReceivedIP = this.getRemoteAddress(req, novalnetHostIP);
+
+    log.info('Novalnet Host IP:', novalnetHostIP);
+    log.info('Request IP:', requestReceivedIP);
+
+    if (novalnetHostIP !== requestReceivedIP) {
+      throw new Error(
+        `Unauthorised access from the IP ${requestReceivedIP}`
+      );
+    }
+  }
+
+  public validateChecksum(payload: any) {
       const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
     if (!accessKey) {
       log.warn('NOVALNET_ACCESS_KEY not configured');
