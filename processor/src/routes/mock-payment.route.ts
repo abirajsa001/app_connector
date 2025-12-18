@@ -321,7 +321,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
         : Object.values(body);
   
       // Call service
-      const serviceResponse = await paymentService.createWebhook(responseData);
+      const serviceResponse = await opts.paymentService.createWebhook(responseData);
   
       // Return success response
       return reply.code(200).send({
