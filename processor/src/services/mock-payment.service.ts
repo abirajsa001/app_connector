@@ -29,6 +29,7 @@ import { getOrderIdFromOrderNumber } from './order.service';
 import { AbstractPaymentService } from "./abstract-payment.service";
 import { getConfig } from "../config/config";
 import { appLogger, paymentSDK } from "../payment-sdk";
+import crypto from 'crypto';
 import {
   CreatePaymentRequest,
   MockPaymentServiceOptions,
@@ -946,17 +947,199 @@ const pspReference = randomUUID().toString();
   }
 
 
+  // ==================================================
+  // ENTRY POINT
+  // ==================================================
   public async createWebhook(webhookData: any[]): Promise<any> {
-    // 🔹 Business logic here
-    console.log('Webhook data received in service:', webhookData);
+    if (!Array.isArray(webhookData) || webhookData.length === 0) {
+      throw new Error('Invalid webhook payload');
+    }
 
-    // Example: store / process webhook
-    // await this.repository.saveWebhook(webhookData);
+    const webhook = webhookData[0];
+
+    log.info('Webhook data received in service');
+    log.info('Event:', webhook?.event?.type);
+    log.info('Checksum:', webhook?.event?.checksum);
+
+    // === VALIDATIONS (PHP equivalent)
+    this.validateRequiredParameters(webhook);
+    this.validateChecksum(webhook);
+
+    const eventType = webhook.event?.type;
+    const status = webhook.result?.status;
+
+    if (status !== 'SUCCESS') {
+      log.warn('Webhook status is not SUCCESS');
+      return { message: 'Webhook ignored (non-success)' };
+    }
+
+    // === EVENT ROUTING
+    switch (eventType) {
+      case 'PAYMENT':
+        this.handlePayment(webhook);
+        break;
+
+      case 'TRANSACTION_CAPTURE':
+        this.handleTransactionCapture(webhook);
+        break;
+
+      case 'TRANSACTION_CANCEL':
+        this.handleTransactionCancel(webhook);
+        break;
+
+      case 'TRANSACTION_REFUND':
+        this.handleTransactionRefund(webhook);
+        break;
+
+      case 'TRANSACTION_UPDATE':
+        this.handleTransactionUpdate(webhook);
+        break;
+
+      case 'CREDIT':
+        this.handleCredit(webhook);
+        break;
+
+      case 'CHARGEBACK':
+        this.handleChargeback(webhook);
+        break;
+
+      case 'INSTALMENT':
+        this.handleInstalment(webhook);
+        break;
+
+      case 'INSTALMENT_CANCEL':
+        this.handleInstalmentCancel(webhook);
+        break;
+
+      case 'PAYMENT_REMINDER_1':
+      case 'PAYMENT_REMINDER_2':
+        this.handlePaymentReminder(webhook);
+        break;
+
+      case 'SUBMISSION_TO_COLLECTION_AGENCY':
+        this.handleCollectionSubmission(webhook);
+        break;
+
+      default:
+        log.warn(`Unhandled Novalnet event type: ${eventType}`);
+    }
 
     return {
       message: 'Webhook processed successfully',
-      count: webhookData.length,
+      eventType,
     };
+  }
+
+  // ==================================================
+  // EVENT HANDLERS
+  // ==================================================
+
+  private handlePayment(webhook: any) {
+    log.info('PAYMENT event', {
+      tid: webhook.event.tid,
+    });
+  }
+
+  private handleTransactionCapture(webhook: any) {
+    log.info('TRANSACTION_CAPTURE', {
+      tid: webhook.transaction.tid,
+      amount: webhook.transaction.amount,
+    });
+  }
+
+  private handleTransactionCancel(webhook: any) {
+    log.info('TRANSACTION_CANCEL', {
+      tid: webhook.transaction.tid,
+    });
+  }
+
+  private handleTransactionRefund(webhook: any) {
+    log.info('TRANSACTION_REFUND', webhook.transaction.refund);
+  }
+
+  private handleTransactionUpdate(webhook: any) {
+    log.info('TRANSACTION_UPDATE', webhook.transaction.update_type);
+  }
+
+  private handleCredit(webhook: any) {
+    log.info('CREDIT', webhook.transaction.amount);
+  }
+
+  private handleChargeback(webhook: any) {
+    log.info('CHARGEBACK', webhook.transaction.amount);
+  }
+
+  private handleInstalment(webhook: any) {
+    log.info('INSTALMENT', webhook.instalment);
+  }
+
+  private handleInstalmentCancel(webhook: any) {
+    log.info('INSTALMENT_CANCEL', webhook.instalment);
+  }
+
+  private handlePaymentReminder(webhook: any) {
+    log.info('PAYMENT_REMINDER', webhook.event.type);
+  }
+
+  private handleCollectionSubmission(webhook: any) {
+    log.info('COLLECTION_SUBMISSION', webhook.collection);
+  }
+
+  // ==================================================
+  // VALIDATIONS (PHP equivalents)
+  // ==================================================
+
+  private validateRequiredParameters(payload: any) {
+    const mandatory: Record<string, string[]> = {
+      event: ['type', 'checksum', 'tid'],
+      merchant: ['vendor', 'project'],
+      result: ['status'],
+      transaction: ['tid', 'payment_type', 'status'],
+    };
+
+    for (const category of Object.keys(mandatory)) {
+      if (!payload[category]) {
+        throw new Error(`Missing category: ${category}`);
+      }
+
+      for (const param of mandatory[category]) {
+        if (!payload[category][param]) {
+          throw new Error(`Missing parameter ${param} in ${category}`);
+        }
+      }
+    }
+  }
+
+  private validateChecksum(payload: any) {
+      const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
+    if (!accessKey) {
+      log.warn('NOVALNET_ACCESS_KEY not configured');
+      return;
+    }
+
+    let token =
+      payload.event.tid +
+      payload.event.type +
+      payload.result.status;
+
+    if (payload.transaction?.amount) {
+      token += payload.transaction.amount;
+    }
+
+    if (payload.transaction?.currency) {
+      token += payload.transaction.currency;
+    }
+
+    token += accessKey.split('').reverse().join('');
+
+    const generatedChecksum = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+
+    if (generatedChecksum !== payload.event.checksum) {
+      throw new Error('Checksum validation failed');
+    }
   }
 
 

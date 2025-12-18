@@ -306,19 +306,17 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     }
   });
   
-
   fastify.get("/callback", async (request, reply) => {
     return reply.send("sucess");
   });
 
   fastify.post<{ Body: any }>('/webhook', async (req, reply) => {
     try {
-      const body = req.body as Record<string, unknown> | unknown[];
-  
-      // Convert JSON → array
-      const responseData = Array.isArray(body)
-        ? body
-        : Object.values(body);
+      const body = req.body as Record<string, any> | any[];
+      const responseData = Array.isArray(body) ? body : [body];
+      const webhook = responseData[0] as Record<string, any>;
+      log.info('route-webhook');
+      log.info(webhook?.event?.checksum);
   
       // Call service
       const serviceResponse = await opts.paymentService.createWebhook(responseData);
@@ -329,8 +327,8 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
         data: serviceResponse,
       });
     } catch (error) {
-      req.log.error(error, 'Webhook processing failed');
-  
+      log.info('Webhook processing failed');
+      log.info(error, 'Webhook processing failed');
       return reply.code(500).send({
         success: false,
         message: 'Webhook processing failed',
