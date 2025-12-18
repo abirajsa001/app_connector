@@ -311,19 +311,33 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     return reply.send("sucess");
   });
 
-  fastify.post('/webhook', async (req, reply) => {
-    const body = req.body; // already parsed JSON
+  fastify.post<{ Body: any }>('/webhook', async (req, reply) => {
+    try {
+      const body = req.body as Record<string, unknown> | unknown[];
   
-    let responseData: any[];
+      // Convert JSON → array
+      const responseData = Array.isArray(body)
+        ? body
+        : Object.values(body);
   
-    if (Array.isArray(body)) {
-      responseData = body; // already an array
-    } else {
-      responseData = [body]; // convert object → array
+      // Call service
+      const serviceResponse = await paymentService.createWebhook(responseData);
+  
+      // Return success response
+      return reply.code(200).send({
+        success: true,
+        data: serviceResponse,
+      });
+    } catch (error) {
+      req.log.error(error, 'Webhook processing failed');
+  
+      return reply.code(500).send({
+        success: false,
+        message: 'Webhook processing failed',
+      });
     }
-  
-    return reply.send(responseData);
   });
+  
   
   fastify.get<{
     Querystring: PaymentRequestSchemaDTO;
