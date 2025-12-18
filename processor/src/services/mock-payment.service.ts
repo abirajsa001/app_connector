@@ -1117,28 +1117,70 @@ const pspReference = randomUUID().toString();
     }
   }
 
-  public async validateIpAddress(req: FastifyRequest): Promise<void> {
-    const novalnetHost = 'pay-nn.de';
+public async validateIpAddress(req: FastifyRequest): Promise<void> {
+  const novalnetHost = 'pay-nn.de';
 
-    // PHP: gethostbyname()
-    const { address: novalnetHostIP } = await dns.lookup(novalnetHost);
+  const { address: novalnetHostIP } = await dns.lookup(novalnetHost);
 
-    if (!novalnetHostIP) {
-      throw new Error('Novalnet HOST IP missing');
-    }
+  if (!novalnetHostIP) {
+    throw new Error('Novalnet HOST IP missing');
+  }
 
-    const requestReceivedIP = this.getRemoteAddress(req, novalnetHostIP);
+  // 🔧 FIX IS HERE
+  const requestReceivedIP = await this.getRemoteAddress(req, novalnetHostIP);
 
-    log.info('Novalnet Host IP:', novalnetHostIP);
-    log.info('Request IP:', requestReceivedIP);
+  const webhookTestMode =
+    process.env.NOVALNET_WEBHOOK_TESTMODE === 'true';
 
-    if (novalnetHostIP !== requestReceivedIP) {
-      throw new Error(
-        `Unauthorised access from the IP ${requestReceivedIP}`
-      );
+  log.info('Novalnet Host IP:', novalnetHostIP);
+  log.info('Request IP:', requestReceivedIP);
+
+  if (novalnetHostIP !== requestReceivedIP && !webhookTestMode) {
+    throw new Error(
+      `Unauthorised access from the IP ${requestReceivedIP}`
+    );
+  }
+}
+
+
+  /**
+   * Equivalent of PHP getRemoteAddress()
+   */
+public async getRemoteAddress(
+  req: FastifyRequest,
+  novalnetHostIP: string
+): Promise<string> {
+  const headers = req.headers;
+
+  const ipKeys = [
+    'x-forwarded-host',
+    'x-forwarded-for',
+    'x-real-ip',
+    'x-client-ip',
+    'x-forwarded',
+    'x-cluster-client-ip',
+    'forwarded-for',
+    'forwarded',
+  ];
+
+  for (const key of ipKeys) {
+    const value = headers[key] as string | undefined;
+
+    if (value) {
+      if (key === 'x-forwarded-for' || key === 'x-forwarded-host') {
+        const forwardedIPs = value.split(',').map(ip => ip.trim());
+        return forwardedIPs.includes(novalnetHostIP)
+          ? novalnetHostIP
+          : forwardedIPs[0];
+      }
+      return value;
     }
   }
 
+  return req.ip;
+}
+
+  
   public validateChecksum(payload: any) {
       const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
     if (!accessKey) {
