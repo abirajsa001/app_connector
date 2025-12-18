@@ -83,7 +83,7 @@ export class Creditcard extends BaseComponent {
           }
         });
       }
-      
+
     });
 
 
@@ -195,6 +195,88 @@ export class Creditcard extends BaseComponent {
       console.warn("NovalnetUtility not available.");
       return;
     }
+  const res = await fetch(this.processorUrl + "/getconfig", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        paymentMethod: { type: "CREDITCARD" },
+        paymentOutcome: "AUTHORIZED",
+      }),
+    });
+
+    const json = await res.json();
+    if (!json?.paymentReference) {
+      throw new Error("Missing clientKey");
+    }
+
+    this.clientKey = String(json.paymentReference);
+    (window as any).NovalnetUtility.setClientKey(this.clientKey);
+    console.log('client-key');
+    console.log(this.clientKey);
+
+    try {
+      const requestData = {
+        paymentMethod: { type: "CREDITCARD" },
+        paymentOutcome: "AUTHORIZED",
+      };
+    
+      const body = JSON.stringify(requestData);
+      console.log("Outgoing body string:", body);
+      const currentCartId = window.localStorage.getItem('cartId');
+      console.log(currentCartId ?? 'not-current-cart-id');
+
+      const currentCartId2 = window.localStorage.getItem('cart-id');
+      console.log(currentCartId2 ?? 'not-current-cart-id2');
+      console.log(this.sessionId ?? 'sessionId');
+
+      const response = await fetch(this.processorUrl + "/getCustomerAddress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-Session-Id": this.sessionId, 
+        },
+        body,
+      });
+    
+      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
+    
+      // Inspect content-type header before parsing
+      const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
+      console.log("Response Content-Type:", contentType);
+    
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+        console.warn("getconfig returned non-200:", response.status, text);
+      } else if (contentType && contentType.includes("application/json")) {
+        const json = await response.json().catch((err) => {
+          console.error("Failed to parse JSON response:", err);
+          return null;
+        });
+        console.log("parsed response JSON:", json);
+    
+        if (json && json.firstName) {
+          this.firstName = String(json.firstName);
+          this.lastName = String(json.lastName);
+          this.email = String(json.email);
+          this.json = json;
+          console.log("Customer Address set from server:", this.firstName);
+          console.log(String(json.billingAddress.firstName));
+          console.log(String(json.shippingAddress.lastName));
+        } else {
+          console.warn("JSON response missing paymentReference:", json);
+        }
+      } else {
+        // fallback: treat as plain text
+        const text = await response.text().catch(() => "");
+        console.log("Response text (non-JSON):", text);
+      }
+    } catch (err) {
+      console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
+    }
 
     NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
 
@@ -251,24 +333,23 @@ export class Creditcard extends BaseComponent {
         },
       },
       customer: {
-        first_name: "Max",
-        last_name: "Mustermann",
-        email: "test@novalnet.de",
+        first_name: this.firstName,
+        last_name: this.lastName,
+        email: this.email,
         billing: {
-          street: "Musterstr, 2",
-          city: "Musterhausen",
-          zip: "12345",
-          country_code: "DE",
+          street: String(this.json.billingAddress.streetName),
+          city: String(this.json.billingAddress.city),
+          zip: String(this.json.billingAddress.postalCode),
+          country_code: String(this.json.billingAddress.country),
         },
         shipping: {
           same_as_billing: 1,
-          first_name: "Max",
-          last_name: "Mustermann",
-          email: "test@novalnet.de",
-          street: "Hauptstr, 9",
-          city: "Kaiserslautern",
-          zip: "66862",
-          country_code: "DE",
+          first_name: String(this.json.billingAddress.firstName),
+          last_name: String(this.json.billingAddress.lastName),
+          street: String(this.json.billingAddress.streetName),
+          city: String(this.json.billingAddress.city),
+          zip: String(this.json.billingAddress.postalCode),
+          country_code: String(this.json.billingAddress.country),
         },
       },
       transaction: {
