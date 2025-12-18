@@ -189,7 +189,10 @@ export class Creditcard extends BaseComponent {
     await loadPromise;
   }
 
-  private _initNovalnetCreditCardForm(payButton: HTMLButtonElement | null) {
+  private async _initNovalnetCreditCardForm(
+    payButton: HTMLButtonElement | null
+  ): Promise<void> {
+  
     const NovalnetUtility = (window as any).NovalnetUtility;
     if (!NovalnetUtility) {
       console.warn("NovalnetUtility not available.");
@@ -213,7 +216,6 @@ export class Creditcard extends BaseComponent {
     }
 
     this.clientKey = String(json.paymentReference);
-    (window as any).NovalnetUtility.setClientKey(this.clientKey);
     console.log('client-key');
     console.log(this.clientKey);
 
@@ -225,12 +227,6 @@ export class Creditcard extends BaseComponent {
     
       const body = JSON.stringify(requestData);
       console.log("Outgoing body string:", body);
-      const currentCartId = window.localStorage.getItem('cartId');
-      console.log(currentCartId ?? 'not-current-cart-id');
-
-      const currentCartId2 = window.localStorage.getItem('cart-id');
-      console.log(currentCartId2 ?? 'not-current-cart-id2');
-      console.log(this.sessionId ?? 'sessionId');
 
       const response = await fetch(this.processorUrl + "/getCustomerAddress", {
         method: "POST",
@@ -286,8 +282,10 @@ export class Creditcard extends BaseComponent {
           (document.getElementById("pan_hash") as HTMLInputElement).value = data["hash"];
           (document.getElementById("unique_id") as HTMLInputElement).value = data["unique_id"];
           (document.getElementById("do_redirect") as HTMLInputElement).value = data["do_redirect"];
-          if (payButton) payButton.disabled = false;
-          payButton.click(); 
+          if (payButton) {
+            payButton.disabled = false;
+            payButton.click();
+          }
           return true;
         },
         on_error: (data: any) => {
@@ -351,11 +349,6 @@ export class Creditcard extends BaseComponent {
           zip: String(this.json.billingAddress.postalCode),
           country_code: String(this.json.billingAddress.country),
         },
-      },
-      transaction: {
-        amount: 123,
-        currency: "EUR",
-        test_mode: 1,
       },
       custom: {
         lang: "EN",
