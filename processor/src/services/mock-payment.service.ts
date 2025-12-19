@@ -503,6 +503,8 @@ export class MockPaymentService extends AbstractPaymentService {
     const paymentRef = responseData?.custom?.paymentRef ?? "";
     const pspReference = parsedData?.pspReference;
     const testModeText = responseData?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const status = responseData?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const transactionComments = `Novalnet Transaction ID: ${responseData?.transaction?.tid ?? "NN/A"}\nPayment Type: ${responseData?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
     const statusCode = responseData?.transaction?.status_code ?? '';
     log.info("Payment created with Novalnet details for redirect:");
@@ -518,6 +520,7 @@ export class MockPaymentService extends AbstractPaymentService {
 	if (!tx) throw new Error("Transaction not found");
 	const txId = tx.id;
 	if (!txId) throw new Error('Transaction missing id');
+  
 	log.info(txId);
   log.info(parsedData.ctPaymentId);
   log.info(transactionComments);
@@ -541,7 +544,7 @@ export class MockPaymentService extends AbstractPaymentService {
         {
           action: 'changeTransactionState',
           transactionId: txId,
-          state: 'Pending',
+          state: state,
         },
       ],
     },
@@ -808,6 +811,8 @@ const pspReference = randomUUID().toString();
     const parsedResponse = JSON.parse(responseString);
     const statusCode = parsedResponse?.transaction?.status_code;
     const testModeText = parsedResponse?.transaction?.test_mode == 1 ? 'Test Order' : '';
+    const status = parsedResponse?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const transactiondetails = `Novalnet Transaction ID: ${parsedResponse?.transaction?.tid ?? "NN/A"}\nPayment Type: ${parsedResponse?.transaction?.payment_type ?? "NN/A"}\n${testModeText ?? "NN/A"}`;
 
     let bankDetails = "";
@@ -833,7 +838,7 @@ const pspReference = randomUUID().toString();
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: "Pending",
+        state: state,
         custom: {
           type: {
           typeId: "type",
@@ -983,48 +988,40 @@ const pspReference = randomUUID().toString();
     // === EVENT ROUTING
     switch (eventType) {
       case 'PAYMENT':
-        this.handlePayment(webhook);
+        await this.handlePayment(webhook);
         break;
 
       case 'TRANSACTION_CAPTURE':
-        this.handleTransactionCapture(webhook);
+        await this.handleTransactionCapture(webhook);
         break;
 
       case 'TRANSACTION_CANCEL':
-        this.handleTransactionCancel(webhook);
+        await this.handleTransactionCancel(webhook);
         break;
 
       case 'TRANSACTION_REFUND':
-        this.handleTransactionRefund(webhook);
+        await this.handleTransactionRefund(webhook);
         break;
 
       case 'TRANSACTION_UPDATE':
-        this.handleTransactionUpdate(webhook);
+        await this.handleTransactionUpdate(webhook);
         break;
 
       case 'CREDIT':
-        this.handleCredit(webhook);
+        await this.handleCredit(webhook);
         break;
 
       case 'CHARGEBACK':
-        this.handleChargeback(webhook);
-        break;
-
-      case 'INSTALMENT':
-        this.handleInstalment(webhook);
-        break;
-
-      case 'INSTALMENT_CANCEL':
-        this.handleInstalmentCancel(webhook);
+        await this.handleChargeback(webhook);
         break;
 
       case 'PAYMENT_REMINDER_1':
       case 'PAYMENT_REMINDER_2':
-        this.handlePaymentReminder(webhook);
+        await this.handlePaymentReminder(webhook);
         break;
 
       case 'SUBMISSION_TO_COLLECTION_AGENCY':
-        this.handleCollectionSubmission(webhook);
+        await this.handleCollectionSubmission(webhook);
         break;
 
       default:
@@ -1041,55 +1038,302 @@ const pspReference = randomUUID().toString();
   // EVENT HANDLERS
   // ==================================================
 
-  private handlePayment(webhook: any) {
-    log.info('PAYMENT event', {
-      tid: webhook.event.tid,
-    });
+  public async handlePayment(webhook: any) {
+    const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
+    log.info("handle payment update");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode)
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state: 'Success',
+      },
+      ],
+    },
+    })
+    .execute();
+        log.info('PAYMENT event', {
+          tid: webhook.event.tid,
+        });
   }
 
-  private handleTransactionCapture(webhook: any) {
-    log.info('TRANSACTION_CAPTURE', {
-      tid: webhook.transaction.tid,
-      amount: webhook.transaction.amount,
-    });
+  public async handleTransactionCapture(webhook: any) {
+    const { date, time } = await this.getFormattedDateTime();
+    const transactionComments = `The transaction has been confirmed on ${date} at ${time}`;
+    const status = webhook?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
+    log.info("handle payment update");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode)
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state: state,
+      },
+      ],
+    },
+    })
+    .execute();
+        log.info('PAYMENT event', {
+          tid: webhook.event.tid,
+        });
   }
 
-  private handleTransactionCancel(webhook: any) {
-    log.info('TRANSACTION_CANCEL', {
-      tid: webhook.transaction.tid,
-    });
+  public async handleTransactionCancel(webhook: any) {
+    const { date, time } = await this.getFormattedDateTime();
+    const transactionComments = `The transaction has been cancelled on ${date} at ${time}`;
+    log.info("handle payment update");
+    const status = webhook?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode)
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state: state,
+      },
+      ],
+    },
+    })
+    .execute();
+        log.info('PAYMENT event', {
+          tid: webhook.event.tid,
+        });
   }
 
-  private handleTransactionRefund(webhook: any) {
+  public async handleTransactionRefund(webhook: any) {
     log.info('TRANSACTION_REFUND', webhook.transaction.refund);
   }
 
-  private handleTransactionUpdate(webhook: any) {
+  public async handleTransactionUpdate(webhook: any) {
     log.info('TRANSACTION_UPDATE', webhook.transaction.update_type);
   }
 
-  private handleCredit(webhook: any) {
+  public async handleCredit(webhook: any) {
     log.info('CREDIT', webhook.transaction.amount);
   }
 
-  private handleChargeback(webhook: any) {
-    log.info('CHARGEBACK', webhook.transaction.amount);
+  public async handleChargeback(webhook: any) {
+    const { date, time } = await this.getFormattedDateTime();
+    const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
+    log.info("handle payment update");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode)
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state: 'Success',
+      },
+      ],
+    },
+    })
+    .execute();
+        log.info('PAYMENT event', {
+          tid: webhook.event.tid,
+        });
   }
 
-  private handleInstalment(webhook: any) {
-    log.info('INSTALMENT', webhook.instalment);
+  public async handlePaymentReminder(webhook: any) {
+    const { date, time } = await this.getFormattedDateTime();
+    const reminderIndex = webhook.event.type.split('_')[2];
+    const transactionComments = `\n Payment Reminder ${reminderIndex} has been sent to the customer. `;
+    log.info("handle payment update");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      ],
+    },
+    })
+    .execute();
+        log.info('PAYMENT event', {
+          tid: webhook.event.tid,
+        });
   }
 
-  private handleInstalmentCancel(webhook: any) {
-    log.info('INSTALMENT_CANCEL', webhook.instalment);
-  }
-
-  private handlePaymentReminder(webhook: any) {
-    log.info('PAYMENT_REMINDER', webhook.event.type);
-  }
-
-  private handleCollectionSubmission(webhook: any) {
-    log.info('COLLECTION_SUBMISSION', webhook.collection);
+  public async handleCollectionSubmission(webhook: any) {
+    const collectionReference = webhook.collection.reference;
+    const transactionComments = `The transaction has been submitted to the collection agency. Collection Reference: ${collectionReference}`;
+    log.info("handle payment update");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      ],
+    },
+    })
+    .execute();
+        log.info('PAYMENT event', {
+          tid: webhook.event.tid,
+        });
   }
 
   // ==================================================
@@ -1126,7 +1370,7 @@ public async validateIpAddress(req: FastifyRequest): Promise<void> {
     throw new Error('Novalnet HOST IP missing');
   }
 
-  // FIX IS HERE
+  // 🔧 FIX IS HERE
   const requestReceivedIP = await this.getRemoteAddress(req, novalnetHostIP);
 
   const webhookTestMode =
@@ -1213,36 +1457,72 @@ public async getRemoteAddress(
     }
   }
 
-  public async getOrderDetails(payload: any) {
-    const paymentIdValue = payload.custom.inputval4;
-    const pspReference = payload.custom.inputval5;
-    const container = "nn-private-data";
-    const key = `${paymentIdValue}-${pspReference}`;
-    const obj = await customObjectService.get(container, key);
-    log.info('Value are getted');
-    log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
-    if (!obj) {
-    log.warn("CustomObject missing after upsert (unexpected)", { container, key });
-    } else {
-    // obj.value contains the stored data
-    const stored = obj.value;
-    const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
-    log.info("Stored custom object (masked):", {
-      container: obj.container,
-      key: obj.key,
-      version: obj.version,
-      deviceId: maskedDeviceId,
-      riskScore: stored.riskScore, 
-    });
-    log.info('stored-tid');
-    log.info(stored.tid);
-    log.info(stored.status);
-    log.info(stored.cMail);
-    log.info(stored.additionalInfo.comments);
-    }
+public async getOrderDetails(payload: any) {
+  const paymentIdValue = payload.custom.inputval4;
+  const pspReference = payload.custom.inputval5;
+  const container = "nn-private-data";
+  const key = `${paymentIdValue}-${pspReference}`;
+  const obj = await customObjectService.get(container, key);
+  log.info('Value are getted');
+  log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
+  if (!obj) {
+  log.warn("CustomObject missing after upsert (unexpected)", { container, key });
+  } else {
+  // obj.value contains the stored data
+  const stored = obj.value;
+  const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
+  log.info("Stored custom object (masked):", {
+    container: obj.container,
+    key: obj.key,
+    version: obj.version,
+    deviceId: maskedDeviceId,
+    riskScore: stored.riskScore, 
+  });
+  log.info('stored-tid');
+  log.info(stored.tid);
+  log.info(stored.status);
+  log.info(stored.cMail);
+  log.info(stored.additionalInfo.comments);
   }
+}
+
+public async updatePaymentStatusByPaymentId(
+  paymentId: string,
+  transactionId: string,
+  newState: 'Initial' | 'Pending' | 'Success' | 'Failure' | 'Paid'
+) {
+  const paymentRes = await projectApiRoot
+    .payments()
+    .withId({ ID: paymentId })
+    .get()
+    .execute();
+
+  const payment = paymentRes.body;
+
+  const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: paymentId })
+    .post({
+      body: {
+        version: payment.version,
+        actions: [
+          {
+            action: 'changeTransactionState',
+            transactionId,
+            state: newState,
+          },
+        ],
+      },
+    })
+    .execute();
+
+  return updatedPayment.body;
+}
+
+
   
   public async getTransactionComment(paymentId: string, pspReference: string) {
+
     // 1) Fetch payment from commercetools
     const response = await projectApiRoot
       .payments()
@@ -1261,10 +1541,34 @@ public async getRemoteAddress(
     if (!tx) throw new Error("Transaction not found");
     // 3) If transaction has custom fields, extract the value
     const comment =
-      tx.custom?.fields?.transactionComments ?? null;  
+      tx.custom?.fields?.transactionComments ?? null;
+  
     return comment;
   }
 
+
+  public async getFormattedDateTime(): Promise<{ date: string; time: string }> {
+    const formatDateTime = () => {
+      const now = new Date();
+      return {
+        date: now.toLocaleDateString('de-DE', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }),
+        time: now.toLocaleTimeString('de-DE', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }),
+      };
+    };
+  
+    return formatDateTime();
+  }
+
+  
   public async createPayments(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
