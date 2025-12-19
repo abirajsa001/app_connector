@@ -772,19 +772,28 @@ const pspReference = randomUUID().toString();
     };
 
     let paymentActionUrl = "payment"; 
-        
+    log.info('paymentAction-url');
+    log.info(paymentAction); 
+    log.info(paymentActionUrl); 
     if (paymentAction === "authorize") {
       const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
+      log.info('order-total');
+      log.info(orderTotal);
+      log.info('minimumAmount');
+      log.info(minimumAmount);
       paymentActionUrl = (orderTotal >= minimumAmount)
         ? "authorize"
         : "payment";
     }
-    
+    log.info('paymentAction');
+    log.info(paymentAction); 
+    log.info(paymentActionUrl); 
     const url =
       paymentActionUrl === "payment"
         ? "https://payport.novalnet.de/v2/payment"
         : "https://payport.novalnet.de/v2/authorize";
-
+    log.info('url');
+    log.info(url); 
     let responseString = "";
     let responseData: any;
     try {
@@ -1372,14 +1381,10 @@ public async validateIpAddress(req: FastifyRequest): Promise<void> {
 
   // 🔧 FIX IS HERE
   const requestReceivedIP = await this.getRemoteAddress(req, novalnetHostIP);
-
-  const webhookTestMode =
-    process.env.NOVALNET_WEBHOOK_TESTMODE === 'true';
-
   log.info('Novalnet Host IP:', novalnetHostIP);
   log.info('Request IP:', requestReceivedIP);
 
-  if (novalnetHostIP !== requestReceivedIP && !webhookTestMode) {
+  if (novalnetHostIP !== requestReceivedIP) {
     throw new Error(
       `Unauthorised access from the IP ${requestReceivedIP}`
     );
