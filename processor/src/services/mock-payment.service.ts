@@ -974,7 +974,7 @@ const pspReference = randomUUID().toString();
     }
     const eventType = webhook.event?.type;
     const status = webhook.result?.status;
-
+    this.getOrderDetails(webhook);
     if (status !== 'SUCCESS') {
       log.warn('Webhook status is not SUCCESS');
       return { message: 'Webhook ignored (non-success)' };
@@ -1126,7 +1126,7 @@ public async validateIpAddress(req: FastifyRequest): Promise<void> {
     throw new Error('Novalnet HOST IP missing');
   }
 
-  // 🔧 FIX IS HERE
+  // FIX IS HERE
   const requestReceivedIP = await this.getRemoteAddress(req, novalnetHostIP);
 
   const webhookTestMode =
@@ -1213,44 +1213,36 @@ public async getRemoteAddress(
     }
   }
 
-
-public async updatePaymentStatusByPaymentId(
-  paymentId: string,
-  transactionId: string,
-  newState: 'Initial' | 'Pending' | 'Success' | 'Failure' | 'Paid'
-) {
-  const paymentRes = await projectApiRoot
-    .payments()
-    .withId({ ID: paymentId })
-    .get()
-    .execute();
-
-  const payment = paymentRes.body;
-
-  const updatedPayment = await projectApiRoot
-    .payments()
-    .withId({ ID: paymentId })
-    .post({
-      body: {
-        version: payment.version,
-        actions: [
-          {
-            action: 'changeTransactionState',
-            transactionId,
-            state: newState,
-          },
-        ],
-      },
-    })
-    .execute();
-
-  return updatedPayment.body;
-}
-
-
+  public async getOrderDetails(payload: any) {
+    const paymentIdValue = payload.custom.inputval4;
+    const pspReference = payload.custom.inputval5;
+    const container = "nn-private-data";
+    const key = `${paymentIdValue}-${pspReference}`;
+    const obj = await customObjectService.get(container, key);
+    log.info('Value are getted');
+    log.info(JSON.stringify(obj, null, 2) ?? 'noobjnull');
+    if (!obj) {
+    log.warn("CustomObject missing after upsert (unexpected)", { container, key });
+    } else {
+    // obj.value contains the stored data
+    const stored = obj.value;
+    const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
+    log.info("Stored custom object (masked):", {
+      container: obj.container,
+      key: obj.key,
+      version: obj.version,
+      deviceId: maskedDeviceId,
+      riskScore: stored.riskScore, 
+    });
+    log.info('stored-tid');
+    log.info(stored.tid);
+    log.info(stored.status);
+    log.info(stored.cMail);
+    log.info(stored.additionalInfo.comments);
+    }
+  }
   
   public async getTransactionComment(paymentId: string, pspReference: string) {
-
     // 1) Fetch payment from commercetools
     const response = await projectApiRoot
       .payments()
@@ -1269,8 +1261,7 @@ public async updatePaymentStatusByPaymentId(
     if (!tx) throw new Error("Transaction not found");
     // 3) If transaction has custom fields, extract the value
     const comment =
-      tx.custom?.fields?.transactionComments ?? null;
-  
+      tx.custom?.fields?.transactionComments ?? null;  
     return comment;
   }
 
