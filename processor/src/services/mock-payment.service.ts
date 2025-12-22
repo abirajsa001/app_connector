@@ -1861,7 +1861,7 @@ public async updatePaymentStatusByPaymentId(
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: 'Initial',
+        state: 'Pending',
         custom: {
           type: {
           typeId: "type",
