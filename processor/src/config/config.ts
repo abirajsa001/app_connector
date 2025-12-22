@@ -84,25 +84,25 @@ export const config = {
   novalnet_SEPA_DueDate:
     process.env.NOVALNET_SEPA_DUE_DATE || "0",
   novalnet_INVOICE_PaymentAction:
-    process.env.NOVALNET_INVOICE_PAYMENT_ACTION || "payment",
+    process.env.NOVALNET_INVOICE_PAYMENT_ACTION || "",
   novalnet_PREPAYMENT_PaymentAction:
-    process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION || "payment",
+    process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION || "",
   novalnet_SEPA_PaymentAction:
-    process.env.NOVALNET_SEPA_PAYMENT_ACTION || "payment",
+    process.env.NOVALNET_SEPA_PAYMENT_ACTION || "",
   novalnet_CREDITCARD_PaymentAction:
-    process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION || "payment",
+    process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION || "",
   novalnet_INVOICE_MinimumAmount:
-    process.env.NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
+    process.env.NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
   novalnet_PREPAYMENT_MinimumAmount:
-    process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
+    process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
   novalnet_SEPA_MinimumAmount:
-    process.env.NOVALNET_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
+    process.env.NOVALNET_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
   novalnet_CREDITCARD_MinimumAmount:
-    process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION_MINIMUM_AMOUNT || "payment",
+    process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
   novalnet_CREDITCARD_Enforce3d:
-    process.env.NOVALNET_CREDITCARD_ENFORCE_3D_SECURE_PAYMENT_OUTSIDE_EU || "payment",
+    process.env.NOVALNET_CREDITCARD_ENFORCE_3D_SECURE_PAYMENT_OUTSIDE_EU || "",
   novalnet_CREDITCARD_DisplayInline:
-    process.env.NOVALNET_CREDITCARD_DISPLAY_INLINE_CREDITCARD_FORM || "payment",   
+    process.env.NOVALNET_CREDITCARD_DISPLAY_INLINE_CREDITCARD_FORM || "",   
 
   // Payment Providers config
   returnurl: process.env.RETURN_URL,
