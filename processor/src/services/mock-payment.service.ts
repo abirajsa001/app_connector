@@ -1202,20 +1202,206 @@ const pspReference = randomUUID().toString();
 
   public async handleTransactionRefund(webhook: any) {
     log.info('TRANSACTION_REFUND', webhook.transaction.refund);
+    const eventTID = webhook.event.tid;
+    const parentTID = webhook.event.parent_tid ?? eventTID;
+    const amount = webhook.transaction.amount / 100;
+    const currency = webhook.transaction.currency;
+    const { date, time } = await this.getFormattedDateTime();
+    const refundedAmount = webhook.transaction.refund.amount;
+    const refundTID = webhook.transaction.refund.tid ?? '';
+    const transactionComments = refundTID
+    ? `Refund has been initiated for the TID: ${eventTID} with the amount ${refundedAmount} ${currency}. New TID: ${refundTID} for the refunded amount.`
+    : `Refund has been initiated for the TID: ${eventTID} with the amount ${refundedAmount} ${currency}.`;
+    log.info("handle transaction refund");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const status = webhook?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode)
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state: state,
+      },
+      ],
+    },
+    })
+    .execute();
   }
 
   public async handleTransactionUpdate(webhook: any) {
-    log.info('TRANSACTION_UPDATE', webhook.transaction.update_type);
+    const orderDetails = await this.getOrderDetails(webhook);
+    log.info('TRANSACTION_UPDATE');
+    log.info(orderDetails.tid);
+
+    if (['DUE_DATE', 'AMOUNT', 'AMOUNT_DUE_DATE'].includes(webhook.transaction.update_type)) {
+      const eventTID = webhook.event.tid;
+      const amount = webhook.transaction.amount / 100;
+      const currency = webhook.transaction.currency;
+      let transactionComments = `Transaction updated successfully for the TID: ${eventTID} with amount ${amount}${currency}.`;
+      if(webhook.transaction.due_date) {
+        const dueDate = webhook.transaction.due_date;
+        transactionComments = `Transaction updated successfully for the TID: ${eventTID} with amount ${amount}${currency} and due date ${dueDate}.`;
+      }
+    }
+    
+    if (orderDetails.status != webhook.transaction.status && ['PENDING', 'ON_HOLD'].includes(orderDetails.status)) {
+      const eventTID = webhook.event.tid;
+      const amount = webhook.transaction.amount / 100;
+      const currency = webhook.transaction.currency;
+      const { date, time } = await this.getFormattedDateTime();
+      if (transaction.status === 'CONFIRMED') {
+        transactionComments = `The transaction status has been changed from pending to completed for the TID: ${eventTID} on ${date}${time}.`;
+      } else if (transaction.status === 'ON_HOLD') {
+        transactionComments = `The transaction status has been changed from on-hold to completed for the TID: ${eventTID} on ${date}${time}.`;
+      } else {
+        transactionComments = `The transaction has been canceled on ${date}${time}.`;
+      }
+
+      if (['ON_HOLD', 'CONFIRMED'].includes(transaction.status)) {
+        log.info('Need to add transaction Note');
+      }
+    } else if (orderDetails.status === 'ON_HOLD') {
+      if (webhook.transaction.status === 'CONFIRMED') {
+        transactionComments = `The transaction has been confirmed on ${date} at ${time}`;
+      } else {
+        transactionComments = `The transaction has been canceled on ${date} at ${time}`;
+      }
+    }
+    log.info("handle transaction update");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const status = webhook?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode)
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state: state,
+      },
+      ],
+    },
+    })
+    .execute();
   }
 
   public async handleCredit(webhook: any) {
-    log.info('CREDIT', webhook.transaction.amount);
+    const eventTID = webhook.event.tid;
+    const transactionID = webhook.transaction.tid;
+    const parentTID = webhook.event.parent_tid ?? eventTID;
+    const amount = webhook.transaction.amount / 100;
+    const currency = webhook.transaction.currency;
+    const { date, time } = await this.getFormattedDateTime();
+    const transactionComments = `Credit has been successfully received for the TID: ${parentTID} with amount ${amount}${currency} on  ${date}${time}. Please refer PAID order details in our Novalnet Admin Portal for the TID: ${transactionID}.`;
+    log.info('CREDIT');
+    log.info("handle transaction credit");
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    const tx = payment.transactions?.find((t: any) =>
+      t.interactionId === webhook.custom.inputval5
+    );
+    if (!tx) throw new Error("Transaction not found");
+    const txId = tx.id;
+    if (!txId) throw new Error('Transaction missing id');
+    const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
+    const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    log.info(txId);
+    log.info(webhook.custom.inputval4);   
+    log.info(transactionComments);
+    const statusCode = webhook?.transaction?.status_code ?? '';
+    const status = webhook?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
+    const updatedPayment = await projectApiRoot
+    .payments()
+    .withId({ ID: webhook.custom.inputval4 })
+    .post({
+    body: {
+      version,
+      actions: [
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: updatedTransactionComments,
+      },
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode)
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state: state,
+      },
+      ],
+    },
+    })
+    .execute();
   }
 
   public async handleChargeback(webhook: any) {
     const { date, time } = await this.getFormattedDateTime();
     const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
-    log.info("handle payment update");
+    log.info("handle chargeback");
     const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
@@ -1488,6 +1674,7 @@ public async getOrderDetails(payload: any) {
   log.info(stored.status);
   log.info(stored.cMail);
   log.info(stored.additionalInfo.comments);
+  return stored;
   }
 }
 
