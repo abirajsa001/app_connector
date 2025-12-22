@@ -981,10 +981,10 @@ const pspReference = randomUUID().toString();
     log.info('Checksum:', webhook?.event?.checksum);
 
     // === VALIDATIONS (PHP equivalent)
-    this.validateRequiredParameters(webhook);
-    this.validateChecksum(webhook);
+    await this.validateRequiredParameters(webhook);
+    await this.validateChecksum(webhook);
     if (req) {
-      this.validateIpAddress(req);
+      await this.validateIpAddress(req);
     }
     const eventType = webhook.event?.type;
     const status = webhook.result?.status;
@@ -1766,7 +1766,6 @@ public async updatePaymentStatusByPaymentId(
   public async createPayments(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
-    log.info("=== IDEAL PAYMENT START ===");
     log.info("Request data:", JSON.stringify(request.data, null, 2));
     const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
     log.info("Payment type:", type);
@@ -1780,10 +1779,8 @@ public async updatePaymentStatusByPaymentId(
     await createTransactionCommentsType();
     const { testMode, paymentAction } = getNovalnetConfigValues(type, config);
     log.info("Novalnet config:", { testMode, paymentAction });
-
     const cartId = getCartIdFromContext();
     log.info("Cart ID from context:", cartId);
-    
     const ctCart = await this.ctCartService.getCart({
       id: cartId,
     });
@@ -1925,18 +1922,18 @@ public async updatePaymentStatusByPaymentId(
       },
       customer: {
         billing: {
-          city: String(billingAddress?.city ?? "demo"),
-          country_code: String(billingAddress?.country ?? "US"),
-          house_no: String(billingAddress?.streetName ?? "10"),
-          street: String(billingAddress?.streetName ?? "teststreet"),
-          zip: String(billingAddress?.postalCode ?? "12345"),
+          city: String(billingAddress?.city),
+          country_code: String(billingAddress?.country),
+          house_no: String(billingAddress?.streetName ),
+          street: String(billingAddress?.streetName ),
+          zip: String(billingAddress?.postalCode),
         },
         shipping: {
-          city: String(deliveryAddress?.city ?? "demoshipping"),
-          country_code: String(deliveryAddress?.country ?? "US"),
-          house_no: String(deliveryAddress?.streetName ?? "11"),
-          street: String(deliveryAddress?.streetName ?? "testshippingstreet"),
-          zip: String(deliveryAddress?.postalCode ?? "12345"),
+          city: String(deliveryAddress?.city),
+          country_code: String(deliveryAddress?.country),
+          house_no: String(deliveryAddress?.streetName),
+          street: String(deliveryAddress?.streetName),
+          zip: String(deliveryAddress?.postalCode),
         },
         first_name: firstName,
         last_name: lastName,
@@ -1945,8 +1942,8 @@ public async updatePaymentStatusByPaymentId(
       transaction: {
         test_mode: testMode === "1" ? "1" : "0",
         payment_type: type.toUpperCase(),
-        amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "100"),
-        currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
+        amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount),
+        currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),
         return_url: returnUrl,
         error_return_url: errorReturnUrl,
         create_token: 1,
@@ -1977,9 +1974,7 @@ public async updatePaymentStatusByPaymentId(
     };
 
     log.info("Full Novalnet payload:", JSON.stringify(novalnetPayload, null, 2));
-    
     let parsedResponse: any = {};
-    
     try {
       const novalnetResponse = await fetch(
         "https://payport.novalnet.de/v2/seamless/payment",
@@ -1993,9 +1988,7 @@ public async updatePaymentStatusByPaymentId(
           body: JSON.stringify(novalnetPayload),
         },
       );
-      
       log.info("Novalnet response status:", novalnetResponse.status);
-
       if (!novalnetResponse.ok) {
         throw new Error(`Novalnet API error: ${novalnetResponse.status}`);
       }
@@ -2033,21 +2026,6 @@ public async updatePaymentStatusByPaymentId(
     };
   }
 
-  // TEMP DEBUG helper — keep only while debugging
-  public async debugUpdatePayment(payload: any, callerName = "unknown") {
-    try {
-      console.info("DEBUG updatePayment called by:", callerName, "payload.actions_length:", (payload.actions ?? []).length);
-      if (Array.isArray(payload.actions) && payload.actions.length > 0) {
-        console.info("DEBUG actions:", JSON.stringify(payload.actions, null, 2));
-      }
-      const res = await this.ctPaymentService.updatePayment(payload as any);
-      console.info(`DEBUG updatePayment succeeded for ${callerName}`);
-      return res;
-    } catch (err: any) {
-      console.error(`DEBUG updatePayment error for ${callerName}:`, err?.statusCode ?? err?.status, err?.body ?? err);
-      throw err;
-    }
-  }
 
   public async handleTransaction(
     transactionDraft: TransactionDraftDTO,
