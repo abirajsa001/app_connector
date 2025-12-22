@@ -1413,6 +1413,8 @@ const pspReference = randomUUID().toString();
     if (!txId) throw new Error('Transaction missing id');
     const existingComments: string = tx.custom?.fields?.transactionComments ?? '';
     const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
+    const status = webhook?.transaction?.status;
+    const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     log.info(txId);
     log.info(webhook.custom.inputval4);   
     log.info(transactionComments);
@@ -1437,7 +1439,7 @@ const pspReference = randomUUID().toString();
       {
         action: 'changeTransactionState',
         transactionId: txId,
-        state: 'Success',
+        state: state,
       },
       ],
     },
@@ -1859,7 +1861,7 @@ public async updatePaymentStatusByPaymentId(
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: this.convertPaymentResultCode(request.data.paymentOutcome),
+        state: 'Initial',
         custom: {
           type: {
           typeId: "type",
