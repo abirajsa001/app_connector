@@ -1262,12 +1262,13 @@ const pspReference = randomUUID().toString();
     const orderDetails = await this.getOrderDetails(webhook);
     log.info('TRANSACTION_UPDATE');
     log.info(orderDetails.tid);
-
+    let transactionComments = '';
+    let { date, time } = await this.getFormattedDateTime();
     if (['DUE_DATE', 'AMOUNT', 'AMOUNT_DUE_DATE'].includes(webhook.transaction.update_type)) {
       const eventTID = webhook.event.tid;
       const amount = webhook.transaction.amount / 100;
       const currency = webhook.transaction.currency;
-      let transactionComments = `Transaction updated successfully for the TID: ${eventTID} with amount ${amount}${currency}.`;
+       transactionComments = `Transaction updated successfully for the TID: ${eventTID} with amount ${amount}${currency}.`;
       if(webhook.transaction.due_date) {
         const dueDate = webhook.transaction.due_date;
         transactionComments = `Transaction updated successfully for the TID: ${eventTID} with amount ${amount}${currency} and due date ${dueDate}.`;
@@ -1278,16 +1279,15 @@ const pspReference = randomUUID().toString();
       const eventTID = webhook.event.tid;
       const amount = webhook.transaction.amount / 100;
       const currency = webhook.transaction.currency;
-      const { date, time } = await this.getFormattedDateTime();
-      if (transaction.status === 'CONFIRMED') {
+      if (webhook.transaction.status === 'CONFIRMED') {
         transactionComments = `The transaction status has been changed from pending to completed for the TID: ${eventTID} on ${date}${time}.`;
-      } else if (transaction.status === 'ON_HOLD') {
+      } else if (webhook.transaction.status === 'ON_HOLD') {
         transactionComments = `The transaction status has been changed from on-hold to completed for the TID: ${eventTID} on ${date}${time}.`;
       } else {
         transactionComments = `The transaction has been canceled on ${date}${time}.`;
       }
 
-      if (['ON_HOLD', 'CONFIRMED'].includes(transaction.status)) {
+      if (['ON_HOLD', 'CONFIRMED'].includes(webhook.transaction.status)) {
         log.info('Need to add transaction Note');
       }
     } else if (orderDetails.status === 'ON_HOLD') {
