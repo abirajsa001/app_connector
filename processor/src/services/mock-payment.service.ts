@@ -1247,11 +1247,6 @@ const pspReference = randomUUID().toString();
         action: "setStatusInterfaceCode",
         interfaceCode: String(statusCode)
       },
-      {
-        action: 'changeTransactionState',
-        transactionId: txId,
-        state: state,
-      },
       ],
     },
     })
