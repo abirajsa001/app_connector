@@ -491,7 +491,6 @@ export class MockPaymentService extends AbstractPaymentService {
       log.info(lang);
       log.info(locale);
       log.info(accessKey);
-      log.info(reverseKey);
       const language = locale?.split("-")[0] ?? "no-lang2";
       log.info(language);
 
