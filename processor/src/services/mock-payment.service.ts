@@ -464,9 +464,7 @@ export class MockPaymentService extends AbstractPaymentService {
   
   public async createPaymentt({ data }: { data: any }) {
     try {
-      log.info("➡️ ENTER createPaymentt");
-  
-      // ---------- 1. Parse input ----------
+      log.info("createPaymentt");
       const parsedData = typeof data === "string" ? JSON.parse(data) : data;
   
       if (!parsedData?.ctPaymentId) {
@@ -476,12 +474,9 @@ export class MockPaymentService extends AbstractPaymentService {
       const config = getConfig();
       await createTransactionCommentsType();
   
-      const merchantReturnUrl =
-        getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
-  
+      const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;  
       log.info("Merchant return URL:", merchantReturnUrl);
   
-      // ---------- 2. Call Novalnet ----------
       const novalnetPayload = {
         transaction: {
           tid: parsedData?.interfaceId ?? "",
@@ -489,7 +484,20 @@ export class MockPaymentService extends AbstractPaymentService {
       };
   
       let responseData: any;
-  
+      const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
+      const reverseKey =  accessKey.split("").reverse().join("");
+
+      const locale =  navigator?.language?.split("-")[0] ?? "no-lang1";
+      log.info('locale-lang');
+      log.info(locale);
+      log.info(accessKey);
+      log.info(reverseKey);
+      const language = locale?.split("-")[0] ?? "no-lang2";
+      log.info(language);
+      const pathLocale = window.location.pathname.split("/")[1];
+      log.info(window.location.pathname);
+      log.info(pathLocale);
+
       try {
         const novalnetResponse = await fetch(
           "https://payport.novalnet.de/v2/transaction/details",
@@ -498,7 +506,7 @@ export class MockPaymentService extends AbstractPaymentService {
             headers: {
               "Content-Type": "application/json",
               Accept: "application/json",
-              "X-NN-Access-Key": process.env.NOVALNET_ACCESS_KEY!,
+              "X-NN-Access-Key": reverseKey,
             },
             body: JSON.stringify(novalnetPayload),
           }
@@ -514,7 +522,6 @@ export class MockPaymentService extends AbstractPaymentService {
         throw new Error("Payment verification failed");
       }
   
-      // ---------- 3. Extract values ----------
       const pspReference = parsedData.pspReference;
       if (!pspReference) {
         throw new Error("Missing pspReference");
@@ -523,7 +530,10 @@ export class MockPaymentService extends AbstractPaymentService {
       const tid = responseData?.transaction?.tid ?? "N/A";
       const paymentType = responseData?.transaction?.payment_type ?? "N/A";
       const isTestMode = responseData?.transaction?.test_mode === 1;
-  
+      log.info('responsedata-tid');
+      log.info(tid);
+      log.info(paymentType);
+      log.info(JSON.stringify(responseData, null, 2));
       const status = responseData?.transaction?.status;
       const state =
         status === "PENDING" || status === "ON_HOLD"
@@ -557,7 +567,10 @@ export class MockPaymentService extends AbstractPaymentService {
         "Localized transaction comments:",
         JSON.stringify(localizedTransactionComments, null, 2)
       );
-  
+      log.info("Find the separate language based");
+      log.info(localizedTransactionComments.en);
+      log.info(localizedTransactionComments.de);
+      const testComment = localizedTransactionComments.en ?? localizedTransactionComments.de ?? 'emptyComment';
       // ---------- 5. Fetch Payment ----------
       const raw = await this.ctPaymentService.getPayment({
         id: parsedData.ctPaymentId,
@@ -600,8 +613,8 @@ export class MockPaymentService extends AbstractPaymentService {
         {
           action: "setTransactionCustomField",
           transactionId: txId,
-          name: "transactionCommentsLocalized",
-          value: localizedTransactionComments,
+          name: "transactionComments",
+          value: testComment,
         },
         {
           action: "setStatusInterfaceCode",
