@@ -1,0 +1,13 @@
+{
+    "payment": {
+      "authorized": "Zahlung erfolgreich autorisiert",
+      "pending": "Zahlung ist ausstehend",
+      "failed": "Zahlung fehlgeschlagen",
+      "refundInitiated": "Rückerstattung von {{amount}} eingeleitet",
+      "transactionId": "Novalnet Transaktions-ID: {{tid}}",
+      "paymentType": "Zahlungsart: {{type}}",
+      "testMode": "Testmodus",
+      "liveMode":"Livemodus"
+    }
+  }
+  
