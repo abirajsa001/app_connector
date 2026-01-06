@@ -222,10 +222,10 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
             ctPaymentId: query.ctPaymentID,
             pspReference: query.pspReference,
             lang: query.lang,
-            path:query.path
+            path: query.path
           };
         log.info("path-route");
-        log.info(path);
+        log.info(requestData?.path);
           // Convert to JSON string
           const jsonBody = JSON.stringify(requestData);
         
@@ -261,8 +261,13 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       tid?: string;
       status_text?: string;
       payment_type?: string;
+      path?: string;
     };
   
+    if (query.path) {
+      log.info('failure-path-route');
+      log.info(query.path);
+    }
     const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
     const redirectUrl = new URL(baseUrl);
   

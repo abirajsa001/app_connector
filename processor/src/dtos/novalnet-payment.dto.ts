@@ -55,6 +55,7 @@ export const PaymentRequestSchema = Type.Object({
   }),
   paymentOutcome: PaymentOutcomeSchema,
   lang: Type.Optional(Type.String()),
+  path: Type.Optional(Type.String()),
 });
 
 export type PaymentRequestSchemaDTO = Static<typeof PaymentRequestSchema>;
