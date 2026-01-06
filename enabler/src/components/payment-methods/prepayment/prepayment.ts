@@ -49,6 +49,9 @@ export class Prepayment extends BaseComponent {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
     const pathLocale = window.location.pathname.split("/")[1];
+    const url = new URL(window.location.href);
+    const baseSiteUrl = url.origin;
+
     try {
       // start original
  
@@ -58,7 +61,7 @@ export class Prepayment extends BaseComponent {
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
         lang: pathLocale ?? 'de',
-        path: window.location.href,
+        path: baseSiteUrl,
       };
 
       const response = await fetch(this.processorUrl + "/payment", {

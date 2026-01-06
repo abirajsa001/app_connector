@@ -301,7 +301,6 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     
       // Convert to JSON string
       const jsonBody = JSON.stringify(requestData);
-    
       const result = await opts.paymentService.failureResponse({
         data: jsonBody,  // send JSON string
       });
