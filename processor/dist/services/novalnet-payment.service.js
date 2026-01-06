@@ -1555,7 +1555,7 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         };
         return formatDateTime();
     }
-    async createPayments(request) {
+    async createRedirectPayment(request) {
         logger_1.log.info("Request data:", JSON.stringify(request.data, null, 2));
         const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
         logger_1.log.info("Payment type:", type);

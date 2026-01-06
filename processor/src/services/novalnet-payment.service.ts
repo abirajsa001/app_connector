@@ -474,12 +474,12 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     return result;
   }
   
-  public async createRedirectPayment({ data }: { data: any }) {
+  public async transactionUpdate({ data }: { data: any }) {
     try {
-      log.info("createRedirectPayment");
+      log.info("transactionUpdate");
       const parsedData = typeof data === "string" ? JSON.parse(data) : data;
       if (!parsedData?.ctPaymentId) {
-        throw new Error("Missing ctPaymentId in createRedirectPayment");
+        throw new Error("Missing ctPaymentId in transactionUpdate");
       }
       
       const config = getConfig();
@@ -673,7 +673,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         paymentReference: responseData?.custom?.paymentRef ?? "",
       };
     } catch (err) {
-      log.error(" createRedirectPayment FAILED", err);
+      log.error("transactionUpdate FAILED", err);
       throw err;
     }
   }
@@ -2041,7 +2041,7 @@ public async updatePaymentStatusByPaymentId(
     return formatDateTime();
   }
 
-  public async createPayments(
+  public async createRedirectPayment(
     request: CreatePaymentRequest,
   ): Promise<PaymentResponseSchemaDTO> {
     log.info("Request data:", JSON.stringify(request.data, null, 2));

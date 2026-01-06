@@ -108,7 +108,7 @@ export const paymentRoutes = async (
       log.info("Request headers:", request.headers);
       
       try {
-        const resp = await opts.paymentService.createPayments({
+        const resp = await opts.paymentService.createRedirectPayment({
           data: request.body,
         });
 
@@ -224,7 +224,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
           // Convert to JSON string
           const jsonBody = JSON.stringify(requestData);
         
-          const result = await opts.paymentService.createRedirectPayment({
+          const result = await opts.paymentService.transactionUpdate({
             data: jsonBody,  // send JSON string
           });
         

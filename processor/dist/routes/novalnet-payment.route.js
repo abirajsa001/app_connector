@@ -72,7 +72,7 @@ const paymentRoutes = async (fastify, opts) => {
         logger_1.log.info("Request body:", JSON.stringify(request.body, null, 2));
         logger_1.log.info("Request headers:", request.headers);
         try {
-            const resp = await opts.paymentService.createPayments({
+            const resp = await opts.paymentService.createRedirectPayment({
                 data: request.body,
             });
             logger_1.log.info("Payment service response:", JSON.stringify(resp, null, 2));
