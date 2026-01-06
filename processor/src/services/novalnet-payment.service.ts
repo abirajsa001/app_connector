@@ -1255,6 +1255,7 @@ if (!order) {
   public async handleTransactionCapture(webhook: any) {
     const { date, time } = await this.getFormattedDateTime();
     const supportedLocales: SupportedLocale[] = ["en", "de"];
+    const lang = webhook.custom.lang;
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
         acc[locale] = [
@@ -1316,6 +1317,7 @@ if (!order) {
 
   public async handleTransactionCancel(webhook: any) {
     const { date, time } = await this.getFormattedDateTime();
+    const lang = webhook.custom.lang;
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
@@ -1386,6 +1388,7 @@ if (!order) {
     const { date, time } = await this.getFormattedDateTime();
     const refundedAmount = webhook.transaction.refund.amount;
     const refundTID = webhook.transaction.refund.tid ?? '';
+    let lang = webhook.custom.lang;
 
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
@@ -1461,7 +1464,7 @@ if (!order) {
     let dueDate = webhook.transaction.due_date;
     let { date, time } = await this.getFormattedDateTime();
     let supportedLocales: SupportedLocale[] = ["en", "de"];
-
+    let lang = webhook.custom.lang;
 
     const amountUpdateComment = await this.localcomments("webhook.amountUpdateComment", { eventTID: eventTID, amount: amount, currency: currency });
     const dueDateUpdateComment = await this.localcomments("webhook.dueDateUpdateComment", { eventTID: eventTID, amount: amount, currency: currency, dueDate: dueDate });
@@ -1556,6 +1559,7 @@ if (!order) {
     const currency = webhook.transaction.currency;
     const { date, time } = await this.getFormattedDateTime();
     const supportedLocales: SupportedLocale[] = ["en", "de"];
+    const lang = webhook.custom.lang;
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
         acc[locale] = [
@@ -1621,6 +1625,7 @@ if (!order) {
     const currency = webhook.transaction.currency;
     const { date, time } = await this.getFormattedDateTime();
     const supportedLocales: SupportedLocale[] = ["en", "de"];
+    const lang = webhook.custom.lang;
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
         acc[locale] = [
@@ -1684,6 +1689,7 @@ if (!order) {
     const { date, time } = await this.getFormattedDateTime();
     const reminderIndex = webhook.event.type.split('_')[2];
     const supportedLocales: SupportedLocale[] = ["en", "de"];
+    const lang = webhook.custom.lang;
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
         acc[locale] = [
@@ -1737,7 +1743,7 @@ if (!order) {
     const collectionReference = webhook.collection.reference;
     const { date, time } = await this.getFormattedDateTime();
     const reminderIndex = webhook.event.type.split('_')[2];
-    const lang = "de";
+    const lang = webhook.custom.lang;
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
