@@ -306,7 +306,6 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     try {
       const body = req.body as Record<string, any> | any[];
       const responseData = Array.isArray(body) ? body : [body];
-  
       const webhook = responseData[0] as Record<string, any>;
   
       log.info('route-webhook');

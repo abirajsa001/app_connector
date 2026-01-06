@@ -1146,6 +1146,7 @@ if (!order) {
     }
     const eventType = webhook.event?.type;
     const status = webhook.result?.status;
+    let lang = webhook.custom?.lang;
     this.getOrderDetails(webhook);
     if (status !== 'SUCCESS') {
       log.warn('Webhook status is not SUCCESS');
@@ -1207,7 +1208,7 @@ if (!order) {
 
   public async handlePayment(webhook: any) {
     const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
-    log.info("handle payment update");
+    log.info("handle payment event");
     const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
@@ -1249,14 +1250,10 @@ if (!order) {
     },
     })
     .execute();
-        log.info('PAYMENT event', {
-          tid: webhook.event.tid,
-        });
   }
 
   public async handleTransactionCapture(webhook: any) {
     const { date, time } = await this.getFormattedDateTime();
-    const lang = "en";
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
@@ -1270,7 +1267,7 @@ if (!order) {
     const transactionComments = lang == 'en' ? localizedTransactionComments.en : localizedTransactionComments.de;
     const status = webhook?.transaction?.status;
     const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
-    log.info("handle payment update");
+    log.info("handle payment capture");
     const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
@@ -1319,7 +1316,6 @@ if (!order) {
 
   public async handleTransactionCancel(webhook: any) {
     const { date, time } = await this.getFormattedDateTime();
-    const lang = "de";
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
@@ -1331,7 +1327,8 @@ if (!order) {
       {} as Record<SupportedLocale, string>
     );
     const transactionComments = lang == 'de' ? localizedTransactionComments.de : localizedTransactionComments.en;
-    log.info("handle payment update");
+    log.info("handle payment cancel");
+    log.info(lang);
     const status = webhook?.transaction?.status;
     const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
@@ -1389,7 +1386,6 @@ if (!order) {
     const { date, time } = await this.getFormattedDateTime();
     const refundedAmount = webhook.transaction.refund.amount;
     const refundTID = webhook.transaction.refund.tid ?? '';
-    const lang = "de";
 
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
@@ -1464,7 +1460,6 @@ if (!order) {
     let currency = webhook.transaction.currency;
     let dueDate = webhook.transaction.due_date;
     let { date, time } = await this.getFormattedDateTime();
-    let lang = "en";
     let supportedLocales: SupportedLocale[] = ["en", "de"];
 
 
@@ -1560,7 +1555,6 @@ if (!order) {
     const amount = String(webhook.transaction.amount / 100);
     const currency = webhook.transaction.currency;
     const { date, time } = await this.getFormattedDateTime();
-    const lang = "en";
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
@@ -1626,7 +1620,6 @@ if (!order) {
     const amount = String(webhook.transaction.amount / 100);
     const currency = webhook.transaction.currency;
     const { date, time } = await this.getFormattedDateTime();
-    const lang = "en";
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
@@ -1690,7 +1683,6 @@ if (!order) {
   public async handlePaymentReminder(webhook: any) {
     const { date, time } = await this.getFormattedDateTime();
     const reminderIndex = webhook.event.type.split('_')[2];
-    const lang = "de";
     const supportedLocales: SupportedLocale[] = ["en", "de"];
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
