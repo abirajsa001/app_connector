@@ -48,7 +48,8 @@ export class Sepa extends BaseComponent {
   async submit() {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
+    const pathLocale = window.location.pathname.split("/")[1];
+
     try {
       // start original
     const accountHolderInput = document.getElementById('nn_account_holder') as HTMLInputElement;
@@ -59,11 +60,7 @@ export class Sepa extends BaseComponent {
     const iban = ibanInput?.value.trim() ?? '';
     const bic = bicInput?.value.trim() ?? '';
 
-    console.log('Account Holder:', accountHolder);
-    console.log('IBAN:', iban);
-    console.log('bic:', bic);
-
-      const requestData: PaymentRequestSchemaDTO = {
+    const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: "DIRECT_DEBIT_SEPA",
           accHolder: accountHolder,
@@ -71,10 +68,10 @@ export class Sepa extends BaseComponent {
           bic: bic,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
+        lang: pathLocale ?? 'de',
+        path: window.location.href,
       };
-      console.log('requestData');
-      console.log(requestData);
-     
+
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
@@ -83,10 +80,7 @@ export class Sepa extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-      console.log('responseData-newdata');
-      console.log(response);
       const data = await response.json();
-      console.log(data);
       if (data.paymentReference) {
         this.onComplete &&
           this.onComplete({

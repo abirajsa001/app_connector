@@ -48,7 +48,7 @@ export class Invoice extends BaseComponent {
   async submit() {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
+    const pathLocale = window.location.pathname.split("/")[1];
     try {
       // start original
       const requestDatas: PaymentRequestSchemaDTO = {
@@ -56,6 +56,8 @@ export class Invoice extends BaseComponent {
           type: this.paymentMethod,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
+        lang: pathLocale ?? 'de',
+        path: window.location.href,
       };
      
       const responses = await fetch(this.processorUrl + "/test", {
@@ -66,18 +68,13 @@ export class Invoice extends BaseComponent {
         },
         body: JSON.stringify(requestDatas),
       });
-      console.log('responses-dataa');
-    console.log(responses);
-      
-      
+
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: this.paymentMethod,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
-      console.log('requestData');
-    console.log(requestData);
      
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
@@ -87,10 +84,7 @@ export class Invoice extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-      console.log('responseData-newdata');
-      console.log(response);
       const data = await response.json();
-      console.log(data);
       if (data.paymentReference) {
         this.onComplete &&
           this.onComplete({

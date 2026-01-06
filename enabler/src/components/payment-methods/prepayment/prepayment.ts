@@ -48,10 +48,7 @@ export class Prepayment extends BaseComponent {
   async submit() {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
     const pathLocale = window.location.pathname.split("/")[1];
-    console.log(window.location.href);
-    console.log(pathLocale);
     try {
       // start original
  
@@ -61,10 +58,9 @@ export class Prepayment extends BaseComponent {
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
         lang: pathLocale ?? 'de',
+        path: window.location.href,
       };
-      console.log('requestData');
-      console.log(requestData);
-    
+
       const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
@@ -73,10 +69,7 @@ export class Prepayment extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-      console.log('responseData-newdata');
-      console.log(response);
       const data = await response.json();
-      console.log(data);
       if (data.paymentReference) {
         this.onComplete &&
           this.onComplete({

@@ -48,14 +48,8 @@ export class Paypal extends BaseComponent {
 
   async submit() {
     this.sdk.init({ environment: this.environment });
-    console.log('=== PAYPAL ENABLER SUBMIT START ===');
-    console.log('Environment:', this.environment);
-    console.log('Processor URL:', this.processorUrl);
-    console.log('Session ID:', this.sessionId);
-    console.log('asyncSubmit');
     const pathLocale = window.location.pathname.split("/")[1];
-    console.log(window.location.href);
-    console.log(pathLocale);
+
     try {
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
@@ -65,8 +59,6 @@ export class Paypal extends BaseComponent {
         lang: pathLocale,
         path: window.location.href,
       };
-      console.log('Request data:', JSON.stringify(requestData, null, 2));
-      console.log('Making API call to:', this.processorUrl + "/payments");
       const response = await fetch(this.processorUrl + "/payments", {
         method: "POST",
         headers: {
@@ -76,9 +68,6 @@ export class Paypal extends BaseComponent {
         body: JSON.stringify(requestData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-    
       if (!response.ok) {
         const errorText = await response.text();
         console.error('HTTP error response:', errorText);
@@ -86,18 +75,7 @@ export class Paypal extends BaseComponent {
       }
       
       const data = await response.json();
-      console.log('=== PAYMENT RESPONSE ===:', JSON.stringify(data, null, 2));
-      console.log('commercetools redirect url', data.txnSecret);
       window.location.href = data.txnSecret;
-      
-      // if (data.paymentReference && data.paymentReference !== 'null') {
-      //   console.log('Initializing Novalnet child window with txn_secret:', data.txnSecret);
-      //   console.log('commercetools payment ID:', data.paymentReference);
-      //   this.initializeNovalnetChildWindow(data.txnSecret, data.paymentReference);
-      // } else {
-      //   console.error('No valid payment reference received:', data.paymentReference);
-      //   this.onError("Payment initialization failed. Please try again.");
-      // }
 
     } catch (e) {
       console.error('=== PAYMENT SUBMISSION ERROR ===:', e);
@@ -109,7 +87,6 @@ export class Paypal extends BaseComponent {
       this.onError("Some error occurred. Please try again.");
     }
   }
-
 
 
   private _getTemplate() {

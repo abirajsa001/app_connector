@@ -48,22 +48,16 @@ export class Mbway extends BaseComponent {
 
   async submit() {
     this.sdk.init({ environment: this.environment });
-    console.log('=== Mbway ENABLER SUBMIT START ===');
-    console.log('Environment:', this.environment);
-    console.log('Processor URL:', this.processorUrl);
-    console.log('Session ID:', this.sessionId);
-
+    const pathLocale = window.location.pathname.split("/")[1];
     try {
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: 'MBWAY',
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
+        lang: pathLocale ?? 'de',
+        path: window.location.href,
       };
-      console.log('Request data:', JSON.stringify(requestData, null, 2));
-	  console.log('Payment Method:', this.paymentMethod);
-
-      console.log('Making API call to:', this.processorUrl + "/payments");
       const response = await fetch(this.processorUrl + "/payments", {
         method: "POST",
         headers: {
@@ -73,9 +67,6 @@ export class Mbway extends BaseComponent {
         body: JSON.stringify(requestData),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('HTTP error response:', errorText);
@@ -83,21 +74,8 @@ export class Mbway extends BaseComponent {
       }
       
       const data = await response.json();
-      console.log('=== PAYMENT RESPONSE ===:', JSON.stringify(data, null, 2));
-      console.log('commercetools redirect url', data.txnSecret);
       window.location.href = data.txnSecret;
-      
-      // if (data.paymentReference && data.paymentReference !== 'null') {
-      //   console.log('Initializing Novalnet child window with txn_secret:', data.txnSecret);
-      //   console.log('commercetools payment ID:', data.paymentReference);
-      //   this.initializeNovalnetChildWindow(data.txnSecret, data.paymentReference);
-      // } else {
-      //   console.error('No valid payment reference received:', data.paymentReference);
-      //   this.onError("Payment initialization failed. Please try again.");
-      // }
-
     } catch (e) {
-      console.error('=== PAYMENT SUBMISSION ERROR ===:', e);
       console.error('Error details:', {
         message: e.message,
         stack: e.stack,
@@ -106,8 +84,6 @@ export class Mbway extends BaseComponent {
       this.onError("Some error occurred. Please try again.");
     }
   }
-
-
 
   private _getTemplate() {
     return this.showPayButton
@@ -119,4 +95,5 @@ export class Mbway extends BaseComponent {
     `
       : "";
   }
+  
 }

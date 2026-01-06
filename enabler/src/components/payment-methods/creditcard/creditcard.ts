@@ -92,7 +92,7 @@ export class Creditcard extends BaseComponent {
 
   async submit() {
     this.sdk.init({ environment: this.environment });
-
+    const pathLocale = window.location.pathname.split("/")[1];
     try {
       const panhashInput = document.getElementById("pan_hash") as HTMLInputElement;
       const uniqueIdInput = document.getElementById("unique_id") as HTMLInputElement;
@@ -119,6 +119,8 @@ export class Creditcard extends BaseComponent {
           doRedirect: doRedirect,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
+        lang: pathLocale ?? 'de',
+        path: window.location.href,
       };
 
       const response = await fetch(this.processorUrl + "/payment", {

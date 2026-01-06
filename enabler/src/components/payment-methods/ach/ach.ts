@@ -48,22 +48,18 @@ export class Ach extends BaseComponent {
   async submit() {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
-    console.log('submit-triggered');
+    const pathLocale = window.location.pathname.split("/")[1];
     try {
       // start original
-     const accountHolderInput = document.getElementById('purchaseOrderForm-accHolder') as HTMLInputElement;
-     const accountNumberInput = document.getElementById('purchaseOrderForm-poNumber') as HTMLInputElement;
+    const accountHolderInput = document.getElementById('purchaseOrderForm-accHolder') as HTMLInputElement;
+    const accountNumberInput = document.getElementById('purchaseOrderForm-poNumber') as HTMLInputElement;
     const routingNumberInput = document.getElementById('purchaseOrderForm-invoiceMemo') as HTMLInputElement;
 
     const accountHolder = accountHolderInput?.value.trim();
     const accountNumber = accountNumberInput?.value.trim();
     const routingNumber = routingNumberInput?.value.trim();
 
-    console.log('Account Holder:', accountHolder);
-    console.log('Account Number:', accountNumber);
-    console.log('Routing Number:', routingNumber);
-     
-      const requestData: PaymentRequestSchemaDTO = {
+    const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: "DIRECT_DEBIT_ACH",
           accHolder: accountHolder,
@@ -71,11 +67,11 @@ export class Ach extends BaseComponent {
           invoiceMemo: routingNumber,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
+        lang: pathLocale ?? 'de',
+        path: window.location.href,
       };
-      console.log('requestData');
-    console.log(requestData);
-     
-      const response = await fetch(this.processorUrl + "/payment", {
+
+    const response = await fetch(this.processorUrl + "/payment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,10 +79,7 @@ export class Ach extends BaseComponent {
         },
         body: JSON.stringify(requestData),
       });
-      console.log('responseData-newdata');
-      console.log(response);
       const data = await response.json();
-      console.log(data);
       if (data.paymentReference) {
         this.onComplete &&
           this.onComplete({

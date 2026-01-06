@@ -697,7 +697,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     const billingAddress = await this.ctbb(ctCart);
     const parsedCart = typeof ctCart === "string" ? JSON.parse(ctCart) : ctCart;
     const dueDateValue = getPaymentDueDate(dueDate);
-
+    const lang = String(request.data?.lang ?? "en") as SupportedLocale;
     const transaction: Record<string, any> = {
       test_mode: testMode === "1" ? "1" : "0",
       payment_type: String(request.data.paymentMethod.type),
@@ -816,12 +816,10 @@ const pspReference = randomUUID().toString();
         inputval2: String(
           parsedCart?.taxedPrice?.totalGross?.centAmount ?? "empty",
         ),
-        input3: "customerEmail",
-        inputval3: String(parsedCart.customerEmail ?? "Email not available"),
+        input3: "lang",
+        inputval3: String(lang ?? "lang not available"),
         input4: "ctpayment-id",
-        inputval4: String(
-          ctPayment.id ?? "ctpayment-id not available",
-        ),
+        inputval4: String(ctPayment.id ?? "ctpayment-id not available"),
         input5: "pspReference",
         inputval5: String(pspReference ?? "0"),
       },
@@ -899,15 +897,7 @@ const pspReference = randomUUID().toString();
     const bankName = bankDetails?.bank_name;
     const bankPlace = bankDetails?.bank_place;
 
-    // -----------------------------
-    // Localization setup
-    // -----------------------------
-    const lang = String(request.data?.lang ?? "en") as SupportedLocale;
     const supportedLocales: SupportedLocale[] = ["en", "de"];
-
-    // -----------------------------
-    // Base transactions comments
-    // -----------------------------
     const localizedTransactionComments = supportedLocales.reduce(
       (acc, locale) => {
         acc[locale] = [
@@ -2247,12 +2237,12 @@ public async updatePaymentStatusByPaymentId(
         inputval1: String(paymentRef ?? "no paymentRef"),
         input2: "ReturnurlContexts",
         inputval2: String(ReturnurlContext ?? "no merchantReturnURL"),
-        input3: "currencyCode",
-        inputval3: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
-        input4: "customerEmail",
-        inputval4: String(parsedCart.customerEmail ?? "Email not available"),
-        input5: "getFutureOrderNumberFromContext",
-        inputval5: String(orderNumber ?? "getFutureOrderNumberFromContext"),
+        input3: "lang",
+        inputval3: String(lang ?? 'no-lang'),
+        input4: "ctpayment-id",
+        inputval4: String(ctPaymentId ?? "ctpayment-id not available"),
+        input5: "pspReference",
+        inputval5: String(pspReference ?? "0"),
         input6: "langUpdated",
         inputval6: String(lang ?? 'no-lang'),
       },
