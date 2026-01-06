@@ -890,7 +890,8 @@ const pspReference = randomUUID().toString();
     const isTestMode = transactions?.test_mode === 1;
 
     const bankDetails = transactions?.bank_details;
-
+log.info("transaction-bankdetails");
+log.info(bankDetails?.bank_name);
     const accountHolder = bankDetails?.account_holder;
     const iban = bankDetails?.iban;
     const bic = bankDetails?.bic;
@@ -914,7 +915,8 @@ const pspReference = randomUUID().toString();
     // Bank details comments (optional)
     // -----------------------------
     let localizedBankDetailsComment: Partial<Record<SupportedLocale, string>> = {};
-
+    log.info("transaction-bankName-update");
+    log.info(bankName);
     if (bankDetails) {
       localizedBankDetailsComment = supportedLocales.reduce(
         (acc, locale) => {
@@ -2035,6 +2037,7 @@ public async updatePaymentStatusByPaymentId(
     log.info("Request data:", JSON.stringify(request.data, null, 2));
     const type = String(request.data?.paymentMethod?.type ?? "INVOICE");
     const lang = String(request.data?.lang);
+    const path = String(request.data?.path);
     log.info("Payment type:");
     log.info(type);
     log.info(lang);
@@ -2174,6 +2177,7 @@ public async updatePaymentStatusByPaymentId(
     url.searchParams.append("ctPaymentID", ctPaymentId);
     url.searchParams.append("pspReference", pspReference);
     url.searchParams.append("lang", lang);
+    url.searchParams.append("path", path);
     const returnUrl = url.toString();
     
     const urlFailure = new URL("/failure", processorURL);
@@ -2183,6 +2187,7 @@ public async updatePaymentStatusByPaymentId(
     urlFailure.searchParams.append("ctPaymentID", ctPaymentId);
     urlFailure.searchParams.append("pspReference", pspReference);
     url.searchParams.append("lang", lang);
+    url.searchParams.append("path", path);
     const errorReturnUrl = urlFailure.toString();
 
     const ReturnurlContext = getMerchantReturnUrlFromContext();

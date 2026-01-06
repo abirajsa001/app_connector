@@ -146,6 +146,8 @@ export const paymentRoutes = async (
       const resp = await opts.paymentService.createDirectPayment({
         data: request.body,
       });
+      log.info("locale-pathurl-direct");
+      log.info(request.body.path);
       if(resp?.transactionStatus == 'FAILURE') {
         const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
         return reply.code(302).redirect(baseUrl);
@@ -191,6 +193,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       ctPaymentID?: string;
       pspReference?: string;
       lang?: string;
+      path?: string;
     };
 
     const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
@@ -219,8 +222,10 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
             ctPaymentId: query.ctPaymentID,
             pspReference: query.pspReference,
             lang: query.lang,
+            path:query.path
           };
-        
+        log.info("path-route");
+        log.info(path);
           // Convert to JSON string
           const jsonBody = JSON.stringify(requestData);
         
