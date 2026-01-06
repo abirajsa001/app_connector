@@ -149,7 +149,7 @@ export const paymentRoutes = async (
       log.info("locale-pathurl-direct");
       log.info(request.body.path);
       if(resp?.transactionStatus == 'FAILURE') {
-        const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
+        const baseUrl = request.body.path + "/checkout";
         return reply.code(302).redirect(baseUrl);
       }
       return reply.status(200).send(resp);
@@ -236,7 +236,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
           const orderId = await getOrderIdFromOrderNumber(orderNumber);
           if (!orderId) return reply.code(404).send('Order not found');
 
-          const thirdPartyUrl = 'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=' + orderId;
+          const thirdPartyUrl = requestData?.path + lang + '/thank-you/?orderId=' + orderId;
           return reply.code(302).redirect(thirdPartyUrl);
         } catch (error) {
           log.error("Error processing payment:", error);
@@ -268,7 +268,7 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       log.info('failure-path-route');
       log.info(query.path);
     }
-    const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
+    const baseUrl = query.path + "/checkout";
     const redirectUrl = new URL(baseUrl);
   
     if (query.paymentReference) {

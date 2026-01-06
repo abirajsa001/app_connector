@@ -4,11 +4,11 @@
       "paymentType": "Zahlungsart: {{type}}",
       "testMode": "Testmodus",
       "referenceText":"Please transfer the amount of {{amount}} to the following account",
-      "accountHolder":"Kontoinhaber: ",
-      "iban":"IBAN:",
-      "bic":"BIC:",
-      "bankName":"BANK NAME",
-      "bankPlace":"BANK PLACE"
+      "accountHolder":"Kontoinhaber: {{accountHolder}}",
+      "iban":"IBAN: {{iban}}",
+      "bic":"BIC: {{bic}}",
+      "bankName":"BANK NAME {{bankName}}",
+      "bankPlace":"BANK PLACE {{bankPlace}}"
     },
     "webhook": {
       "captureComment": "Die Buchung wurde am {{date}} um {{time}} Uhr bestätigt.",

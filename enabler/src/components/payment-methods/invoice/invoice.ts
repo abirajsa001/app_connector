@@ -49,6 +49,9 @@ export class Invoice extends BaseComponent {
     // here we would call the SDK to submit the payment
     this.sdk.init({ environment: this.environment });
     const pathLocale = window.location.pathname.split("/")[1];
+    const url = new URL(window.location.href);
+    const baseSiteUrl = url.origin;
+
     try {
       // start original
       const requestDatas: PaymentRequestSchemaDTO = {
@@ -57,7 +60,7 @@ export class Invoice extends BaseComponent {
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
         lang: pathLocale ?? 'de',
-        path: window.location.href,
+        path: baseSiteUrl,
       };
      
       const responses = await fetch(this.processorUrl + "/test", {

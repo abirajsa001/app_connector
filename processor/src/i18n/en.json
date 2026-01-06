@@ -4,11 +4,11 @@
       "paymentType": "Payment Type: {{type}}",
       "testMode": "Test mode",
       "referenceText":"Please transfer the amount of {{amount}} to the following account",
-      "accountHolder":"Account holder:",
-      "iban":"IBAN:",
-      "bic":"BIC:",
-      "bankName":"BANK NAME",
-      "bankPlace":"BANK PLACE"
+      "accountHolder":"Account holder: {{accountHolder}}",
+      "iban":"IBAN: {{iban}}",
+      "bic":"BIC: {{bic}}",
+      "bankName":"BANK NAME {{bankName}}",
+      "bankPlace":"BANK PLACE {{bankPlace}}"
     },
     "webhook": {
       "captureComment": "The transaction has been confirmed on {{date}} at {{time}}",

@@ -49,6 +49,8 @@ export class Paypal extends BaseComponent {
   async submit() {
     this.sdk.init({ environment: this.environment });
     const pathLocale = window.location.pathname.split("/")[1];
+    const url = new URL(window.location.href);
+    const baseSiteUrl = url.origin;
 
     try {
       const requestData: PaymentRequestSchemaDTO = {
@@ -57,7 +59,7 @@ export class Paypal extends BaseComponent {
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
         lang: pathLocale,
-        path: window.location.href,
+        path: baseSiteUrl,
       };
       const response = await fetch(this.processorUrl + "/payments", {
         method: "POST",
