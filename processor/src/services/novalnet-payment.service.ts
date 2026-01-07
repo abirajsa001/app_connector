@@ -726,28 +726,28 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       };
   }
 
-const ctPayment = await this.ctPaymentService.createPayment({
-  amountPlanned: await this.ctCartService.getPaymentAmount({
-    cart: ctCart,
-  }),
-  paymentMethodInfo: {
-    paymentInterface: getPaymentInterfaceFromContext() || "mock",
-  },
-  ...(ctCart.customerId && {
-    customer: { typeId: "customer", id: ctCart.customerId },
-  }),
-  ...(!ctCart.customerId &&
-    ctCart.anonymousId && {
-      anonymousId: ctCart.anonymousId,
+  const ctPayment = await this.ctPaymentService.createPayment({
+    amountPlanned: await this.ctCartService.getPaymentAmount({
+      cart: ctCart,
     }),
-});
+    paymentMethodInfo: {
+      paymentInterface: getPaymentInterfaceFromContext() || "mock",
+    },
+    ...(ctCart.customerId && {
+      customer: { typeId: "customer", id: ctCart.customerId },
+    }),
+    ...(!ctCart.customerId &&
+      ctCart.anonymousId && {
+        anonymousId: ctCart.anonymousId,
+      }),
+  });
 
-await this.ctCartService.addPayment({
-  resource: { id: ctCart.id, version: ctCart.version },
-  paymentId: ctPayment.id,
-});
+  await this.ctCartService.addPayment({
+    resource: { id: ctCart.id, version: ctCart.version },
+    paymentId: ctPayment.id,
+  });
 
-const pspReference = randomUUID().toString();
+  const pspReference = randomUUID().toString();
 
   let firstName = "";
   let lastName = "";
@@ -813,8 +813,8 @@ const pspReference = randomUUID().toString();
 
     let paymentActionUrl = "payment"; 
     log.info('paymentAction-url');
-    log.info(paymentAction); 
-    log.info(paymentActionUrl); 
+    log.info(paymentAction);
+    log.info(paymentActionUrl);
     if (paymentAction === "authorize") {
       const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
       log.info('order-total');
@@ -826,14 +826,11 @@ const pspReference = randomUUID().toString();
         : "payment";
     }
     log.info('paymentAction');
-    log.info(paymentAction); 
-    log.info(paymentActionUrl); 
-    const url =
-      paymentActionUrl === "payment"
-        ? "https://payport.novalnet.de/v2/payment"
-        : "https://payport.novalnet.de/v2/authorize";
+    log.info(paymentAction);
+    log.info(paymentActionUrl);
+    const url = paymentActionUrl === "payment" ? "https://payport.novalnet.de/v2/payment" : "https://payport.novalnet.de/v2/authorize";
     log.info('url');
-    log.info(url); 
+    log.info(url);
     let responseString = "";
     let responseData: any;
     try {
@@ -876,8 +873,8 @@ const pspReference = randomUUID().toString();
     const isTestMode = transactions?.test_mode === 1;
 
     const bankDetails = transactions?.bank_details;
-log.info("transaction-bankdetails");
-log.info(bankDetails?.bank_name);
+    log.info("transaction-bankdetails");
+    log.info(bankDetails?.bank_name);
     const accountHolder = bankDetails?.account_holder;
     const iban = bankDetails?.iban;
     const bic = bankDetails?.bic;
@@ -2180,8 +2177,8 @@ public async updatePaymentStatusByPaymentId(
     urlFailure.searchParams.append("orderNumber", orderNumber);
     urlFailure.searchParams.append("ctPaymentID", ctPaymentId);
     urlFailure.searchParams.append("pspReference", pspReference);
-    url.searchParams.append("lang", lang);
-    url.searchParams.append("path", path);
+    urlFailure.searchParams.append("lang", lang);
+    urlFailure.searchParams.append("path", path);
     const errorReturnUrl = urlFailure.toString();
 
     const ReturnurlContext = getMerchantReturnUrlFromContext();
