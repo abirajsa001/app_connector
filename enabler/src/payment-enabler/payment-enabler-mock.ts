@@ -1,4 +1,3 @@
-import { CardBuilder } from "../components/payment-methods/card/card";
 import { InvoiceBuilder } from "../components/payment-methods/invoice/invoice";
 import { PrepaymentBuilder } from "../components/payment-methods/prepayment/prepayment";
 import { IdealBuilder } from "../components/payment-methods/ideal/ideal";
@@ -90,7 +89,6 @@ export class NovalnetPaymentEnabler implements PaymentEnabler {
     const { baseOptions } = await this.setupData;
 
     const supportedMethods = {
-      card: CardBuilder,
       invoice: InvoiceBuilder,
       prepayment: PrepaymentBuilder,
       ideal: IdealBuilder,

@@ -543,20 +543,11 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       log.info(paymentType);
       log.info(JSON.stringify(responseData, null, 2));
       const status = responseData?.transaction?.status;
-      const state =
-        status === "PENDING" || status === "ON_HOLD"
-          ? "Pending"
-          : status === "CONFIRMED"
-          ? "Success"
-          : status === "CANCELLED"
-          ? "Canceled"
-          : "Failure";
-  
+      const state = status === "PENDING" || status === "ON_HOLD" ? "Pending" : status === "CONFIRMED" ? "Success" : status === "CANCELLED" ? "Canceled" : "Failure";
       const statusCode = responseData?.transaction?.status_code ?? "";
   
       // ---------- 4. Build localized comments ----------
       const supportedLocales: SupportedLocale[] = ["en", "de"];
-  
       const localizedTransactionComments = supportedLocales.reduce(
         (acc, locale) => {
           acc[locale] = [
@@ -569,11 +560,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         {} as Record<SupportedLocale, string>
       );
   
-      log.info(
-        "Localized transaction comments:",
-        JSON.stringify(localizedTransactionComments, null, 2)
-      );
-      log.info("Find the separate language based");
+      log.info( "Localized transaction comments:", JSON.stringify(localizedTransactionComments, null, 2));
       log.info(localizedTransactionComments.en);
       log.info(localizedTransactionComments.de);
       const transactionComments = lang == 'en' ? localizedTransactionComments.en : localizedTransactionComments.de;
@@ -1158,11 +1145,11 @@ if (!order) {
     // === EVENT ROUTING
     switch (eventType) {
       case 'PAYMENT':
-        await this.handlePayment(webhook);
+        transactionComments = await this.handlePayment(webhook);
         break;
 
       case 'TRANSACTION_CAPTURE':
-        await this.handleTransactionCapture(webhook);
+        transactionComments = await this.handleTransactionCapture(webhook);
         break;
 
       case 'TRANSACTION_CANCEL':
@@ -1170,28 +1157,28 @@ if (!order) {
         break;
 
       case 'TRANSACTION_REFUND':
-        await this.handleTransactionRefund(webhook);
+        transactionComments = await this.handleTransactionRefund(webhook);
         break;
 
       case 'TRANSACTION_UPDATE':
-        await this.handleTransactionUpdate(webhook);
+        transactionComments = await this.handleTransactionUpdate(webhook);
         break;
 
       case 'CREDIT':
-        await this.handleCredit(webhook);
+        transactionComments = await this.handleCredit(webhook);
         break;
 
       case 'CHARGEBACK':
-        await this.handleChargeback(webhook);
+        transactionComments = await this.handleChargeback(webhook);
         break;
 
       case 'PAYMENT_REMINDER_1':
       case 'PAYMENT_REMINDER_2':
-        await this.handlePaymentReminder(webhook);
+        transactionComments = await this.handlePaymentReminder(webhook);
         break;
 
       case 'SUBMISSION_TO_COLLECTION_AGENCY':
-        await this.handleCollectionSubmission(webhook);
+        transactionComments = await this.handleCollectionSubmission(webhook);
         break;
 
       default:
@@ -1209,7 +1196,7 @@ if (!order) {
   // ==================================================
 
   public async handlePayment(webhook: any) {
-    const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
+    const transactionComments = `Novalnet Transaction ID: ${webhook.transaction.tid ?? "NN/A"}\nPayment Type: ${webhook.transaction.payment_type ?? "NN/A"}\n${webhook.result.status_text ?? "NN/A"}`;
     log.info("handle payment event");
     const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
     const payment = (raw as any)?.body ?? raw;
@@ -1252,6 +1239,7 @@ if (!order) {
     },
     })
     .execute();
+    return transactionComments;
   }
 
   public async handleTransactionCapture(webhook: any) {
@@ -1315,6 +1303,7 @@ if (!order) {
         log.info('PAYMENT event', {
           tid: webhook.event.tid,
         });
+    return transactionComments;
   }
 
   public async handleTransactionCancel(webhook: any) {
@@ -1456,6 +1445,7 @@ if (!order) {
     },
     })
     .execute();
+    return transactionComments;
   }
 
   public async handleTransactionUpdate(webhook: any) {
@@ -1490,7 +1480,6 @@ if (!order) {
     const onholdToComplete = await this.localcomments("webhook.onholdToComplete", { eventTID: eventTID, date: date, time: time });
     const confirmComments = await this.localcomments("webhook.confirmComment", { date, time });
     const cancelComments = await this.localcomments("webhook.cancelComment", { date, time });
-
 
     if (orderDetails.status != webhook.transaction.status && ['PENDING', 'ON_HOLD'].includes(orderDetails.status)) {
       if (webhook.transaction.status === 'CONFIRMED') {
@@ -1553,6 +1542,7 @@ if (!order) {
     },
     })
     .execute();
+    return transactionComments;
   }
 
   public async handleCredit(webhook: any) {
@@ -1619,6 +1609,7 @@ if (!order) {
     },
     })
     .execute();
+    return transactionComments;
   }
 
   public async handleChargeback(webhook: any) {
@@ -1687,6 +1678,7 @@ if (!order) {
         log.info('PAYMENT event', {
           tid: webhook.event.tid,
         });
+        return transactionComments;
   }
 
   public async handlePaymentReminder(webhook: any) {
@@ -1741,6 +1733,7 @@ if (!order) {
         log.info('PAYMENT event', {
           tid: webhook.event.tid,
         });
+    return transactionComments;
   }
 
   public async handleCollectionSubmission(webhook: any) {
@@ -1795,6 +1788,7 @@ if (!order) {
         log.info('PAYMENT event', {
           tid: webhook.event.tid,
         });
+        return transactionComments;
   }
 
   // ==================================================
