@@ -235,8 +235,9 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
         
           const orderId = await getOrderIdFromOrderNumber(orderNumber);
           if (!orderId) return reply.code(404).send('Order not found');
-
-          const thirdPartyUrl = requestData?.path + lang + '/thank-you/?orderId=' + orderId;
+		  let requestPath = requestData?.path ?? '';
+		  let requestlang = requestData?.lang ?? '';
+          const thirdPartyUrl = requestPath + requestlang + '/thank-you/?orderId=' + orderId;
           return reply.code(302).redirect(thirdPartyUrl);
         } catch (error) {
           log.error("Error processing payment:", error);
