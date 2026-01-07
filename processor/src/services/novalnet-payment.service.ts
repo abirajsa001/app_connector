@@ -1166,7 +1166,7 @@ if (!order) {
         break;
 
       case 'TRANSACTION_CANCEL':
-        await this.handleTransactionCancel(webhook);
+        const transactionComments = await this.handleTransactionCancel(webhook);
         break;
 
       case 'TRANSACTION_REFUND':
@@ -1199,7 +1199,7 @@ if (!order) {
     }
 
     return {
-      message: 'Webhook processed successfully',
+      message: transactionComments,
       eventType,
     };
   }
@@ -1379,6 +1379,8 @@ if (!order) {
         log.info('PAYMENT event', {
           tid: webhook.event.tid,
         });
+
+     return transactionComments;   
   }
 
   public async handleTransactionRefund(webhook: any) {

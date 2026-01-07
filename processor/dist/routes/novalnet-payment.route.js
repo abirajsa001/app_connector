@@ -102,7 +102,7 @@ const paymentRoutes = async (fastify, opts) => {
             data: request.body,
         });
         if (resp?.transactionStatus == 'FAILURE') {
-            const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
+            const baseUrl = request.body.path + "/checkout";
             return reply.code(302).redirect(baseUrl);
         }
         return reply.status(200).send(resp);
@@ -160,8 +160,9 @@ const paymentRoutes = async (fastify, opts) => {
                     const orderId = await (0, order_service_1.getOrderIdFromOrderNumber)(orderNumber);
                     if (!orderId)
                         return reply.code(404).send('Order not found');
-                    const thirdPartyUrl = 'https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=' + orderId;
-                    //const thirdPartyUrl = 'https://poc-novalnetpayments.frontend.site/en/thank-you/';
+                    let requestPath = requestData?.path ?? '';
+                    let requestlang = requestData?.lang ?? '';
+                    const thirdPartyUrl = requestPath + '/' +requestlang + '/thank-you/?orderId=' + orderId;
                     return reply.code(302).redirect(thirdPartyUrl);
                 }
                 catch (error) {
@@ -180,7 +181,7 @@ const paymentRoutes = async (fastify, opts) => {
     });
     fastify.get("/failure", async (request, reply) => {
         const query = request.query;
-        const baseUrl = "https://poc-novalnetpayments.frontend.site/checkout";
+        const baseUrl = query.path + "/checkout";
         const redirectUrl = new URL(baseUrl);
         if (query.paymentReference) {
             redirectUrl.searchParams.set("paymentReference", query.paymentReference);
@@ -246,23 +247,6 @@ const paymentRoutes = async (fastify, opts) => {
                 message: 'Webhook processing failed',
             });
         }
-    });
-    fastify.get("/payments", {
-        preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-        schema: {
-            querystring: novalnet_payment_dto_1.PaymentRequestSchema,
-            response: {
-                200: novalnet_payment_dto_1.PaymentResponseSchema,
-            },
-        },
-    }, async (request, reply) => {
-        const resp = await opts.paymentService.createPayment({
-            data: request.query,
-        });
-        const thirdPartyUrl = "https://poc-novalnetpayments.frontend.site/en/thank-you/?orderId=c52dc5f2-f1ad-4e9c-9dc7-e60bf80d4a52";
-        // return reply.redirect(302, thirdPartyUrl);
-        return reply.code(302).redirect(thirdPartyUrl);
-        // return reply.status(200).send(resp);
     });
 };
 exports.paymentRoutes = paymentRoutes;
