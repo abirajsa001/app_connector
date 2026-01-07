@@ -1154,7 +1154,7 @@ if (!order) {
       log.warn('Webhook status is not SUCCESS');
       return { message: 'Webhook ignored (non-success)' };
     }
-
+	let transactionComments: string | undefined;
     // === EVENT ROUTING
     switch (eventType) {
       case 'PAYMENT':
@@ -1166,7 +1166,7 @@ if (!order) {
         break;
 
       case 'TRANSACTION_CANCEL':
-        const transactionComments = await this.handleTransactionCancel(webhook);
+         transactionComments = await this.handleTransactionCancel(webhook);
         break;
 
       case 'TRANSACTION_REFUND':
