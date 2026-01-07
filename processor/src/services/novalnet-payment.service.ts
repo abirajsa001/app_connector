@@ -177,7 +177,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     return {
       dropins: [],
       components: [
-        { type: PaymentMethodType.CARD },
         { type: PaymentMethodType.INVOICE },
         { type: PaymentMethodType.PREPAYMENT },
         { type: PaymentMethodType.IDEAL },

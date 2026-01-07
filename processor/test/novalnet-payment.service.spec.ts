@@ -226,7 +226,7 @@ const novalnetPaymentService =
     const createPaymentOpts: CreatePaymentRequest = {
       data: {
         paymentMethod: {
-          type: PaymentMethodType.CARD,
+          type: PaymentMethodType.IDEAL,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       },
