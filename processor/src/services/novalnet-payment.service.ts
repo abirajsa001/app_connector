@@ -939,7 +939,6 @@ log.info(bankDetails?.bank_name);
       JSON.stringify(localizedTransactionComments, null, 2)
     );
     log.info("Final transaction comments:", transactionComments);
-
     log.info("Payment created with Novalnet details for direct:");
     log.info("Payment transactionComments for direct:", transactionComments);
     log.info("ctPayment id for direct:", ctPayment.id);

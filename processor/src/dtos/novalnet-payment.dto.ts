@@ -6,7 +6,6 @@ export enum PaymentOutcome {
 }
 
 export enum PaymentMethodType {
-  CARD = "card",
   INVOICE = "invoice",
   PREPAYMENT = "prepayment",
   IDEAL = "ideal",
