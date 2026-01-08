@@ -69,14 +69,16 @@ export class Multibanco extends BaseComponent {
         body: JSON.stringify(requestData),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('HTTP error response:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const data = await response.json();
-      window.location.href = data.txnSecret;
+      if (data.paymentReference) {
+        this.onComplete &&
+          this.onComplete({
+            isSuccess: true,
+            paymentReference: data.paymentReference,
+          });
+      } else {
+        this.onError("Some error occurred. Please try again.");
+      }
     } catch (e) {
       console.error('Error details:', {
         message: e.message,

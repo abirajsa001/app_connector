@@ -222,7 +222,6 @@ export const paymentRoutes = async (
       const body = req.body as Record<string, any> | any[];
       const responseData = Array.isArray(body) ? body : [body];
       const webhook = responseData[0] as Record<string, any>;
-      // Call service
       const serviceResponse = await opts.paymentService.createWebhook(responseData);
       return reply.code(200).send({
         success: true,
@@ -246,7 +245,6 @@ export const paymentRoutes = async (
     async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
       const carts = await projectApiRoot.carts().get().execute();
       const cartId = carts.body.results[0]?.id ?? 'empty1';
-      // req.body is typed as PaymentRequestSchemaDTO now
       const resp = await opts.paymentService.getCustomerAddress({
         data: req.body,
         cartId,
