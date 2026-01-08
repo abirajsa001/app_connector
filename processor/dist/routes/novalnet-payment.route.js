@@ -14,52 +14,7 @@ const ct_client_1 = require("../utils/ct-client");
 console.log("before-payment-routes");
 logger_1.log.info("before-payment-routes");
 const paymentRoutes = async (fastify, opts) => {
-    fastify.post("/test", async (request, reply) => {
-        console.log("Received payment request in processor");
-        // Call Novalnet API server-side (no CORS issue)
-        const novalnetPayload = {
-            merchant: {
-                signature: String((0, config_1.getConfig)()?.novalnetPrivateKey ?? ""),
-                tariff: String((0, config_1.getConfig)()?.novalnetTariff ?? ""),
-            },
-            customer: {
-                billing: {
-                    city: "test",
-                    country_code: "DE",
-                    house_no: "test",
-                    street: "test",
-                    zip: "68662",
-                },
-                first_name: "Max",
-                last_name: "Mustermann",
-                email: "abiraj_s@novalnetsolutions.com",
-            },
-            transaction: {
-                test_mode: "1",
-                payment_type: "PREPAYMENT",
-                amount: 10,
-                currency: "EUR",
-            },
-            custom: {
-                input1: "request",
-                inputval1: String(request ?? "empty"),
-                input2: "reply",
-                inputval2: String(reply ?? "empty"),
-            },
-        };
-        const novalnetResponse = await fetch("https://payport.novalnet.de/v2/payment", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-                "X-NN-Access-Key": String((0, config_1.getConfig)()?.novalnetPrivateKey ?? ""),
-            },
-            body: JSON.stringify(novalnetPayload),
-        });
-        console.log("handle-novalnetResponse");
-        console.log(novalnetResponse);
-    });
-    fastify.post("/payments", {
+    fastify.post("/redirectPayment", {
         preHandler: [opts.sessionHeaderAuthHook.authenticate()],
         schema: {
             body: novalnet_payment_dto_1.PaymentRequestSchema,
@@ -89,7 +44,7 @@ const paymentRoutes = async (fastify, opts) => {
             return reply.status(500).send({ paymentReference: 'error' });
         }
     });
-    fastify.post("/payment", {
+    fastify.post("/directPayment", {
         preHandler: [opts.sessionHeaderAuthHook.authenticate()],
         schema: {
             body: novalnet_payment_dto_1.PaymentRequestSchema,

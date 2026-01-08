@@ -60,7 +60,7 @@ export class Multibanco extends BaseComponent {
         lang: pathLocale ?? 'de',
         path: baseSiteUrl,
       };
-      const response = await fetch(this.processorUrl + "/payment", {
+      const response = await fetch(this.processorUrl + "/directPayment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

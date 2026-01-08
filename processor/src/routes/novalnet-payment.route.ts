@@ -31,57 +31,16 @@ type PaymentRoutesOptions = {
   paymentService: NovalnetPaymentService;
   sessionHeaderAuthHook: SessionHeaderAuthenticationHook;
 };
-console.log("before-payment-routes");
-log.info("before-payment-routes");
 export const paymentRoutes = async (
   fastify: FastifyInstance,
   opts: FastifyPluginOptions & PaymentRoutesOptions,
 ) => {
-   fastify.post<{
-    Body: PaymentRequestSchemaDTO;
-    Reply: PaymentResponseSchemaDTO;
-  }>(
-    "/payments",
-    {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
-
-      schema: {
-        body: PaymentRequestSchema,
-        response: {
-          200: PaymentResponseSchema,
-        },
-      },
-    },
-    async (request, reply) => {
-      log.info("=== PAYMENT ROUTE /payments CALLEDS ===");
-      log.info("Request body:", JSON.stringify(request.body, null, 2));
-      log.info("Request headers:", request.headers);
-      
-      try {
-        const resp = await opts.paymentService.createRedirectPayment({
-          data: request.body,
-        });
-
-        log.info("Payment service response:", JSON.stringify(resp, null, 2));
-        return reply.status(200).send(resp);
-      } catch (error) {
-        log.error("Payment route error:", error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        log.error("Error details:", {
-          message: errorMessage,
-          stack: error instanceof Error ? error.stack : undefined,
-          name: error instanceof Error ? error.name : undefined
-        });
-        return reply.status(500).send({ paymentReference: 'error' });
-      }
-    },
-  );
 
   fastify.post<{
     Body: PaymentRequestSchemaDTO;
     Reply: PaymentResponseSchemaDTO;
   }>(
-    "/payment",
+    "/directPayment",
     {
       preHandler: [opts.sessionHeaderAuthHook.authenticate()],
       schema: {
@@ -95,8 +54,6 @@ export const paymentRoutes = async (
       const resp = await opts.paymentService.createDirectPayment({
         data: request.body,
       });
-      log.info("locale-pathurl-direct");
-      log.info(request.body.path);
       if(resp?.transactionStatus == 'FAILURE') {
         const baseUrl = request.body.path + "/checkout";
         return reply.code(302).redirect(baseUrl);
@@ -105,31 +62,40 @@ export const paymentRoutes = async (
     },
   );
 
-  fastify.post('/getconfig', async (req, reply) => {
-    const clientKey = String(getConfig()?.novalnetClientkey ?? '');
-    return reply.code(200).send({ paymentReference: clientKey });
-  });
-  
-fastify.post<{ Body: PaymentRequestSchemaDTO }>(
-  '/getCustomerAddress',
-  async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
-    log.info('route-customer-address'); 
-    log.info("getCartIdFromContext():");
-    log.info(getCartIdFromContext());
-    const carts = await projectApiRoot.carts().get().execute();
-    log.info("CART LIST:", carts.body.results);
-    log.info(carts.body.results[0]?.id ?? 'empty1');
-    const cartId = carts.body.results[0]?.id ?? 'empty1';
-    // req.body is typed as PaymentRequestSchemaDTO now
-    const resp = await opts.paymentService.getCustomerAddress({
-      data: req.body,
-      cartId,
-    }as any);
+  fastify.post<{
+    Body: PaymentRequestSchemaDTO;
+    Reply: PaymentResponseSchemaDTO;
+  }>(
+    "/redirectPayment",
+    {
+      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
 
-   return reply.code(200).send(resp);
-  }
-);	
-   
+      schema: {
+        body: PaymentRequestSchema,
+        response: {
+          200: PaymentResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      try {
+        const resp = await opts.paymentService.createRedirectPayment({
+          data: request.body,
+        });
+        return reply.status(200).send(resp);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        log.error("Error details:", {
+          message: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+          name: error instanceof Error ? error.name : undefined
+        });
+        return reply.status(500).send({ paymentReference: 'error' });
+      }
+    },
+  );
+
+
   fastify.get("/success", async (request, reply) => {
     const query = request.query as {
       tid?: string;
@@ -155,9 +121,6 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       if (!orderNumber) {
         return reply.code(400).send('Missing orderNumber');
       }
-
-      log.info(orderNumber + 'orderNumber')
-
       const generatedChecksum = crypto
         .createHash("sha256")
         .update(tokenString)
@@ -173,13 +136,10 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
             lang: query.lang,
             path: query.path
           };
-        log.info("path-route");
-        log.info(requestData?.path);
-          // Convert to JSON string
+
           const jsonBody = JSON.stringify(requestData);
-        
           const result = await opts.paymentService.transactionUpdate({
-            data: jsonBody,  // send JSON string
+            data: jsonBody,
           });
         
           const orderId = await getOrderIdFromOrderNumber(orderNumber);
@@ -214,10 +174,6 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       path?: string;
     };
   
-    if (query.path) {
-      log.info('failure-path-route');
-      log.info(query.path);
-    }
     const baseUrl = query.path + "/checkout";
     const redirectUrl = new URL(baseUrl);
   
@@ -249,7 +205,6 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
         payment_type: query.payment_type ?? 'empty-payment-type',
       };
     
-      // Convert to JSON string
       const jsonBody = JSON.stringify(requestData);
       const result = await opts.paymentService.failureResponse({
         data: jsonBody,  // send JSON string
@@ -261,15 +216,12 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
     }
   });
   
+
   fastify.post<{ Body: any }>('/webhook', async (req, reply) => {
     try {
       const body = req.body as Record<string, any> | any[];
       const responseData = Array.isArray(body) ? body : [body];
       const webhook = responseData[0] as Record<string, any>;
-  
-      log.info('route-webhook');
-      log.info('checksum:', webhook?.event?.checksum);
-  
       // Call service
       const serviceResponse = await opts.paymentService.createWebhook(responseData);
       return reply.code(200).send({
@@ -284,5 +236,23 @@ fastify.post<{ Body: PaymentRequestSchemaDTO }>(
       });
     }
   });
+
+  fastify.post('/getconfig', async (req, reply) => {
+    const clientKey = String(getConfig()?.novalnetClientkey ?? '');
+    return reply.code(200).send({ paymentReference: clientKey });
+  });
+  
+  fastify.post<{ Body: PaymentRequestSchemaDTO }>('/getCustomerAddress',
+    async (req: FastifyRequest<{ Body: PaymentRequestSchemaDTO }>, reply: FastifyReply) => {
+      const carts = await projectApiRoot.carts().get().execute();
+      const cartId = carts.body.results[0]?.id ?? 'empty1';
+      // req.body is typed as PaymentRequestSchemaDTO now
+      const resp = await opts.paymentService.getCustomerAddress({
+        data: req.body,
+        cartId,
+      }as any);
+    return reply.code(200).send(resp);
+    }
+  );
   
 };

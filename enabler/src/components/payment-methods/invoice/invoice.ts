@@ -53,25 +53,6 @@ export class Invoice extends BaseComponent {
     const baseSiteUrl = url.origin;
 
     try {
-      // start original
-      const requestDatas: PaymentRequestSchemaDTO = {
-        paymentMethod: {
-          type: this.paymentMethod,
-        },
-        paymentOutcome: PaymentOutcome.AUTHORIZED,
-        lang: pathLocale ?? 'de',
-        path: baseSiteUrl,
-      };
-     
-      const responses = await fetch(this.processorUrl + "/test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Session-Id": this.sessionId,
-        },
-        body: JSON.stringify(requestDatas),
-      });
-
       const requestData: PaymentRequestSchemaDTO = {
         paymentMethod: {
           type: this.paymentMethod,
@@ -79,7 +60,7 @@ export class Invoice extends BaseComponent {
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       };
      
-      const response = await fetch(this.processorUrl + "/payment", {
+      const response = await fetch(this.processorUrl + "/directPayment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

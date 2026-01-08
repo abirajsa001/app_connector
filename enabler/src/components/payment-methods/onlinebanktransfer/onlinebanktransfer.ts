@@ -60,7 +60,7 @@ export class Onlinebanktransfer extends BaseComponent {
         lang: pathLocale ?? 'de',
         path: baseSiteUrl,
       };
-      const response = await fetch(this.processorUrl + "/payments", {
+      const response = await fetch(this.processorUrl + "/redirectPayment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

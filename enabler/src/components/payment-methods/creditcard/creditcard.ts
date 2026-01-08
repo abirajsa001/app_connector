@@ -126,7 +126,7 @@ export class Creditcard extends BaseComponent {
         path: baseSiteUrl,
       };
 
-      const response = await fetch(this.processorUrl + "/payment", {
+      const response = await fetch(this.processorUrl + "/directPayment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

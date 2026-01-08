@@ -61,7 +61,7 @@ export class Paypal extends BaseComponent {
         lang: pathLocale,
         path: baseSiteUrl,
       };
-      const response = await fetch(this.processorUrl + "/payments", {
+      const response = await fetch(this.processorUrl + "/redirectPayment", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
