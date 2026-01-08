@@ -11,8 +11,8 @@ export const PaymentRequestSchema = Type.Object({
   paymentMethod: Type.Object({
     type: Type.String(),
     accHolder: Type.Optional(Type.String()),
-    poNumber: Type.Optional(Type.String()),
-    invoiceMemo: Type.Optional(Type.String()),
+    accountNumber: Type.Optional(Type.String()),
+    routingNumber: Type.Optional(Type.String()),
     panHash: Type.Optional(Type.String()),
     uniqueId: Type.Optional(Type.String()),
     doRedirect: Type.Optional(Type.String()),

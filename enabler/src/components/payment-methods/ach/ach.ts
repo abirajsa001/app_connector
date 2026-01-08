@@ -54,8 +54,8 @@ export class Ach extends BaseComponent {
     try {
       // start original
     const accountHolderInput = document.getElementById('purchaseOrderForm-accHolder') as HTMLInputElement;
-    const accountNumberInput = document.getElementById('purchaseOrderForm-poNumber') as HTMLInputElement;
-    const routingNumberInput = document.getElementById('purchaseOrderForm-invoiceMemo') as HTMLInputElement;
+    const accountNumberInput = document.getElementById('purchaseOrderForm-accountNumber') as HTMLInputElement;
+    const routingNumberInput = document.getElementById('purchaseOrderForm-routingNumber') as HTMLInputElement;
 
     const accountHolder = accountHolderInput?.value.trim();
     const accountNumber = accountNumberInput?.value.trim();
@@ -65,8 +65,8 @@ export class Ach extends BaseComponent {
         paymentMethod: {
           type: "DIRECT_DEBIT_ACH",
           accHolder: accountHolder,
-          poNumber: accountNumber,
-          invoiceMemo: routingNumber,
+          accountNumber: accountNumber,
+          routingNumber: routingNumber,
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
         lang: pathLocale ?? 'de',
@@ -114,18 +114,18 @@ private _getTemplate() {
         </div>
 
         <div class="inputContainer">
-          <label class="inputLabel" for="purchaseOrderForm-poNumber">
+          <label class="inputLabel" for="purchaseOrderForm-accountNumber">
             Account Number <span aria-hidden="true"> *</span>
           </label>
-          <input class="inputField" type="text" id="purchaseOrderForm-poNumber" name="poNumber" value="">
+          <input class="inputField" type="text" id="purchaseOrderForm-accountNumber" name="accountNumber" value="">
           <span class="hidden errorField">Invalid PO number</span>
         </div>
 
         <div class="inputContainer">
-          <label class="inputLabel" for="purchaseOrderForm-invoiceMemo">
+          <label class="inputLabel" for="purchaseOrderForm-routingNumber">
             Routing number
           </label>
-          <input class="inputField" type="text" id="purchaseOrderForm-invoiceMemo" name="invoiceMemo" value="">
+          <input class="inputField" type="text" id="purchaseOrderForm-routingNumber" name="routingNumber" value="">
           <span class="hidden errorField">Invalid Invoice memo</span>
         </div>
         

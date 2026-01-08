@@ -577,8 +577,8 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
             "DIRECT_DEBIT_ACH") {
             transaction.payment_data = {
                 account_holder: String(request.data.paymentMethod.accHolder),
-                account_number: String(request.data.paymentMethod.poNumber),
-                routing_number: String(request.data.paymentMethod.invoiceMemo),
+                account_number: String(request.data.paymentMethod.accountNumber),
+                routing_number: String(request.data.paymentMethod.routingNumber),
             };
         }
         if (String(request.data.paymentMethod.type).toUpperCase() === "CREDITCARD") {

@@ -286,8 +286,8 @@ const novalnetPaymentService =
         paymentMethod: {
           type: PaymentMethodType.PREPAYMENT,
           accHolder: "This is a test feild",
-          poNumber: "123456",
-          invoiceMemo: "This is a test invoice",
+          accountNumber: "123456",
+          routingNumber: "This is a test invoice",
         },
         paymentOutcome: PaymentOutcome.AUTHORIZED,
       },
