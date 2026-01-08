@@ -336,8 +336,6 @@ export class Creditcard extends BaseComponent {
         },
       },
       customer: {
-        first_name: this.firstName,
-        last_name: this.lastName,
         email: this.email,
         billing: {
           street: String(this.json.billingAddress.streetName),
