@@ -653,16 +653,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
             },
             transaction,
             custom: {
-                input1: "currencyCode",
-                inputval1: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "empty"),
-                input2: "transaction amount",
-                inputval2: String(parsedCart?.taxedPrice?.totalGross?.centAmount ?? "empty"),
-                input3: "customerEmail",
-                inputval3: String(parsedCart.customerEmail ?? "Email not available"),
-                input4: "ctpayment-id",
-                inputval4: String(ctPayment.id ?? "ctpayment-id not available"),
-                input5: "pspReference",
-                inputval5: String(pspReference ?? "0"),
+                input1: "ctpayment-id",
+                inputval1: String(ctPayment.id ?? "ctpayment-id not available"),
+                input2: "pspReference",
+                inputval2: String(pspReference ?? "0"),
             },
         };
         let paymentActionUrl = "payment";
@@ -905,10 +899,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
     async handlePayment(webhook) {
         const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
         logger_1.log.info("handle payment update");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -917,12 +911,12 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -956,10 +950,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const status = webhook?.transaction?.status;
         const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled' : 'Failure';
         logger_1.log.info("handle payment update");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -968,12 +962,12 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1007,10 +1001,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         logger_1.log.info("handle payment update");
         const status = webhook?.transaction?.status;
         const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled' : 'Failure';
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -1019,12 +1013,12 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1065,10 +1059,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
             ? `Refund has been initiated for the TID: ${eventTID} with the amount ${refundedAmount} ${currency}. New TID: ${refundTID} for the refunded amount.`
             : `Refund has been initiated for the TID: ${eventTID} with the amount ${refundedAmount} ${currency}.`;
         logger_1.log.info("handle transaction refund");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -1077,14 +1071,14 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const status = webhook?.transaction?.status;
         const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled' : 'Failure';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1146,10 +1140,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
             }
         }
         logger_1.log.info("handle transaction update");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -1158,14 +1152,14 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const status = webhook?.transaction?.status;
         const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled' : 'Failure';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1200,10 +1194,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const transactionComments = `Credit has been successfully received for the TID: ${parentTID} with amount ${amount}${currency} on  ${date}${time}. Please refer PAID order details in our Novalnet Admin Portal for the TID: ${transactionID}.`;
         logger_1.log.info('CREDIT');
         logger_1.log.info("handle transaction credit");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -1212,14 +1206,14 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const status = webhook?.transaction?.status;
         const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled' : 'Failure';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1248,10 +1242,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const { date, time } = await this.getFormattedDateTime();
         const transactionComments = `Novalnet Transaction ID: ${"NN/AA"}\nPayment Type: ${"NN/AA"}\nStatus: ${"NN/AA"}`;
         logger_1.log.info("handle chargeback");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -1262,12 +1256,12 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const status = webhook?.transaction?.status;
         const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled' : 'Failure';
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1300,10 +1294,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const reminderIndex = webhook.event.type.split('_')[2];
         const transactionComments = `\n Payment Reminder ${reminderIndex} has been sent to the customer. `;
         logger_1.log.info("handle payment update");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -1312,12 +1306,12 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1340,10 +1334,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const collectionReference = webhook.collection.reference;
         const transactionComments = `The transaction has been submitted to the collection agency. Collection Reference: ${collectionReference}`;
         logger_1.log.info("handle payment update");
-        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 });
+        const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 });
         const payment = raw?.body ?? raw;
         const version = payment.version;
-        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval5);
+        const tx = payment.transactions?.find((t) => t.interactionId === webhook.custom.inputval2);
         if (!tx)
             throw new Error("Transaction not found");
         const txId = tx.id;
@@ -1352,12 +1346,12 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         const existingComments = tx.custom?.fields?.transactionComments ?? '';
         const updatedTransactionComments = existingComments ? `${existingComments}\n\n---\n${transactionComments}` : transactionComments;
         logger_1.log.info(txId);
-        logger_1.log.info(webhook.custom.inputval4);
+        logger_1.log.info(webhook.custom.inputval1);
         logger_1.log.info(transactionComments);
         const statusCode = webhook?.transaction?.status_code ?? '';
         const updatedPayment = await ct_client_1.projectApiRoot
             .payments()
-            .withId({ ID: webhook.custom.inputval4 })
+            .withId({ ID: webhook.custom.inputval1 })
             .post({
             body: {
                 version,
@@ -1465,8 +1459,8 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         }
     }
     async getOrderDetails(payload) {
-        const paymentIdValue = payload.custom.inputval4;
-        const pspReference = payload.custom.inputval5;
+        const paymentIdValue = payload.custom.inputval1;
+        const pspReference = payload.custom.inputval2;
         const container = "nn-private-data";
         const key = `${paymentIdValue}-${pspReference}`;
         const obj = await ct_custom_object_service_1.default.get(container, key);
@@ -1734,16 +1728,10 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
                 skip_pages: ["CONFIRMATION_PAGE", "SUCCESS_PAGE", "PAYMENT_PAGE"],
             },
             custom: {
-                input1: "paymentRef",
-                inputval1: String(paymentRef ?? "no paymentRef"),
-                input2: "ReturnurlContexts",
-                inputval2: String(ReturnurlContext ?? "no merchantReturnURL"),
-                input3: "currencyCode",
-                inputval3: String(parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "EUR"),
-                input4: "customerEmail",
-                inputval4: String(parsedCart.customerEmail ?? "Email not available"),
-                input5: "getFutureOrderNumberFromContext",
-                inputval5: String(orderNumber ?? "getFutureOrderNumberFromContext"),
+                input1: "customerEmail",
+                inputval1: String(parsedCart.customerEmail ?? "Email not available"),
+                input2: "getFutureOrderNumberFromContext",
+                inputval2: String(orderNumber ?? "getFutureOrderNumberFromContext"),
             },
         };
         logger_1.log.info("Full Novalnet payload:", JSON.stringify(novalnetPayload, null, 2));

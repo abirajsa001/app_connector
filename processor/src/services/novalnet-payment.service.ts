@@ -703,20 +703,12 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       },
       transaction,
       custom: {
-        input1: "currencyCode",
-        inputval1: String(
-          parsedCart?.taxedPrice?.totalGross?.currencyCode ?? "empty",
-        ),
-        input2: "transaction amount",
-        inputval2: String(
-          parsedCart?.taxedPrice?.totalGross?.centAmount ?? "empty",
-        ),
+        input1: "ctpayment-id",
+        inputval1: String(ctPayment.id ?? "ctpayment-id not available"),
+        input2: "pspReference",
+        inputval2: String(pspReference ?? "0"),
         input3: "lang",
         inputval3: String(lang ?? "lang not available"),
-        input4: "ctpayment-id",
-        inputval4: String(ctPayment.id ?? "ctpayment-id not available"),
-        input5: "pspReference",
-        inputval5: String(pspReference ?? "0"),
       },
     };
 
@@ -1007,11 +999,11 @@ if (!order) {
 
   public async handlePayment(webhook: any) {
     const transactionComments = `Novalnet Transaction ID: ${webhook.transaction.tid ?? "NN/A"}\nPayment Type: ${webhook.transaction.payment_type ?? "NN/A"}\n${webhook.result.status_text ?? "NN/A"}`;
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1021,7 +1013,7 @@ if (!order) {
     const statusCode = webhook?.transaction?.status_code ?? '';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1064,11 +1056,11 @@ if (!order) {
     const transactionComments = lang == 'en' ? localizedTransactionComments.en : localizedTransactionComments.de;
     const status = webhook?.transaction?.status;
     const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1078,7 +1070,7 @@ if (!order) {
     const statusCode = webhook?.transaction?.status_code ?? '';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1121,11 +1113,11 @@ if (!order) {
     const transactionComments = lang == 'de' ? localizedTransactionComments.de : localizedTransactionComments.en;
     const status = webhook?.transaction?.status;
     const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1135,7 +1127,7 @@ if (!order) {
     const statusCode = webhook?.transaction?.status_code ?? '';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1199,11 +1191,11 @@ if (!order) {
     const refundComment = lang == 'de' ? localizedTransactionComments.de : localizedTransactionComments.en;
     const refundTIDComment = lang == 'de' ? localizedTransactionComment.de : localizedTransactionComment.en;
     const transactionComments = refundTID ? refundTIDComment : refundComment;
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1215,7 +1207,7 @@ if (!order) {
     const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1284,11 +1276,11 @@ if (!order) {
       }
     }
 
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1300,7 +1292,7 @@ if (!order) {
     const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1346,11 +1338,11 @@ if (!order) {
       {} as Record<SupportedLocale, string>
     );
     const transactionComments = lang == 'en' ? localizedTransactionComments.en : localizedTransactionComments.de;
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1362,7 +1354,7 @@ if (!order) {
     const state = status === 'PENDING' || status === 'ON_HOLD' ? 'Pending' : status === 'CONFIRMED' ? 'Success' : status === 'CANCELLED' ? 'Canceled': 'Failure';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1408,11 +1400,11 @@ if (!order) {
       {} as Record<SupportedLocale, string>
     );
     const transactionComments = lang == 'en' ? localizedTransactionComments.en : localizedTransactionComments.de;
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1424,7 +1416,7 @@ if (!order) {
     const statusCode = webhook?.transaction?.status_code ?? '';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1469,11 +1461,11 @@ if (!order) {
       {} as Record<SupportedLocale, string>
     );
     const transactionComments = lang == 'de' ? localizedTransactionComments.de : localizedTransactionComments.en;
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1483,7 +1475,7 @@ if (!order) {
     const statusCode = webhook?.transaction?.status_code ?? '';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1520,11 +1512,11 @@ if (!order) {
       {} as Record<SupportedLocale, string>
     );
     const transactionComments = lang == 'de' ? localizedTransactionComments.de : localizedTransactionComments.en;
-    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval4 } as any);
+    const raw = await this.ctPaymentService.getPayment({ id: webhook.custom.inputval1 } as any);
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval5
+      t.interactionId === webhook.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1534,7 +1526,7 @@ if (!order) {
     const statusCode = webhook?.transaction?.status_code ?? '';
     const updatedPayment = await projectApiRoot
     .payments()
-    .withId({ ID: webhook.custom.inputval4 })
+    .withId({ ID: webhook.custom.inputval1 })
     .post({
     body: {
       version,
@@ -1666,8 +1658,8 @@ public async getRemoteAddress(
   }
 
 public async getOrderDetails(payload: any) {
-  const paymentIdValue = payload.custom.inputval4;
-  const pspReference = payload.custom.inputval5;
+  const paymentIdValue = payload.custom.inputval1;
+  const pspReference = payload.custom.inputval2;
   const container = "nn-private-data";
   const key = `${paymentIdValue}-${pspReference}`;
   const obj = await customObjectService.get(container, key);
@@ -1921,18 +1913,12 @@ public async updatePaymentStatusByPaymentId(
         skip_pages: ["CONFIRMATION_PAGE", "SUCCESS_PAGE", "PAYMENT_PAGE"],
       },
       custom: {
-        input1: "paymentRef",
-        inputval1: String(paymentRef ?? "no paymentRef"),
-        input2: "ReturnurlContexts",
-        inputval2: String(ReturnurlContext ?? "no merchantReturnURL"),
+        input1: "ctpayment-id",
+        inputval1: String(ctPaymentId ?? "ctpayment-id not available"),
+        input2: "pspReference",
+        inputval2: String(pspReference ?? "0"),
         input3: "lang",
         inputval3: String(lang ?? 'no-lang'),
-        input4: "ctpayment-id",
-        inputval4: String(ctPaymentId ?? "ctpayment-id not available"),
-        input5: "pspReference",
-        inputval5: String(pspReference ?? "0"),
-        input6: "langUpdated",
-        inputval6: String(lang ?? 'no-lang'),
       },
     };
     let parsedResponse: any = {};
