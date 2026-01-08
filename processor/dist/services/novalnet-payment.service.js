@@ -411,12 +411,14 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         };
         let responseData;
         try {
+            const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
+            const base64Key =  btoa(accessKey);
             const novalnetResponse = await fetch("https://payport.novalnet.de/v2/transaction/details", {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+                    'X-NN-Access-Key': base64Key,
                 },
                 body: JSON.stringify(novalnetPayload),
             });
@@ -684,12 +686,14 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         let responseString = "";
         let responseData;
         try {
+            const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
+            const base64Key =  btoa(accessKey);
             const novalnetResponse = await fetch(url, {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+                    'X-NN-Access-Key': base64Key,
                 },
                 body: JSON.stringify(novalnetPayload),
             });
@@ -1737,12 +1741,14 @@ class NovalnetPaymentService extends abstract_payment_service_1.AbstractPaymentS
         logger_1.log.info("Full Novalnet payload:", JSON.stringify(novalnetPayload, null, 2));
         let parsedResponse = {};
         try {
+            const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
+            const base64Key =  btoa(accessKey);
             const novalnetResponse = await fetch("https://payport.novalnet.de/v2/seamless/payment", {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+                    'X-NN-Access-Key': base64Key,
                 },
                 body: JSON.stringify(novalnetPayload),
             });

@@ -723,12 +723,14 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     let responseString = "";
     let responseData: any;
     try {
+      const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
+      const base64Key =  btoa(accessKey);
       const novalnetResponse = await fetch(url, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+          'X-NN-Access-Key': base64Key,
         },
         body: JSON.stringify(novalnetPayload),
       });
@@ -1923,6 +1925,8 @@ public async updatePaymentStatusByPaymentId(
     };
     let parsedResponse: any = {};
     try {
+      const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
+      const base64Key =  btoa(accessKey);
       const novalnetResponse = await fetch(
         "https://payport.novalnet.de/v2/seamless/payment",
         {
@@ -1930,7 +1934,7 @@ public async updatePaymentStatusByPaymentId(
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-NN-Access-Key': 'YTg3ZmY2NzlhMmYzZTcxZDkxODFhNjdiNzU0MjEyMmM=',
+            'X-NN-Access-Key': base64Key,
           },
           body: JSON.stringify(novalnetPayload),
         },
