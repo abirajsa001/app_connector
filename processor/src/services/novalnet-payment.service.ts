@@ -55,7 +55,7 @@ import {
 import { log } from "../libs/logger";
 import * as Context from "../libs/fastify/context/context";
 import { ExtendedUpdatePayment } from './types/payment-extension';
-import { createTransactionCommentsType } from '../utils/custom-fields';
+import { createTransactionCommentsType, createOrderPaymentCommentsType } from '../utils/custom-fields';
 import { projectApiRoot } from '../utils/ct-client';
 import customObjectService from "./ct-custom-object.service";
 import { t, normalizeLocale, SupportedLocale } from "../i18n";
@@ -572,27 +572,47 @@ export class NovalnetPaymentService extends AbstractPaymentService {
        2️⃣ Reload PAYMENT
     -------------------------------- */
     
-    const payment = await projectApiRoot
-      .payments()
-      .withId({ ID: parsedData.ctPaymentId })
-      .get()
-      .execute();
-    
-    const orderId = payment.body.order?.id;
-    
-    if (!orderId) {
-      console.log("No order linked to payment – nothing to sync to storefront");
-      return;
-    }
-    
+const updatedPaymentRoot = await projectApiRoot
+  .payments()
+  .withId({ ID: parsedData.ctPaymentId })
+  .get()
+  .execute();
+
+/* -------------------------------
+   Find the Order that uses this Payment
+-------------------------------- */
+
+const orderSearch = await projectApiRoot
+  .orders()
+  .get({
+    queryArgs: {
+      where: `paymentInfo(payments(id="${parsedData.ctPaymentId}"))`,
+      limit: 1,
+    },
+  })
+  .execute();
+
+const orderRoot = orderSearch.body.results?.[0];
+
+
+if (!orderRoot) {
+  log.info("No order linked to this payment – nothing to sync");
+  return;
+}
+
+const orderId = orderRoot.id;
+
+
+const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
+  t => t.id === txId
+);
     /* -------------------------------
        3️⃣ Read SAME transaction
     -------------------------------- */
     
-    const updatedTx = payment.body.transactions?.find(t => t.id === txId);
     
     const paymentComment =
-      updatedTx?.custom?.fields?.transactionComments ??
+      updatedTransaction?.custom?.fields?.transactionComments ??
       transactionCommentsText;
     
     /* -------------------------------
