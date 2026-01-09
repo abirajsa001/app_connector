@@ -496,87 +496,73 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         },
         {} as Record<SupportedLocale, string>
       );
-      const transactionComments = lang == 'en' ? localizedTransactionComments.en : localizedTransactionComments.de;
-      const raw = await this.ctPaymentService.getPayment({
-        id: parsedData.ctPaymentId,
-      } as any);
-      
-      const payment = (raw as any)?.body ?? raw;
-      const version = payment.version;
-      
-      if (!payment?.transactions?.length) {
-        throw new Error("No transactions on payment");
-      }
-      
-      const tx = payment.transactions.find(
-        (t: any) => t.interactionId === pspReference
-      );
-      
-      if (!tx?.id) {
-        throw new Error("Transaction not found for PSP reference");
-      }
-      
-      const txId = tx.id;
-const existingValue =
-  tx.custom?.fields?.transactionComments;
-
+      const transactionComments = lang === 'en'
+      ? localizedTransactionComments.en
+      : localizedTransactionComments.de;
+    
+    const raw = await this.ctPaymentService.getPayment({
+      id: parsedData.ctPaymentId,
+    } as any);
+    
+    const payment = (raw as any)?.body ?? raw;
+    const version = payment.version;
+    
+    if (!payment?.transactions?.length) {
+      throw new Error('No transactions on payment');
+    }
+    
+    const tx = payment.transactions.find(
+      (t: any) => t.interactionId === pspReference
+    );
+    
+    if (!tx?.id) {
+      throw new Error('Transaction not found for PSP reference');
+    }
+    
+    const txId = tx.id;
+    
     const transactionCommentsText =
-  typeof transactionComments === 'string'
-    ? transactionComments
-    : String(transactionComments ?? '');
-
-const actions: PaymentUpdateAction[] = [
-  {
-    action: 'setTransactionCustomType',
-    transactionId: txId,
-    type: {
-      key: 'novalnet-transaction-comments',
-      typeId: 'type',
-    },
-  },
-];
-
-// 🔥 Only clear if the field already exists
-if (existingValue !== undefined) {
-  actions.push({
-    action: 'setTransactionCustomField',
-    transactionId: txId,
-    name: 'transactionComments',
-    value: null,
-  });
-}
-
-// Always set the new value
-actions.push({
-  action: 'setTransactionCustomField',
-  transactionId: txId,
-  name: 'transactionComments',
-  value: transactionCommentsText,
-});
-
-actions.push(
-  {
-    action: 'setStatusInterfaceCode',
-    interfaceCode: String(statusCode),
-  },
-  {
-    action: 'changeTransactionState',
-    transactionId: txId,
-    state,
-  }
-);
-
-await projectApiRoot
-  .payments()
-  .withId({ ID: parsedData.ctPaymentId })
-  .post({
-    body: {
-      version,
-      actions,
-    },
-  })
-  .execute();
-
+      typeof transactionComments === 'string'
+        ? transactionComments
+        : String(transactionComments ?? '');
+    
+    const actions: PaymentUpdateAction[] = [
+      {
+        action: 'setTransactionCustomType',
+        transactionId: txId,
+        type: {
+          key: 'novalnet-transaction-comments',
+          typeId: 'type',
+        },
+      },
+      {
+        action: 'setTransactionCustomField',
+        transactionId: txId,
+        name: 'transactionComments',
+        value: transactionCommentsText, // ✅ overwrite safely
+      },
+      {
+        action: 'setStatusInterfaceCode',
+        interfaceCode: String(statusCode),
+      },
+      {
+        action: 'changeTransactionState',
+        transactionId: txId,
+        state,
+      },
+    ];
+    
+    await projectApiRoot
+      .payments()
+      .withId({ ID: parsedData.ctPaymentId })
+      .post({
+        body: {
+          version,
+          actions,
+        },
+      })
+      .execute();
+    
 
 
       try {
