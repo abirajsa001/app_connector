@@ -505,46 +505,61 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         throw new Error("Transaction not found for PSP reference");
       }
       const txId = tx.id;
-      const actions: any[] = [
-        {
-          action: "setTransactionCustomType",
-          transactionId: txId,
+      const transactionCommentsText =
+      typeof transactionComments === "string"
+        ? transactionComments
+        : String(transactionComments ?? "");
+    
+    const actions: any[] = [
+      //  Set custom type ONCE
+      {
+        action: "setTransactionCustomType",
+        transactionId: txId,
+        type: {
+          key: "novalnet-transaction-comments",
+          typeId: "type",
         },
-        {
-          action: "setTransactionCustomType",
-          transactionId: txId,
-          type: {
-            key: "novalnet-transaction-comments",
-            typeId: "type",
-          },
+      },
+    
+      //  IMPORTANT: clear old value (removes localization residue)
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: null,
+      },
+    
+      //  Storefront-visible comment
+      {
+        action: "setTransactionCustomField",
+        transactionId: txId,
+        name: "transactionComments",
+        value: transactionCommentsText,
+      },
+    
+      {
+        action: "setStatusInterfaceCode",
+        interfaceCode: String(statusCode),
+      },
+    
+      {
+        action: "changeTransactionState",
+        transactionId: txId,
+        state,
+      },
+    ];
+    
+    await projectApiRoot
+      .payments()
+      .withId({ ID: parsedData.ctPaymentId })
+      .post({
+        body: {
+          version,
+          actions,
         },
-        {
-          action: "setTransactionCustomField",
-          transactionId: txId,
-          name: "transactionComments",
-          value: transactionComments,
-        },
-        {
-          action: "setStatusInterfaceCode",
-          interfaceCode: String(statusCode),
-        },
-        {
-          action: "changeTransactionState",
-          transactionId: txId,
-          state,
-        },
-      ];
-  
-      await projectApiRoot
-        .payments()
-        .withId({ ID: parsedData.ctPaymentId })
-        .post({
-          body: {
-            version,
-            actions,
-          },
-        })
-        .execute();
+      })
+      .execute();
+    
       try {
         const container = "nn-private-data";
         const key = `${parsedData.ctPaymentId}-${pspReference}`;
@@ -556,7 +571,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
           orderNo: responseData?.transaction?.order_no ?? "",
           cMail: responseData?.customer?.email ?? "",
           additionalInfo: {
-            comments: localizedTransactionComments,
+            comments: transactionComments,
           },
         });
       } catch (err) {
@@ -1827,27 +1842,23 @@ public async updatePaymentStatusByPaymentId(
     const paymentCartId = ctCart.id;
     const orderNumber   = getFutureOrderNumberFromContext() ?? "";
     const ctPaymentId   = ctPayment.id;
-  // 🔹 1) Prepare name variables
-  let firstName = "";
-  let lastName = "";
+    let firstName = "";
+    let lastName = "";
 
-  // 🔹 2) If the cart is linked to a CT customer, fetch it directly from CT
-  if (ctCart.customerId) {
-    const customerRes = await projectApiRoot
-      .customers()
-      .withId({ ID: ctCart.customerId })
-      .get()
-      .execute();
+    if (ctCart.customerId) {
+      const customerRes = await projectApiRoot
+        .customers()
+        .withId({ ID: ctCart.customerId })
+        .get()
+        .execute();
 
-    const ctCustomer: Customer = customerRes.body;
-
-    firstName = ctCustomer.firstName ?? "";
-    lastName = ctCustomer.lastName ?? "";
-  } else {
-    // 🔹 3) Guest checkout → fallback to shipping address
-    firstName = ctCart.shippingAddress?.firstName ?? "";
-    lastName = ctCart.shippingAddress?.lastName ?? "";
-  }
+      const ctCustomer: Customer = customerRes.body;
+      firstName = ctCustomer.firstName ?? "";
+      lastName = ctCustomer.lastName ?? "";
+    } else {
+      firstName = ctCart.shippingAddress?.firstName ?? "";
+      lastName = ctCart.shippingAddress?.lastName ?? "";
+    }
 
     const url = new URL("/success", processorURL);
     url.searchParams.append("paymentReference", paymentRef);
@@ -2052,7 +2063,7 @@ public async updatePaymentStatusByPaymentId(
   private convertPaymentResultCode(resultCode: PaymentOutcome): string {
     switch (resultCode) {
       case PaymentOutcome.AUTHORIZED:
-        return "Success";
+        return "Success"; 
       case PaymentOutcome.REJECTED:
         return "Failure";
       default:
@@ -2066,7 +2077,6 @@ public async localcomments(
   params: TransactionCommentParams
 ) {
   const supportedLocales: SupportedLocale[] = ["en", "de"];
-
   const normalized: Record<string, string> = {
     eventTID: params.eventTID ?? "-",
     parentTID: params.parentTID ?? "-",
