@@ -505,61 +505,53 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         throw new Error("Transaction not found for PSP reference");
       }
       const txId = tx.id;
-      const transactionCommentsText =
-      typeof transactionComments === "string"
-        ? transactionComments
-        : String(transactionComments ?? "");
-    
-    const actions: any[] = [
-      //  Set custom type ONCE
-      {
-        action: "setTransactionCustomType",
-        transactionId: txId,
-        type: {
-          key: "novalnet-transaction-comments",
-          typeId: "type",
-        },
-      },
-    
-      //  IMPORTANT: clear old value (removes localization residue)
-      {
-        action: "setTransactionCustomField",
-        transactionId: txId,
-        name: "transactionComments",
-        value: null,
-      },
-    
-      //  Storefront-visible comment
-      {
-        action: "setTransactionCustomField",
-        transactionId: txId,
-        name: "transactionComments",
-        value: transactionCommentsText,
-      },
-    
-      {
-        action: "setStatusInterfaceCode",
-        interfaceCode: String(statusCode),
-      },
-    
-      {
-        action: "changeTransactionState",
-        transactionId: txId,
-        state,
-      },
-    ];
-    
-    await projectApiRoot
-      .payments()
-      .withId({ ID: parsedData.ctPaymentId })
-      .post({
-        body: {
-          version,
-          actions,
-        },
-      })
-      .execute();
-    
+
+const transactionCommentsText =
+  typeof transactionComments === "string"
+    ? transactionComments
+    : String(transactionComments ?? "");
+
+const actions = [
+  {
+    action: "setTransactionCustomType",
+    transactionId: txId,
+    type: {
+      key: "novalnet-transaction-comments",
+      typeId: "type",
+    },
+  },
+
+  // ✅ Directly set / overwrite
+  {
+    action: "setTransactionCustomField",
+    transactionId: txId,
+    name: "transactionComments",
+    value: transactionCommentsText,
+  },
+
+  {
+    action: "setStatusInterfaceCode",
+    interfaceCode: String(statusCode),
+  },
+
+  {
+    action: "changeTransactionState",
+    transactionId: txId,
+    state,
+  },
+];
+
+await projectApiRoot
+  .payments()
+  .withId({ ID: parsedData.ctPaymentId })
+  .post({
+    body: {
+      version,
+      actions,
+    },
+  })
+  .execute();
+
       try {
         const container = "nn-private-data";
         const key = `${parsedData.ctPaymentId}-${pspReference}`;
