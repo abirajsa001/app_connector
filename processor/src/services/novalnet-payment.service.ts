@@ -59,7 +59,14 @@ import { createTransactionCommentsType } from '../utils/custom-fields';
 import { projectApiRoot } from '../utils/ct-client';
 import customObjectService from "./ct-custom-object.service";
 import { t, normalizeLocale, SupportedLocale } from "../i18n";
-import { PaymentUpdateAction } from "@commercetools/platform-sdk";
+import {
+  PaymentUpdateAction,
+  PaymentSetTransactionCustomTypeAction,
+  PaymentSetTransactionCustomFieldAction,
+  PaymentSetStatusInterfaceCodeAction,
+  PaymentChangeTransactionStateAction,
+} from '@commercetools/platform-sdk';
+
 
 type NovalnetConfig = {
   testMode: string;
@@ -511,61 +518,64 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       
       const txId = tx.id;
 
-      const transactionCommentsText =
-      typeof transactionComments === "string"
-        ? transactionComments
-        : String(transactionComments ?? "");
-    
-    
-    const actions = [
-      // Set custom type ONCE
-      {
-        action: "setTransactionCustomType",
-        transactionId: txId,
-        type: {
-          key: "novalnet-transaction-comments",
-          typeId: "type",
-        },
-      },
-    
-      // Remove any old localized value (MANDATORY)
-      {
-        action: "setTransactionCustomField",
-        transactionId: txId,
-        name: "transactionComments",
-        value: null,
-      },
-    
-      // Storefront-visible value
-      {
-        action: "setTransactionCustomField",
-        transactionId: txId,
-        name: "transactionComments",
-        value: transactionCommentsText,
-      },
-    
-      {
-        action: "setStatusInterfaceCode",
-        interfaceCode: String(statusCode),
-      },
-    
-      {
-        action: "changeTransactionState",
-        transactionId: txId,
-        state,
-      },
-    ];
-    
-    await projectApiRoot
-      .payments()
-      .withId({ ID: parsedData.ctPaymentId })
-      .post({
-        body: {
-          version,
-          actions,
-        },
-      })
-      .execute();
+    const transactionCommentsText =
+  typeof transactionComments === 'string'
+    ? transactionComments
+    : String(transactionComments ?? '');
+
+const setCustomType: PaymentSetTransactionCustomTypeAction = {
+  action: 'setTransactionCustomType',
+  transactionId: txId,
+  type: {
+    key: 'novalnet-transaction-comments',
+    typeId: 'type',
+  },
+};
+
+const clearOldValue: PaymentSetTransactionCustomFieldAction = {
+  action: 'setTransactionCustomField',
+  transactionId: txId,
+  name: 'transactionComments',
+  value: null,
+};
+
+const setComment: PaymentSetTransactionCustomFieldAction = {
+  action: 'setTransactionCustomField',
+  transactionId: txId,
+  name: 'transactionComments',
+  value: transactionCommentsText,
+};
+
+const setInterfaceCode: PaymentSetStatusInterfaceCodeAction = {
+  action: 'setStatusInterfaceCode',
+  interfaceCode: String(statusCode),
+};
+
+const changeState: PaymentChangeTransactionStateAction = {
+  action: 'changeTransactionState',
+  transactionId: txId,
+  state,
+};
+
+const actions: PaymentUpdateAction[] = [
+  setCustomType,
+  clearOldValue,
+  setComment,
+  setInterfaceCode,
+  changeState,
+];
+
+await projectApiRoot
+  .payments()
+  .withId({ ID: parsedData.ctPaymentId })
+  .post({
+    body: {
+      version,
+      actions,
+    },
+  })
+  .execute();
+
 
       try {
         const container = "nn-private-data";
