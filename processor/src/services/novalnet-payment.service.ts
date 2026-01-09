@@ -435,6 +435,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       
       const config = getConfig();
       await createTransactionCommentsType();
+      await createOrderPaymentCommentsType();
       const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
       const novalnetPayload = {
         transaction: {
@@ -520,33 +521,37 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     }
     
     const txId = tx.id;
-    
+
     const transactionCommentsText =
-      typeof transactionComments === 'string'
+      typeof transactionComments === "string"
         ? transactionComments
-        : String(transactionComments ?? '');
+        : String(transactionComments ?? "");
+    
+    /* -------------------------------
+       1️⃣ Update PAYMENT
+    -------------------------------- */
     
     const actions: PaymentUpdateAction[] = [
       {
-        action: 'setTransactionCustomType',
+        action: "setTransactionCustomType",
         transactionId: txId,
         type: {
-          key: 'novalnet-transaction-comments',
-          typeId: 'type',
+          key: "novalnet-transaction-comments",
+          typeId: "type",
         },
       },
       {
-        action: 'setTransactionCustomField',
+        action: "setTransactionCustomField",
         transactionId: txId,
-        name: 'transactionComments',
+        name: "transactionComments",
         value: transactionCommentsText,
       },
       {
-        action: 'setStatusInterfaceCode',
+        action: "setStatusInterfaceCode",
         interfaceCode: String(statusCode),
       },
       {
-        action: 'changeTransactionState',
+        action: "changeTransactionState",
         transactionId: txId,
         state,
       },
@@ -562,6 +567,69 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         },
       })
       .execute();
+    
+    /* -------------------------------
+       2️⃣ Reload PAYMENT
+    -------------------------------- */
+    
+    const payment = await projectApiRoot
+      .payments()
+      .withId({ ID: parsedData.ctPaymentId })
+      .get()
+      .execute();
+    
+    const orderId = payment.body.order?.id;
+    
+    if (!orderId) {
+      console.log("No order linked to payment – nothing to sync to storefront");
+      return;
+    }
+    
+    /* -------------------------------
+       3️⃣ Read SAME transaction
+    -------------------------------- */
+    
+    const updatedTx = payment.body.transactions?.find(t => t.id === txId);
+    
+    const paymentComment =
+      updatedTx?.custom?.fields?.transactionComments ??
+      transactionCommentsText;
+    
+    /* -------------------------------
+       4️⃣ Update ORDER (Storefront)
+    -------------------------------- */
+    
+    const order = await projectApiRoot
+      .orders()
+      .withId({ ID: orderId })
+      .get()
+      .execute();
+    
+    await projectApiRoot
+      .orders()
+      .withId({ ID: orderId })
+      .post({
+        body: {
+          version: order.body.version,
+          actions: [
+            {
+              action: "setCustomType",
+              type: {
+                key: "order-payment-comments",
+                typeId: "type",
+              },
+            },
+            {
+              action: "setCustomField",
+              name: "paymentComments",
+              value: paymentComment,
+            },
+          ],
+        },
+      })
+      .execute();
+    
+
     
       try {
         const container = "nn-private-data";
