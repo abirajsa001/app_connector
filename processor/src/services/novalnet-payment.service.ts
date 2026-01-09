@@ -59,7 +59,7 @@ import { createTransactionCommentsType } from '../utils/custom-fields';
 import { projectApiRoot } from '../utils/ct-client';
 import customObjectService from "./ct-custom-object.service";
 import { t, normalizeLocale, SupportedLocale } from "../i18n";
-
+import { PaymentUpdateAction } from "@commercetools/platform-sdk";
 
 type NovalnetConfig = {
   testMode: string;
@@ -511,34 +511,33 @@ export class NovalnetPaymentService extends AbstractPaymentService {
           ? transactionComments
           : String(transactionComments ?? "");
 
-      const actions = [
-        {
-          action: "setTransactionCustomType",
-          transactionId: txId,
-          type: {
-            key: "novalnet-transaction-comments",
-            typeId: "type",
-          },
-        },
+const actions: PaymentUpdateAction[] = [
+  {
+    action: "setTransactionCustomType",
+    transactionId: txId,
+    type: {
+      key: "novalnet-transaction-comments",
+      typeId: "type",
+    },
+  },
+  {
+    action: "setTransactionCustomField",
+    transactionId: txId,
+    name: "transactionComments",
+    value: transactionCommentsText,
+  },
+  {
+    action: "setStatusInterfaceCode",
+    interfaceCode: String(statusCode),
+  },
+  {
+    action: "changeTransactionState",
+    transactionId: txId,
+    state,
+  },
+];
 
-        {
-          action: "setTransactionCustomField",
-          transactionId: txId,
-          name: "transactionComments",
-          value: transactionCommentsText,
-        },
 
-        {
-          action: "setStatusInterfaceCode",
-          interfaceCode: String(statusCode),
-        },
-
-        {
-          action: "changeTransactionState",
-          transactionId: txId,
-          state,
-        },
-      ];
 
       await projectApiRoot
         .payments()
