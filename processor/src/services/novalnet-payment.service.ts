@@ -506,51 +506,50 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       }
       const txId = tx.id;
 
-const transactionCommentsText =
-  typeof transactionComments === "string"
-    ? transactionComments
-    : String(transactionComments ?? "");
+      const transactionCommentsText =
+        typeof transactionComments === "string"
+          ? transactionComments
+          : String(transactionComments ?? "");
 
-const actions = [
-  {
-    action: "setTransactionCustomType",
-    transactionId: txId,
-    type: {
-      key: "novalnet-transaction-comments",
-      typeId: "type",
-    },
-  },
+      const actions = [
+        {
+          action: "setTransactionCustomType",
+          transactionId: txId,
+          type: {
+            key: "novalnet-transaction-comments",
+            typeId: "type",
+          },
+        },
 
-  // ✅ Directly set / overwrite
-  {
-    action: "setTransactionCustomField",
-    transactionId: txId,
-    name: "transactionComments",
-    value: transactionCommentsText,
-  },
+        {
+          action: "setTransactionCustomField",
+          transactionId: txId,
+          name: "transactionComments",
+          value: transactionCommentsText,
+        },
 
-  {
-    action: "setStatusInterfaceCode",
-    interfaceCode: String(statusCode),
-  },
+        {
+          action: "setStatusInterfaceCode",
+          interfaceCode: String(statusCode),
+        },
 
-  {
-    action: "changeTransactionState",
-    transactionId: txId,
-    state,
-  },
-];
+        {
+          action: "changeTransactionState",
+          transactionId: txId,
+          state,
+        },
+      ];
 
-await projectApiRoot
-  .payments()
-  .withId({ ID: parsedData.ctPaymentId })
-  .post({
-    body: {
-      version,
-      actions,
-    },
-  })
-  .execute();
+      await projectApiRoot
+        .payments()
+        .withId({ ID: parsedData.ctPaymentId })
+        .post({
+          body: {
+            version,
+            actions,
+          },
+        })
+        .execute();
 
       try {
         const container = "nn-private-data";
