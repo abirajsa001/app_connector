@@ -517,53 +517,54 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       }
       
       const txId = tx.id;
+const existingValue =
+  tx.custom?.fields?.transactionComments;
 
     const transactionCommentsText =
   typeof transactionComments === 'string'
     ? transactionComments
     : String(transactionComments ?? '');
 
-const setCustomType: PaymentSetTransactionCustomTypeAction = {
-  action: 'setTransactionCustomType',
-  transactionId: txId,
-  type: {
-    key: 'novalnet-transaction-comments',
-    typeId: 'type',
+const actions: PaymentUpdateAction[] = [
+  {
+    action: 'setTransactionCustomType',
+    transactionId: txId,
+    type: {
+      key: 'novalnet-transaction-comments',
+      typeId: 'type',
+    },
   },
-};
+];
 
-const clearOldValue: PaymentSetTransactionCustomFieldAction = {
-  action: 'setTransactionCustomField',
-  transactionId: txId,
-  name: 'transactionComments',
-  value: null,
-};
+// 🔥 Only clear if the field already exists
+if (existingValue !== undefined) {
+  actions.push({
+    action: 'setTransactionCustomField',
+    transactionId: txId,
+    name: 'transactionComments',
+    value: null,
+  });
+}
 
-const setComment: PaymentSetTransactionCustomFieldAction = {
+// Always set the new value
+actions.push({
   action: 'setTransactionCustomField',
   transactionId: txId,
   name: 'transactionComments',
   value: transactionCommentsText,
-};
+});
 
-const setInterfaceCode: PaymentSetStatusInterfaceCodeAction = {
-  action: 'setStatusInterfaceCode',
-  interfaceCode: String(statusCode),
-};
-
-const changeState: PaymentChangeTransactionStateAction = {
-  action: 'changeTransactionState',
-  transactionId: txId,
-  state,
-};
-
-const actions: PaymentUpdateAction[] = [
-  setCustomType,
-  clearOldValue,
-  setComment,
-  setInterfaceCode,
-  changeState,
-];
+actions.push(
+  {
+    action: 'setStatusInterfaceCode',
+    interfaceCode: String(statusCode),
+  },
+  {
+    action: 'changeTransactionState',
+    transactionId: txId,
+    state,
+  }
+);
 
 await projectApiRoot
   .payments()
@@ -575,6 +576,7 @@ await projectApiRoot
     },
   })
   .execute();
+
 
 
       try {
@@ -2118,7 +2120,4 @@ public async localcomments(
 
   return localizedTransactionComments;
 }
-
-
-  
 }
