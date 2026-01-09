@@ -539,7 +539,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         action: 'setTransactionCustomField',
         transactionId: txId,
         name: 'transactionComments',
-        value: transactionCommentsText, // ✅ overwrite safely
+        value: transactionCommentsText,
       },
       {
         action: 'setStatusInterfaceCode',
@@ -563,12 +563,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       })
       .execute();
     
-
-
       try {
         const container = "nn-private-data";
         const key = `${parsedData.ctPaymentId}-${pspReference}`;
-  
         await customObjectService.upsert(container, key, {
           tid,
           paymentMethod: paymentType,
@@ -613,11 +610,13 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     const parsedCart = typeof ctCart === "string" ? JSON.parse(ctCart) : ctCart;
     const dueDateValue = getPaymentDueDate(dueDate);
     const lang = String(request.data?.lang ?? "en") as SupportedLocale;
+    const orderNumber   = getFutureOrderNumberFromContext();
     const transaction: Record<string, any> = {
       test_mode: testMode === "1" ? "1" : "0",
       payment_type: String(request.data.paymentMethod.type),
       amount: String(parsedCart?.taxedPrice?.totalGross?.centAmount),
       currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),
+      order_no: String(orderNumber),
     };
 
     if (dueDateValue) {

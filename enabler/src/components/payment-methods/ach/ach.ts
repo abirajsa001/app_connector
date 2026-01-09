@@ -102,37 +102,120 @@ private _getTemplate() {
     ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="purchaseOrderForm-paymentButton">Pay</button>`
       : "";
 
-  return `
-    <div class="${styles.wrapper}">
-      <form class="${styles.paymentForm}" id="purchaseOrderForm">
-        <div class="inputContainer">
-          <label class="inputLabel" for="purchaseOrderForm-accHolder">
-            Account Holder <span aria-hidden="true"> *</span>
-          </label>
-          <input class="inputField" type="text" id="purchaseOrderForm-accHolder" name="accHolder" value="">
-          <span class="hidden errorField">Invalid Account Holder</span>
-        </div>
-
-        <div class="inputContainer">
-          <label class="inputLabel" for="purchaseOrderForm-accountNumber">
-            Account Number <span aria-hidden="true"> *</span>
-          </label>
-          <input class="inputField" type="text" id="purchaseOrderForm-accountNumber" name="accountNumber" value="">
-          <span class="hidden errorField">Invalid PO number</span>
-        </div>
-
-        <div class="inputContainer">
-          <label class="inputLabel" for="purchaseOrderForm-routingNumber">
-            Routing number
-          </label>
-          <input class="inputField" type="text" id="purchaseOrderForm-routingNumber" name="routingNumber" value="">
-          <span class="hidden errorField">Invalid Invoice memo</span>
-        </div>
-        
-        ${payButton}
-      </form>
-    </div>
-  `;
+      return `
+      <div style="width:100%; display:flex; flex-direction:column;">
+      
+        <form id="purchaseOrderForm"
+          style="
+            width:100%;
+            display:flex;
+            flex-direction:column;
+            gap:20px;
+          "
+        >
+      
+          <!-- Account Holder -->
+          <div style="display:flex; flex-direction:column; width:100%;">
+            <label for="purchaseOrderForm-accHolder"
+              style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
+            >
+              Account Holder <span style="color:#d70000;">*</span>
+            </label>
+      
+            <input
+              type="text"
+              id="purchaseOrderForm-accHolder"
+              name="accHolder"
+              style="
+                padding:12px 14px;
+                border:1.5px solid #d4d4d4;
+                border-radius:6px;
+                font-size:15px;
+                transition:all 0.2s ease-in-out;
+                outline:none;
+              "
+            />
+      
+            <span
+              style="
+                display:none;
+                margin-top:4px;
+                font-size:12px;
+                color:#d70000;
+              "
+            >Invalid Account Holder</span>
+          </div>
+      
+          <!-- Account Number -->
+          <div style="display:flex; flex-direction:column; width:100%;">
+            <label for="purchaseOrderForm-accountNumber"
+              style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
+            >
+              Account Number <span style="color:#d70000;">*</span>
+            </label>
+      
+            <input
+              type="text"
+              id="purchaseOrderForm-accountNumber"
+              name="accountNumber"
+              style="
+                padding:12px 14px;
+                border:1.5px solid #d4d4d4;
+                border-radius:6px;
+                font-size:15px;
+                transition:all 0.2s ease-in-out;
+                outline:none;
+              "
+            />
+      
+            <span
+              style="
+                display:none;
+                margin-top:4px;
+                font-size:12px;
+                color:#d70000;
+              "
+            >Invalid PO number</span>
+          </div>
+      
+          <!-- Routing Number -->
+          <div style="display:flex; flex-direction:column; width:100%;">
+            <label for="purchaseOrderForm-routingNumber"
+              style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
+            >
+              Routing number
+            </label>
+      
+            <input
+              type="text"
+              id="purchaseOrderForm-routingNumber"
+              name="routingNumber"
+              style="
+                padding:12px 14px;
+                border:1.5px solid #d4d4d4;
+                border-radius:6px;
+                font-size:15px;
+                transition:all 0.2s ease-in-out;
+                outline:none;
+              "
+            />
+      
+            <span
+              style="
+                display:none;
+                margin-top:4px;
+                font-size:12px;
+                color:#d70000;
+              "
+            >Invalid Invoice memo</span>
+          </div>
+      
+          ${payButton}
+      
+        </form>
+      </div>
+      `;
+      
 }
 
 }
