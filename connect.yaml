@@ -40,7 +40,7 @@ deployAs:
           required: true
         - key: NOVALNET_PUBLIC_KEY
           description: Novalnet Public Key
-          required: false
+          required: true
         - key: NOVALNET_TARIFF_KEY
           description: Novalnet Tariff ID
           required: true

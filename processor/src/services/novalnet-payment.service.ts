@@ -957,7 +957,103 @@ return {
 };
   }
 
+	public async waitForOrderByPayment(
+  paymentId: string,
+  retries = 10,
+  delayMs = 1500
+): Promise<{ id: string; version: number } | null> {
+  for (let i = 0; i < retries; i++) {
+    const res = await projectApiRoot
+      .orders()
+      .get({
+        queryArgs: {
+          where: `paymentInfo(payments(id="${paymentId}"))`,
+          limit: 1,
+        },
+      })
+      .execute();
 
+    const order = res.body.results?.[0];
+    if (order) return { id: order.id, version: order.version };
+
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  return null;
+}
+
+	
+private async syncPaymentToOrder(
+  paymentId: string,
+  pspReference: string
+) {
+  // 1. Wait for Order to exist
+  const order = await this.waitForOrderByPayment(paymentId);
+
+  if (!order) {
+    log.warn("Order not found yet – will sync on next webhook", {
+      paymentId,
+      pspReference,
+    });
+    return;
+  }
+
+  // 2. Load Payment
+  const paymentRes = await projectApiRoot
+    .payments()
+    .withId({ ID: paymentId })
+    .get()
+    .execute();
+
+  const payment = paymentRes.body;
+
+  const tx = payment.transactions?.find(
+    t => t.interactionId === pspReference
+  );
+
+  if (!tx) {
+    log.warn("Transaction not found for PSP reference", {
+      paymentId,
+      pspReference,
+    });
+    return;
+  }
+
+  const comment = tx.custom?.fields?.transactionComments;
+  if (!comment) return;
+
+  // 3. Write into Order
+  await projectApiRoot
+    .orders()
+    .withId({ ID: order.id })
+    .post({
+      body: {
+        version: order.version,
+        actions: [
+          {
+            action: "setCustomType",
+            type: {
+              key: "order-payment-comments",
+              typeId: "type",
+            },
+          },
+          {
+            action: "setCustomField",
+            name: "paymentComments",
+            value: comment,
+          },
+        ],
+      },
+    })
+    .execute();
+
+  log.info("Payment comments synced to Order", {
+    orderId: order.id,
+    paymentId,
+  });
+}
+
+
+	
   public async createWebhook(
     webhookData: any[],
     req?: FastifyRequest
@@ -1035,7 +1131,7 @@ return {
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
     const tx = payment.transactions?.find((t: any) =>
-      t.interactionId === webhook.custom.inputval2
+      t.interactionId === webhook?.custom.inputval2
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
@@ -1069,6 +1165,7 @@ return {
     },
     })
     .execute();
+	  await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
@@ -1126,6 +1223,7 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
@@ -1183,6 +1281,7 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
      return transactionComments;   
   }
 
@@ -1254,6 +1353,7 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
@@ -1344,6 +1444,7 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
@@ -1406,6 +1507,7 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
@@ -1468,6 +1570,7 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
@@ -1515,6 +1618,7 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
@@ -1563,12 +1667,10 @@ return {
     },
     })
     .execute();
+    await this.syncPaymentToOrder( webhook?.custom.inputval1, webhook?.custom.inputval2 );
     return transactionComments;
   }
 
-  // ==================================================
-  // VALIDATIONS (PHP equivalents)
-  // ==================================================
 
   public async validateRequiredParameters(payload: any) {
     const mandatory: Record<string, string[]> = {
@@ -1608,9 +1710,6 @@ public async validateIpAddress(req: FastifyRequest): Promise<void> {
 }
 
 
-  /**
-   * Equivalent of PHP getRemoteAddress()
-   */
 public async getRemoteAddress(
   req: FastifyRequest,
   novalnetHostIP: string
@@ -1683,7 +1782,6 @@ public async getOrderDetails(payload: any) {
   if (!obj) {
   log.warn("CustomObject missing after upsert (unexpected)", { container, key });
   } else {
-  // obj.value contains the stored data
   const stored = obj.value;
   const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
   return stored;
