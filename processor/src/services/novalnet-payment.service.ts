@@ -549,29 +549,29 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       })
       .execute();
     
-const updatedPaymentRoot = await projectApiRoot
-  .payments()
-  .withId({ ID: parsedData.ctPaymentId })
-  .get()
-  .execute();
-
-const orderSearch = await projectApiRoot
-  .orders()
-  .get({
-    queryArgs: {
-      where: `paymentInfo(payments(id="${parsedData.ctPaymentId}"))`,
-      limit: 1,
-    },
-  })
-  .execute();
-
-const orderRoot = orderSearch.body.results?.[0];
-if (!orderRoot) {
-  log.info("No order linked to this payment – nothing to sync");
-  return;
-}
-
-const orderId = orderRoot.id;
+      const updatedPaymentRoot = await projectApiRoot
+      .payments()
+      .withId({ ID: parsedData.ctPaymentId })
+      .get()
+      .execute();
+    
+    const orderSearch = await projectApiRoot
+      .orders()
+      .get({
+        queryArgs: {
+          where: `paymentInfo(payments(id="${parsedData.ctPaymentId}"))`,
+          limit: 1,
+        },
+      })
+      .execute();
+    
+    const orderRoot = orderSearch.body.results?.[0];
+    if (!orderRoot) {
+      log.info("No order linked to this payment – nothing to sync yet");
+      return;
+    }
+    
+    const orderId = orderRoot.id;
 const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
   t => t.id === txId
 );
@@ -922,29 +922,58 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
     .withId({ ID: ctPayment.id })
     .get()
     .execute();
-
-    // Store transaction comments on Payment (source of truth)
-    await projectApiRoot
-    .payments()
-    .withId({ ID: ctPayment.id })
-    .post({
-      body: {
-        version: updatedPaymentRoot.body.version,
-        actions: [
-          {
-            action: "setCustomField",
-            name: "transactionComments",
-            value: transactionCommentsText,
-          },
-        ],
+  
+  const orderSearch = await projectApiRoot
+    .orders()
+    .get({
+      queryArgs: {
+        where: `paymentInfo(payments(id="${ctPayment.id}"))`,
+        limit: 1,
       },
     })
     .execute();
-
-    log.info("Transaction comments stored on Payment", {
-    paymentId: ctPayment.id,
-    });
-
+  
+  const orderRoot = orderSearch.body.results?.[0];
+  if (!orderRoot) {
+    log.info("No order linked to this payment – nothing to sync");
+  }
+  
+  const orderId = orderRoot.id;
+  const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
+    t => t.id === txId
+  );
+  
+  const paymentComment = updatedTransaction?.custom?.fields?.transactionComments ?? transactionCommentsText;
+      
+      const order = await projectApiRoot
+        .orders()
+        .withId({ ID: orderId })
+        .get()
+        .execute();
+      
+      await projectApiRoot
+        .orders()
+        .withId({ ID: orderId })
+        .post({
+          body: {
+            version: order.body.version,
+            actions: [
+              {
+                action: "setCustomType",
+                type: {
+                  key: "order-payment-comments",
+                  typeId: "type",
+                },
+              },
+              {
+                action: "setCustomField",
+                name: "paymentComments",
+                value: paymentComment,
+              },
+            ],
+          },
+        })
+        .execute();
 
   const comment = await this.getTransactionComment(
       ctPayment.id,
