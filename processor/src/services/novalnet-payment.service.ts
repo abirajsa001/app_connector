@@ -572,14 +572,13 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     }
     
     const orderId = orderRoot.id;
-const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
-  t => t.id === txId
-);
+    const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
+      t => t.id === txId
+    );
 
     const paymentComment =
       updatedTransaction?.custom?.fields?.transactionComments ??
       transactionCommentsText;
-    
     
     const order = await projectApiRoot
       .orders()
@@ -917,63 +916,35 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
     })
     .execute();
 
-    const updatedPaymentRoot = await projectApiRoot
-    .payments()
-    .withId({ ID: ctPayment.id })
-    .get()
-    .execute();
-  
-  const orderSearch = await projectApiRoot
-    .orders()
-    .get({
-      queryArgs: {
-        where: `paymentInfo(payments(id="${ctPayment.id}"))`,
-        limit: 1,
-      },
-    })
-    .execute();
-  
-  const orderRoot = orderSearch.body.results?.[0];
-  if (!orderRoot) {
-    log.info("No order linked to this payment – nothing to sync");
+// Re-read payment to ensure transactionComments is stored
+const updatedPaymentRoot = await projectApiRoot
+  .payments()
+  .withId({ ID: ctPayment.id })
+  .get()
+  .execute();
+
+const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
+  t => t.id === txId
+);
+
+const paymentComment =
+  updatedTransaction?.custom?.fields?.transactionComments ??
+  transactionCommentsText;
+
+// Store for later Order sync (because Order does not exist yet)
+await customObjectService.upsert(
+  "nn-private-data",
+  `${ctPayment.id}-${pspReference}`,
+  {
+    paymentId: ctPayment.id,
+    pspReference,
+    comments: paymentComment,
+    orderNo: parsedResponse?.transaction?.order_no ?? "",
+    tid: parsedResponse?.transaction?.tid ?? "",
+    status: parsedResponse?.transaction?.status ?? "",
   }
-  
-  const orderId = orderRoot.id;
-  const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
-    t => t.id === txId
-  );
-  
-  const paymentComment = updatedTransaction?.custom?.fields?.transactionComments ?? transactionCommentsText;
-      
-      const order = await projectApiRoot
-        .orders()
-        .withId({ ID: orderId })
-        .get()
-        .execute();
-      
-      await projectApiRoot
-        .orders()
-        .withId({ ID: orderId })
-        .post({
-          body: {
-            version: order.body.version,
-            actions: [
-              {
-                action: "setCustomType",
-                type: {
-                  key: "order-payment-comments",
-                  typeId: "type",
-                },
-              },
-              {
-                action: "setCustomField",
-                name: "paymentComments",
-                value: paymentComment,
-              },
-            ],
-          },
-        })
-        .execute();
+);
+
 
   const comment = await this.getTransactionComment(
       ctPayment.id,
