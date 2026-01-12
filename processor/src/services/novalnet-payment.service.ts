@@ -899,6 +899,8 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
     );
     if (!tx) throw new Error("Transaction not found");
     const txId = tx.id;
+    const transactionCommentsText = typeof transactionComments === "string" ? transactionComments : String(transactionComments ?? "");
+
     const updatedPayment = await projectApiRoot
     .payments()
     .withId({ ID: ctPayment.id })
@@ -934,7 +936,6 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
   const orderRoot = orderSearch.body.results?.[0];
   if (!orderRoot) {
     log.info("No order linked to this payment – nothing to sync");
-    return;
   }
   
   const orderId = orderRoot.id;
@@ -1531,6 +1532,7 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
     },
     })
     .execute();
+    return transactionComments;
   }
 
   public async handlePaymentReminder(webhook: any) {
