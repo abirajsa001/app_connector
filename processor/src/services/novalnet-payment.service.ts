@@ -323,7 +323,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
   }
 
   public async failureResponse({ data }: { data: any }) {
-    log.info("Failure Response triggered");
     const parsedData = typeof data === "string" ? JSON.parse(data) : data;
     const config = getConfig();
     await createTransactionCommentsType();
@@ -385,23 +384,19 @@ export class NovalnetPaymentService extends AbstractPaymentService {
   
     let shippingAddress: Address | null = ctCart.shippingAddress ?? null;
     let billingAddress: Address | null = ctCart.billingAddress ?? null;
-    let firstName: string =
-      shippingAddress?.firstName ?? ctCart.customerFirstName ?? "";
-    let lastName: string =
-      shippingAddress?.lastName ?? ctCart.customerLastName ?? "";
+    let firstName: string = shippingAddress?.firstName ?? ctCart.customerFirstName ?? "";
+    let lastName: string = shippingAddress?.lastName ?? ctCart.customerLastName ?? "";
     let email: string = ctCart.customerEmail ?? "";
-  
+
     if (ctCart.customerId) {
       try {
-        const apiRoot =
-          (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
-  
+        const apiRoot = (this as any).projectApiRoot ?? (globalThis as any).projectApiRoot ?? projectApiRoot;
         const customerRes = await apiRoot
           .customers()
           .withId({ ID: ctCart.customerId })
           .get()
           .execute();
-  
+
         const ctCustomer: Customer = customerRes.body;
         if (!firstName) firstName = ctCustomer.firstName ?? "";
         if (!lastName) lastName = ctCustomer.lastName ?? "";
@@ -427,7 +422,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
   
   public async transactionUpdate({ data }: { data: any }) {
     try {
-      log.info("transactionUpdate function triggerred");
       const parsedData = typeof data === "string" ? JSON.parse(data) : data;
       if (!parsedData?.ctPaymentId) {
         throw new Error("Missing ctPaymentId in transactionUpdate");
@@ -449,7 +443,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       const lang = parsedData?.lang;
       const locale =  navigator?.language?.split("-")[0] ?? "no-lang1";
       const language = locale?.split("-")[0] ?? "no-lang2";
-
+ 
       try {
         const novalnetResponse = await fetch(
           "https://payport.novalnet.de/v2/transaction/details",
@@ -470,7 +464,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
   
         responseData = await novalnetResponse.json();
       } catch (err) {
-        log.error("Novalnet fetch failed", err);
         throw new Error("Payment verification failed");
       }
   
@@ -479,8 +472,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         throw new Error("Missing pspReference");
       }
   
-      const tid = responseData?.transaction?.tid ?? "N/A";
-      const paymentType = responseData?.transaction?.payment_type ?? "N/A";
+      const tid = responseData?.transaction?.tid ?? "";
+      const paymentType = responseData?.transaction?.payment_type ?? "";
       const isTestMode = responseData?.transaction?.test_mode === 1;
       const status = responseData?.transaction?.status;
       const state = status === "PENDING" || status === "ON_HOLD" ? "Pending" : status === "CONFIRMED" ? "Success" : status === "CANCELLED" ? "Canceled" : "Failure";
@@ -507,30 +500,18 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     
     const payment = (raw as any)?.body ?? raw;
     const version = payment.version;
-    
     if (!payment?.transactions?.length) {
       throw new Error('No transactions on payment');
     }
-    
     const tx = payment.transactions.find(
       (t: any) => t.interactionId === pspReference
     );
-    
     if (!tx?.id) {
       throw new Error('Transaction not found for PSP reference');
     }
     
     const txId = tx.id;
-
-    const transactionCommentsText =
-      typeof transactionComments === "string"
-        ? transactionComments
-        : String(transactionComments ?? "");
-    
-    /* -------------------------------
-       1️⃣ Update PAYMENT
-    -------------------------------- */
-    
+    const transactionCommentsText = typeof transactionComments === "string" ? transactionComments : String(transactionComments ?? "");
     const actions: PaymentUpdateAction[] = [
       {
         action: "setTransactionCustomType",
@@ -568,19 +549,11 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       })
       .execute();
     
-    /* -------------------------------
-       2️⃣ Reload PAYMENT
-    -------------------------------- */
-    
 const updatedPaymentRoot = await projectApiRoot
   .payments()
   .withId({ ID: parsedData.ctPaymentId })
   .get()
   .execute();
-
-/* -------------------------------
-   Find the Order that uses this Payment
--------------------------------- */
 
 const orderSearch = await projectApiRoot
   .orders()
@@ -593,31 +566,20 @@ const orderSearch = await projectApiRoot
   .execute();
 
 const orderRoot = orderSearch.body.results?.[0];
-
-
 if (!orderRoot) {
   log.info("No order linked to this payment – nothing to sync");
   return;
 }
 
 const orderId = orderRoot.id;
-
-
 const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
   t => t.id === txId
 );
-    /* -------------------------------
-       3️⃣ Read SAME transaction
-    -------------------------------- */
-    
-    
+
     const paymentComment =
       updatedTransaction?.custom?.fields?.transactionComments ??
       transactionCommentsText;
     
-    /* -------------------------------
-       4️⃣ Update ORDER (Storefront)
-    -------------------------------- */
     
     const order = await projectApiRoot
       .orders()
@@ -649,8 +611,6 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
       })
       .execute();
     
-
-    
       try {
         const container = "nn-private-data";
         const key = `${parsedData.ctPaymentId}-${pspReference}`;
@@ -665,7 +625,7 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
           },
         });
       } catch (err) {
-        log.error(" CustomObject error", err);
+        log.error("CustomObject error", err); 
         throw err;
       }
   
@@ -955,39 +915,65 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
     })
     .execute();
 
-const orderResult = await projectApiRoot
-  .orders()
-  .get({
-    queryArgs: {
-      where: `paymentInfo(payments(id = "${ctPayment.id}"))`,
-      limit: 1,
-    },
-  })
-  .execute();
-
-const order = orderResult.body.results[0];
-if (!order) {
-  log.info('No order found for payment', ctPayment.id);
-} else {
-  const orderId = order.id;
-
-  // 2) Now you can safely update the order state/paymentState
-  await projectApiRoot
+    const updatedPaymentRoot = await projectApiRoot
+    .payments()
+    .withId({ ID: ctPayment.id })
+    .get()
+    .execute();
+  
+  const orderSearch = await projectApiRoot
     .orders()
-    .withId({ ID: orderId })
-    .post({
-      body: {
-        version: order.version,
-        actions: [
-          {
-            action: 'changePaymentState',
-            paymentState: 'Paid',
-          },
-        ],
+    .get({
+      queryArgs: {
+        where: `paymentInfo(payments(id="${ctPayment.id}"))`,
+        limit: 1,
       },
     })
     .execute();
-}
+  
+  const orderRoot = orderSearch.body.results?.[0];
+  if (!orderRoot) {
+    log.info("No order linked to this payment – nothing to sync");
+    return;
+  }
+  
+  const orderId = orderRoot.id;
+  const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
+    t => t.id === txId
+  );
+  
+  const paymentComment = updatedTransaction?.custom?.fields?.transactionComments ?? transactionCommentsText;
+      
+      
+      const order = await projectApiRoot
+        .orders()
+        .withId({ ID: orderId })
+        .get()
+        .execute();
+      
+      await projectApiRoot
+        .orders()
+        .withId({ ID: orderId })
+        .post({
+          body: {
+            version: order.body.version,
+            actions: [
+              {
+                action: "setCustomType",
+                type: {
+                  key: "order-payment-comments",
+                  typeId: "type",
+                },
+              },
+              {
+                action: "setCustomField",
+                name: "paymentComments",
+                value: paymentComment,
+              },
+            ],
+          },
+        })
+        .execute();
 
   const comment = await this.getTransactionComment(
       ctPayment.id,
@@ -1260,10 +1246,6 @@ if (!order) {
     },
     })
     .execute();
-        log.info('PAYMENT event', {
-          tid: webhook.event.tid,
-        });
-
      return transactionComments;   
   }
 
@@ -1549,10 +1531,6 @@ if (!order) {
     },
     })
     .execute();
-        log.info('PAYMENT event', {
-          tid: webhook.event.tid,
-        });
-        return transactionComments;
   }
 
   public async handlePaymentReminder(webhook: any) {
@@ -1599,9 +1577,6 @@ if (!order) {
     },
     })
     .execute();
-        log.info('PAYMENT event', {
-          tid: webhook.event.tid,
-        });
     return transactionComments;
   }
 
@@ -1687,8 +1662,6 @@ public async validateIpAddress(req: FastifyRequest): Promise<void> {
 
   const requestReceivedIP = await this.getRemoteAddress(req, novalnetHostIP);
   const webhookTestMode = String(getConfig()?.novalnetWebhookTestMode);
-  log.info('Novalnet Host IP:', novalnetHostIP);
-  log.info('Request IP:', requestReceivedIP);
   if (novalnetHostIP !== requestReceivedIP && webhookTestMode == "0") {
     throw new Error(
       `Unauthorized access from the IP ${requestReceivedIP}`
@@ -1758,9 +1731,6 @@ public async getRemoteAddress(
       .createHash('sha256')
       .update(token)
       .digest('hex');
-      log.info('validateChecksum generatedChecksum created');
-      log.info(generatedChecksum);
-      log.info(payload.event.checksum);
     if (generatedChecksum !== payload.event.checksum) {
       throw new Error('Checksum validation failed');
     }
@@ -2069,8 +2039,6 @@ public async updatePaymentStatusByPaymentId(
       });
       throw new Error("Payment initialization failed - missing transaction secret");
     }
-
-    log.info("=== Redirect PAYMENT SUCCESS ===, returning txn_secret:" + txnSecret);
     return {
       paymentReference: paymentRef,
       txnSecret: redirectResult,

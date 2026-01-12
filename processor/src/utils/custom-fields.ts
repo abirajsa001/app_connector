@@ -53,15 +53,12 @@ export const createTransactionCommentsType = async () => {
     body: {
       key: "novalnet-transaction-comments",
       name: { en: "Novalnet Transaction Comments" },
-
-      // 🔥 CRITICAL — must be payment-transaction
       resourceTypeIds: ["payment-transaction"],
-
       fieldDefinitions: [
         {
           name: "transactionComments",
           label: { en: "Transaction Comments" },
-          type: { name: "String" },   // MUST be String
+          type: { name: "String" },
           required: false,
         },
       ],
@@ -69,18 +66,14 @@ export const createTransactionCommentsType = async () => {
   }).execute();
 };
 
-/* ------------------------------------------------------------------
-   2️⃣ Order → Storefront-visible payment comments
-------------------------------------------------------------------- */
-
-export const createOrderPaymentCommentsType = async () => {
+export const createOrderPaymentCommentsType = async () => {  
   try {
     await apiRoot
       .types()
       .withKey({ key: "order-payment-comments" })
       .get()
       .execute();
-    return; // already exists
+    return;
   } catch {
     // create
   }
@@ -95,7 +88,7 @@ export const createOrderPaymentCommentsType = async () => {
         {
           name: "paymentComments",
           label: { en: "Payment Comments" },
-          type: { name: "String" },   // MUST be String
+          type: { name: "String" },
           required: false,
         },
       ],
@@ -103,9 +96,6 @@ export const createOrderPaymentCommentsType = async () => {
   }).execute();
 };
 
-/* ------------------------------------------------------------------
-   3️⃣ Init both types (call on app startup)
-------------------------------------------------------------------- */
 
 export const initCustomTypes = async () => {
   await createTransactionCommentsType();
