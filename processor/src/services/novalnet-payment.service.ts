@@ -916,7 +916,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     })
     .execute();
 
-// Re-read payment to ensure transactionComments is stored
+// Re-read payment to ensure transactionComments is persisted
 const updatedPaymentRoot = await projectApiRoot
   .payments()
   .withId({ ID: ctPayment.id })
@@ -924,71 +924,37 @@ const updatedPaymentRoot = await projectApiRoot
   .execute();
 
 const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
-  t => t.id === txId
+  t => t.interactionId === pspReference
 );
 
 const paymentComment =
   updatedTransaction?.custom?.fields?.transactionComments ??
   transactionCommentsText;
 
-// Store for later Order sync (because Order does not exist yet)
+// Store for later Order sync (because Order does NOT exist yet)
 await customObjectService.upsert(
   "nn-private-data",
   `${ctPayment.id}-${pspReference}`,
   {
     paymentId: ctPayment.id,
     pspReference,
-    comments: paymentComment,
     orderNo: parsedResponse?.transaction?.order_no ?? "",
     tid: parsedResponse?.transaction?.tid ?? "",
+    paymentMethod: parsedResponse?.transaction?.payment_type ?? "",
     status: parsedResponse?.transaction?.status ?? "",
+    amount: parsedResponse?.transaction?.amount ?? "",
+    comments: paymentComment,
+    email: parsedResponse?.customer?.email ?? "",
   }
 );
 
-
-  const comment = await this.getTransactionComment(
-      ctPayment.id,
-      pspReference
-    );
-
-	try {
-	  const paymentIdValue = ctPayment.id;
-	  const container = "nn-private-data";
-	  const key = `${paymentIdValue}-${pspReference}`;
-	  const upsertResp = await customObjectService.upsert(container, key, {
-		deviceId: "device-1234",
-		riskScore: 42,
-		orderNo: parsedResponse?.transaction?.order_no ?? '',
-		tid: parsedResponse?.transaction?.tid ?? '',
-		paymentMethod:  parsedResponse?.transaction?.payment_type ?? '',
-		cMail:  parsedResponse?.customer?.email ?? '',
-		status:  parsedResponse?.transaction?.status ?? '',
-		totalAmount: parsedResponse?.transaction?.amount ?? '',
-		callbackAmount: 0,
-		additionalInfo:{
-			comments:transactionComments ?? '',
-		}
-	  });
-
-	  const obj = await customObjectService.get(container, key);
-	  if (!obj) {
-		log.warn("CustomObject missing after upsert (unexpected)", { container, key });
-	  } else {
-		const stored = obj.value;
-		const maskedDeviceId = stored.deviceId ? `${stored.deviceId.slice(0, 6)}…` : undefined;
-	  }
-	} catch (err) {
-	  log.error("Error storing / reading CustomObject", { error: (err as any).message ?? err });
-	  throw err; // or handle as appropriate
-	}
-    const statusValue = parsedResponse?.transaction?.status;
-    const statusTextValue = parsedResponse?.transaction?.status_text;
-  return {
-      paymentReference: ctPayment.id,
-      novalnetResponse: parsedResponse,  
-      transactionStatus: statusValue,  
-      transactionStatusText: statusTextValue,  
-    };
+// NEVER try to read Order here — it does not exist yet
+return {
+  paymentReference: ctPayment.id,
+  novalnetResponse: parsedResponse,
+  transactionStatus: parsedResponse?.transaction?.status,
+  transactionStatusText: parsedResponse?.transaction?.status_text,
+};
   }
 
 
