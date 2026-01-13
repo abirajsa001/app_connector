@@ -221,8 +221,6 @@ export class Creditcard extends BaseComponent {
     }
 
     this.clientKey = String(json.paymentReference);
-    console.log('client-key');
-    console.log(this.clientKey);
 
     try {
       const requestData = {
@@ -231,8 +229,6 @@ export class Creditcard extends BaseComponent {
       };
     
       const body = JSON.stringify(requestData);
-      console.log("Outgoing body string:", body);
-
       const response = await fetch(this.processorUrl + "/getCustomerAddress", {
         method: "POST",
         headers: {
@@ -243,12 +239,10 @@ export class Creditcard extends BaseComponent {
         body,
       });
     
-      console.log("Network response status:", response.status, response.statusText, "type:", response.type);
-    
+
       // Inspect content-type header before parsing
       const contentType = response.headers.get("Content-Type") ?? response.headers.get("content-type");
-      console.log("Response Content-Type:", contentType);
-    
+
       if (!response.ok) {
         const text = await response.text().catch(() => "");
         console.warn("getconfig returned non-200:", response.status, text);
@@ -257,30 +251,24 @@ export class Creditcard extends BaseComponent {
           console.error("Failed to parse JSON response:", err);
           return null;
         });
-        console.log("parsed response JSON:", json);
-    
+
         if (json && json.firstName) {
           this.firstName = String(json.firstName);
           this.lastName = String(json.lastName);
           this.email = String(json.email);
           this.json = json;
-          console.log("Customer Address set from server:", this.firstName);
-          console.log(String(json.billingAddress.firstName));
-          console.log(String(json.shippingAddress.lastName));
         } else {
           console.warn("JSON response missing paymentReference:", json);
         }
       } else {
         // fallback: treat as plain text
         const text = await response.text().catch(() => "");
-        console.log("Response text (non-JSON):", text);
       }
     } catch (err) {
       console.warn("initPaymentProcessor: getconfig fetch failed (non-fatal):", err);
     }
 
     NovalnetUtility.setClientKey("88fcbbceb1948c8ae106c3fe2ccffc12");
-
     const configurationObject = {
       callback: {
         on_success: (data: any) => {
@@ -312,7 +300,7 @@ export class Creditcard extends BaseComponent {
         inline: 1,
         style: { container: "", input: "", label: "" },
         text: {
-          lang: "EN",
+          lang: window.location.pathname.split("/")[1]?.toUpperCase(),
           error: "Your credit card details are invalid",
           card_holder: {
             label: "Card holder name",
@@ -354,7 +342,7 @@ export class Creditcard extends BaseComponent {
         },
       },
       custom: {
-        lang: "EN",
+        lang: window.location.pathname.split("/")[1]?.toUpperCase(),
       },
     };
 

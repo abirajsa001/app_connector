@@ -927,10 +927,8 @@ const updatedTransaction = updatedPaymentRoot.body.transactions?.find(
   t => t.interactionId === pspReference
 );
 
-const paymentComment =
-  updatedTransaction?.custom?.fields?.transactionComments ??
-  transactionCommentsText;
-
+const paymentComment = updatedTransaction?.custom?.fields?.transactionComments ?? transactionCommentsText;
+await this.syncPaymentToOrder( ctPayment.id, pspReference );
 // Store for later Order sync (because Order does NOT exist yet)
 await customObjectService.upsert(
   "nn-private-data",

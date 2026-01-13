@@ -3,7 +3,7 @@
       "transactionId": "Novalnet Transaktions-ID: {{tid}}",
       "paymentType": "Zahlungsart: {{type}}",
       "testMode": "Testmodus",
-      "referenceText":"Please transfer the amount of {{amount}} to the following account",
+      "referenceText":"Bitte überweisen Sie den Betrag von {{amount}} auf das folgende Konto ",
       "accountHolder":"Kontoinhaber: {{accountHolder}}",
       "iban":"IBAN: {{iban}}",
       "bic":"BIC: {{bic}}",
