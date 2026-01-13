@@ -441,8 +441,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       const accessKey = String(getConfig()?.novalnetPublicKey ?? "");
       const base64Key =  btoa(accessKey);
       const lang = parsedData?.lang;
-      const locale =  navigator?.language?.split("-")[0] ?? "no-lang1";
-      const language = locale?.split("-")[0] ?? "no-lang2";
+      const locale =  navigator?.language?.split("-")[0];
+      const language = locale?.split("-")[0];
  
       try {
         const novalnetResponse = await fetch(
@@ -1823,15 +1823,12 @@ public async updatePaymentStatusByPaymentId(
   
   public async getTransactionComment(paymentId: string, pspReference: string) {
 
-    // 1) Fetch payment from commercetools
     const response = await projectApiRoot
       .payments()
       .withId({ ID: paymentId })
       .get()
       .execute();
     const payment = response.body;
-  
-    // 2) Find the transaction using interactionId (pspReference)
     const tx = payment.transactions?.find(
       (t: any) =>
         t.interactionId === pspReference ||
@@ -1839,7 +1836,6 @@ public async updatePaymentStatusByPaymentId(
     );
   
     if (!tx) throw new Error("Transaction not found");
-    // 3) If transaction has custom fields, extract the value
     const comment =
       tx.custom?.fields?.transactionComments ?? null;
   

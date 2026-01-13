@@ -73,7 +73,6 @@ export class Creditcard extends BaseComponent {
           const NovalnetUtility = (window as any).NovalnetUtility;
           if (NovalnetUtility?.getPanHash) {
             try {
-              console.log("Calling NovalnetUtility.getPanHash()");
               await NovalnetUtility.getPanHash();
             } catch (error) {
               console.error("Error getting pan hash:", error);
@@ -83,11 +82,7 @@ export class Creditcard extends BaseComponent {
           }
         });
       }
-
     });
-
-
-
   }
 
   async submit() {
@@ -105,10 +100,6 @@ export class Creditcard extends BaseComponent {
       const uniqueId = uniqueIdInput?.value.trim();
       const doRedirect = doRedirectInput?.value.trim();
 
-      console.log("PAN HASH:", panhash);
-      console.log("UNIQUE ID:", uniqueId);
-      console.log("DO REDIRECT:", doRedirect);
-      
       if (!panhash || !uniqueId) {
         this.onError("Credit card information is missing or invalid.");
         return;

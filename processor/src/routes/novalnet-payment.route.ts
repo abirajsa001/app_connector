@@ -1,6 +1,5 @@
 import { SessionHeaderAuthenticationHook } from "@commercetools/connect-payments-sdk";
 import { getOrderIdFromOrderNumber } from '../services/order.service';
-
 import {
   FastifyInstance,
   FastifyPluginOptions,
@@ -10,7 +9,6 @@ import {
 import { getCartIdFromContext } from "../libs/fastify/context/context";
 import crypto from "crypto";
 import * as Context from "../libs/fastify/context/context";
-
 import {
   PaymentRequestSchema,
   PaymentRequestSchemaDTO,

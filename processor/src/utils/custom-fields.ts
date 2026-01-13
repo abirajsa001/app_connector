@@ -6,9 +6,6 @@ import {
 import { createApiBuilderFromCtpClient } from "@commercetools/platform-sdk";
 import { config } from "../config/config";
 
-/* ------------------------------------------------------------------
-   Commercetools Client
-------------------------------------------------------------------- */
 
 const authOptions: AuthMiddlewareOptions = {
   host: config.authUrl,
@@ -32,10 +29,6 @@ export const apiRoot = createApiBuilderFromCtpClient(ctpClient).withProjectKey({
   projectKey: config.projectKey,
 });
 
-/* ------------------------------------------------------------------
-   1️⃣ Payment → Transaction custom field
-   (Used internally + copied into Order)
-------------------------------------------------------------------- */
 
 export const createTransactionCommentsType = async () => {
   try {
@@ -44,9 +37,9 @@ export const createTransactionCommentsType = async () => {
       .withKey({ key: "novalnet-transaction-comments" })
       .get()
       .execute();
-    return; // already exists
-  } catch {
-    // create
+    return; 
+  } catch (err: any){
+    console.error("Failed to check transaction comment type", err);
   }
 
   await apiRoot.types().post({
@@ -74,8 +67,8 @@ export const createOrderPaymentCommentsType = async () => {
       .get()
       .execute();
     return;
-  } catch {
-    // create
+  } catch (err: any){
+    console.error("Failed to check order payment comments", err);
   }
 
   await apiRoot.types().post({
