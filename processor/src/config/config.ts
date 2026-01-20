@@ -43,6 +43,10 @@ export const config = {
     process.env.NOVALNET_PREPAYMENT_TEST_MODE || "0",
   novalnet_SEPA_TestMode:
     process.env.NOVALNET_SEPA_TEST_MODE || "0",
+  novalnet_GUARANTEE_INVOICE_TestMode:
+    process.env.NOVALNET_GUARANTEE_INVOICE_TEST_MODE || "0",
+  novalnet_GUARANTEE_SEPA_TestMode:
+    process.env.NOVALNET_GUARANTEE_SEPA_TEST_MODE || "0",    
   novalnet_CREDITCARD_TestMode:
     process.env.NOVALNET_CREDITCARD_TEST_MODE || "0",
   novalnet_ACH_TestMode:
@@ -89,6 +93,10 @@ export const config = {
     process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION || "",
   novalnet_SEPA_PaymentAction:
     process.env.NOVALNET_SEPA_PAYMENT_ACTION || "",
+  novalnet_GUARANTEE_INVOICE_PaymentAction:
+    process.env.NOVALNET_GUARANTEE_INVOICE_PAYMENT_ACTION || "",
+  novalnet_GUARANTEE_SEPA_PaymentAction:
+    process.env.NOVALNET_GUARANTEE_SEPA_PAYMENT_ACTION || "",
   novalnet_CREDITCARD_PaymentAction:
     process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION || "",
   novalnet_INVOICE_MinimumAmount:
@@ -97,13 +105,24 @@ export const config = {
     process.env.NOVALNET_PREPAYMENT_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
   novalnet_SEPA_MinimumAmount:
     process.env.NOVALNET_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
+  novalnet_GUARANTEE_INVOICE_MinimumAmount:
+    process.env.NOVALNET_GUARANTEE_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
+  novalnet_GUARANTEE_SEPA_MinimumAmount:
+    process.env.NOVALNET_GUARANTEE_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
   novalnet_CREDITCARD_MinimumAmount:
     process.env.NOVALNET_CREDITCARD_PAYMENT_ACTION_MINIMUM_AMOUNT || "0",
   novalnet_CREDITCARD_Enforce3d:
     process.env.NOVALNET_CREDITCARD_ENFORCE_3D_SECURE_PAYMENT_OUTSIDE_EU || "",
   novalnet_CREDITCARD_DisplayInline:
-    process.env.NOVALNET_CREDITCARD_DISPLAY_INLINE_CREDITCARD_FORM || "",   
-
+    process.env.NOVALNET_CREDITCARD_DISPLAY_INLINE_CREDITCARD_FORM || "",
+  novalnet_GUARANTEE_INVOICE_Allowb2bCustomers:
+    process.env.NOVALNET_GUARANTEE_INVOICE_ALLOW_B2B_CUSTOMERS || "0",
+  novalnet_GUARANTEE_INVOICE_MinimumAmount:
+    process.env.NOVALNET_GUARANTEE_INVOICE_FORCE_NON_GUARANTEE_PAYMENT || "0",   
+  novalnet_GUARANTEE_INVOICE_MinimumAmount:
+    process.env.NOVALNET_GUARANTEE_SEPA_ALLOW_B2B_CUSTOMERS || "0",
+  novalnet_GUARANTEE_INVOICE_MinimumAmount:
+    process.env.NOVALNET_GUARANTEE_SEPA_FORCE_NON_GUARANTEE_PAYMENT || "0",  
   // Payment Providers config
   returnurl: process.env.RETURN_URL,
   merchantReturnUrl: process.env.MERCHANT_RETURN_URL || "",

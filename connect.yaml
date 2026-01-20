@@ -61,6 +61,35 @@ deployAs:
           required: true
         - key: NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT
           description: Minimum amount for Invoice payment action
+        - key: NOVALNET_GUARANTEE_INVOICE_TEST_MODE
+          description: Enable test mode for Invoice payments (0=Live, 1=Test)
+          required: false
+        - key: NOVALNET_GUARANTEE_INVOICE_ALLOW_B2B_CUSTOMERS
+          description: Enable test mode for Invoice payments (0=Live, 1=Test)
+          required: false
+        - key: NOVALNET_GUARANTEE_INVOICE_FORCE_NON_GUARANTEE_PAYMENT
+          description: Enable test mode for Invoice payments (0=Live, 1=Test)
+          required: false
+        - key: NOVALNET_GUARANTEE_INVOICE_PAYMENT_ACTION
+          description: Payment action for Invoice (payment/authorize)
+          required: true
+        - key: NOVALNET_GUARANTEE_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT
+          description: Minimum amount for Invoice payment action
+          required: false
+        - key: NOVALNET_GUARANTEE_SEPA_TEST_MODE
+          description: Enable test mode for Sepa payments (0=Live, 1=Test)
+          required: false
+        - key: NOVALNET_GUARANTEE_SEPA_ALLOW_B2B_CUSTOMERS
+          description: Enable test mode for Sepa payments (0=Live, 1=Test)
+          required: false
+        - key: NOVALNET_GUARANTEE_SEPA_FORCE_NON_GUARANTEE_PAYMENT
+          description: Enable test mode for Sepa payments (0=Live, 1=Test)
+          required: false
+        - key: NOVALNET_GUARANTEE_SEPA_PAYMENT_ACTION
+          description: Payment action for Sepa (payment/authorize)
+          required: true
+        - key: NOVALNET_GUARANTEE_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT
+          description: Minimum amount for Sepa payment action
           required: false
         - key: NOVALNET_PREPAYMENT_TEST_MODE
           description: Enable test mode for Prepayment (0=Live, 1=Test)
