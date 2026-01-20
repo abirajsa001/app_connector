@@ -179,6 +179,10 @@ export enum PaymentMethod {
   paypal = "paypal",
   /* Prepayment */
   prepayment = "prepayment",
+  /* GuaranteeInvoice */
+  GuaranteeInvoice = "GuaranteeInvoice",
+  /* GuaranteeSepa */
+  GuaranteeSepa = "GuaranteeSepa",
   /* Ideal */
   Ideal = "ideal",
   /* TWINT */

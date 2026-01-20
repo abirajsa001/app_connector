@@ -12,6 +12,8 @@ var PaymentMethodType;
     PaymentMethodType["CARD"] = "card";
     PaymentMethodType["INVOICE"] = "invoice";
     PaymentMethodType["PREPAYMENT"] = "prepayment";
+    PaymentMethodType["GUARANTEE_INVOICE"] = "GuaranteeInvoice";
+    PaymentMethodType["GUARANTEE_SEPA"] = "GuaranteeSepa";
     PaymentMethodType["IDEAL"] = "ideal";
     PaymentMethodType["PAYPAL"] = "paypal";
     PaymentMethodType["ONLINE_BANK_TRANSFER"] = "onlinebanktransfer";

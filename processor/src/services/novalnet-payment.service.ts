@@ -187,6 +187,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       components: [
         { type: PaymentMethodType.INVOICE },
         { type: PaymentMethodType.PREPAYMENT },
+        { type: PaymentMethodType.GUARANTEE_INVOICE },
+        { type: PaymentMethodType.GUARANTEE_SEPA },
         { type: PaymentMethodType.IDEAL },
         { type: PaymentMethodType.PAYPAL },
         { type: PaymentMethodType.ONLINE_BANK_TRANSFER },

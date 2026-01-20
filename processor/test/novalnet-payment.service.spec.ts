@@ -89,6 +89,8 @@ const novalnetPaymentService =
     expect(result?.components[0]?.type).toStrictEqual("card");
     expect(result?.components[1]?.type).toStrictEqual("invoice");
     expect(result?.components[2]?.type).toStrictEqual("prepayment");
+    expect(result?.components[2]?.type).toStrictEqual("GuaranteeInvoice");
+    expect(result?.components[2]?.type).toStrictEqual("GuaranteeSepa");
     expect(result?.components[3]?.type).toStrictEqual("ideal");
     expect(result?.components[4]?.type).toStrictEqual("paypal");
     expect(result?.components[5]?.type).toStrictEqual("onlinebanktransfer");

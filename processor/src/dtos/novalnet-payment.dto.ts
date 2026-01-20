@@ -8,6 +8,8 @@ export enum PaymentOutcome {
 export enum PaymentMethodType {
   INVOICE = "invoice",
   PREPAYMENT = "prepayment",
+  GUARANTEE_INVOICE = "GuaranteeInvoice",
+  GUARANTEE_SEPA = "GuaranteeSepa",
   IDEAL = "ideal",
   PAYPAL = "paypal",
   ONLINE_BANK_TRANSFER = "onlinebanktransfer",
