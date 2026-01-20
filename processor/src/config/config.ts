@@ -117,11 +117,11 @@ export const config = {
     process.env.NOVALNET_CREDITCARD_DISPLAY_INLINE_CREDITCARD_FORM || "",
   novalnet_GUARANTEE_INVOICE_Allowb2bCustomers:
     process.env.NOVALNET_GUARANTEE_INVOICE_ALLOW_B2B_CUSTOMERS || "0",
-  novalnet_GUARANTEE_INVOICE_MinimumAmount:
+  novalnet_GUARANTEE_INVOICE_ForceNonGuarantee:
     process.env.NOVALNET_GUARANTEE_INVOICE_FORCE_NON_GUARANTEE_PAYMENT || "0",   
-  novalnet_GUARANTEE_INVOICE_MinimumAmount:
+  novalnet_GUARANTEE_SEPA_Allowb2bCustomers:
     process.env.NOVALNET_GUARANTEE_SEPA_ALLOW_B2B_CUSTOMERS || "0",
-  novalnet_GUARANTEE_INVOICE_MinimumAmount:
+  novalnet_GUARANTEE_SEPA_ForceNonGuarantee:
     process.env.NOVALNET_GUARANTEE_SEPA_FORCE_NON_GUARANTEE_PAYMENT || "0",  
   // Payment Providers config
   returnurl: process.env.RETURN_URL,
