@@ -55,7 +55,7 @@ import {
       try {
         const requestData: PaymentRequestSchemaDTO = {
           paymentMethod: {
-            type: this.paymentMethod,
+            type: "DIRECT_DEBIT_SEPA",
           },
           paymentOutcome: PaymentOutcome.AUTHORIZED,
         };
