@@ -219,9 +219,7 @@ import {
                 "
               >Invalid BIC</span>
             </div>
-    
             ${payButton}
-    
           </form>
         </div>
       `;
