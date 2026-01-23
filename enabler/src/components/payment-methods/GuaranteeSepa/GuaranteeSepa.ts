@@ -37,7 +37,7 @@ import {
   
       if (this.showPayButton) {
         document
-          .querySelector("#GuaranteeSepaForm-paymentButton")
+          .querySelector("#purchaseOrderForm-paymentButton")
           .addEventListener("click", (e) => {
             e.preventDefault();
             this.submit();
@@ -53,13 +53,27 @@ import {
       const baseSiteUrl = url.origin;
   
       try {
-        const requestData: PaymentRequestSchemaDTO = {
+        // start original
+      const accountHolderInput = document.getElementById('nn_account_holder') as HTMLInputElement;
+      const ibanInput = document.getElementById('nn_guaranteesepa_account_no') as HTMLInputElement;
+      const bicInput = document.getElementById('nn_guaranteesepa_bic') as HTMLInputElement;
+  
+      const accountHolder = accountHolderInput?.value.trim() ?? '';
+      const iban = ibanInput?.value.trim() ?? '';
+      const bic = bicInput?.value.trim() ?? '';
+  
+      const requestData: PaymentRequestSchemaDTO = {
           paymentMethod: {
             type: "DIRECT_DEBIT_SEPA",
+            accHolder: accountHolder,
+            iban: iban,
+            bic: bic,
           },
           paymentOutcome: PaymentOutcome.AUTHORIZED,
+          lang: pathLocale ?? 'de',
+          path: baseSiteUrl,
         };
-       
+  
         const response = await fetch(this.processorUrl + "/directPayment", {
           method: "POST",
           headers: {
@@ -85,14 +99,132 @@ import {
     }
   
     private _getTemplate() {
-      return this.showPayButton
-        ? `
-      <div class="${styles.wrapper}">
-        <p>Pay easily with GuaranteeSepa and transfer the shopping amount within the specified date.</p>
-        <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="GuaranteeSepaForm-paymentButton">Pay</button>
-      </div>
-      `
+      const payButton = this.showPayButton
+        ? `<button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" 
+             id="purchaseOrderForm-paymentButton">Pay</button>`
         : "";
+    
+      return `
+        <div style="width:100%; display:flex; flex-direction:column;">
+          <script type="text/javascript" src="https://cdn.novalnet.de/js/v2/NovalnetUtility.js"></script>
+    
+          <form id="nn_guaranteesepa_form"
+            style="
+              width:100%;
+              display:flex;
+              flex-direction:column;
+              gap:20px;
+            "
+          >
+    
+            <!-- Account Holder -->
+            <div style="display:flex; flex-direction:column; width:100%;">
+              <label for="nn_account_holder"
+                style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
+              >
+                Account Holder <span style="color:red;">*</span>
+              </label>
+    
+              <input
+                type="text"
+                id="nn_account_holder"
+                name="nn_account_holder"
+                style="
+                  padding:12px 14px;
+                  border:1.5px solid #d4d4d4;
+                  border-radius:6px;
+                  font-size:15px;
+                  transition:all 0.2s ease-in-out;
+                "
+              />
+    
+              <span
+                style="
+                  display:none;
+                  margin-top:4px;
+                  font-size:12px;
+                  color:#d70000;
+                "
+              >Invalid account holder</span>
+            </div>
+    
+            <!-- IBAN -->
+            <div style="display:flex; flex-direction:column; width:100%;">
+              <label for="nn_guaranteesepa_account_no"
+                style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
+              >
+                IBAN <span style="color:red;">*</span>
+              </label>
+    
+              <input
+                type="text"
+                id="nn_guaranteesepa_account_no"
+                name="nn_guaranteesepa_account_no"
+                size="32"
+                autocomplete="off"
+                onkeypress="return NovalnetUtility.checkIban(event, 'bic_div');"
+                onkeyup="return NovalnetUtility.formatIban(event, 'bic_div');"
+                onchange="return NovalnetUtility.formatIban(event, 'bic_div');"
+                style="
+                  padding:12px 14px;
+                  border:1.5px solid #d4d4d4;
+                  border-radius:6px;
+                  font-size:15px;
+                  text-transform:uppercase;
+                  transition:all 0.2s ease-in-out;
+                "
+              />
+    
+              <span
+                style="
+                  display:none;
+                  margin-top:4px;
+                  font-size:12px;
+                  color:#d70000;
+                "
+              >Invalid IBAN</span>
+            </div>
+    
+            <!-- BIC FIELD -->
+            <div id="bic_div" style="display:none; flex-direction:column; width:100%;">
+              <label for="nn_guaranteesepa_bic"
+                style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
+              >
+                BIC <span style="color:red;">*</span>
+              </label>
+    
+              <input
+                type="text"
+                id="nn_guaranteesepa_bic"
+                name="nn_guaranteesepa_bic"
+                size="32"
+                autocomplete="off"
+                onkeypress="return NovalnetUtility.formatBic(event);"
+                onchange="return NovalnetUtility.formatBic(event);"
+                style="
+                  padding:12px 14px;
+                  border:1.5px solid #d4d4d4;
+                  border-radius:6px;
+                  font-size:15px;
+                  transition:all 0.2s ease-in-out;
+                "
+              />
+    
+              <span
+                style="
+                  display:none;
+                  margin-top:4px;
+                  font-size:12px;
+                  color:#d70000;
+                "
+              >Invalid BIC</span>
+            </div>
+    
+            ${payButton}
+    
+          </form>
+        </div>
+      `;
     }
   }
   
