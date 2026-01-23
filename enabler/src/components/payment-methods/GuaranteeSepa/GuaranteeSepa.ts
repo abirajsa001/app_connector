@@ -219,6 +219,39 @@ import {
                 "
               >Invalid BIC</span>
             </div>
+
+            <!-- Birthdate -->
+            <div style="display:flex; flex-direction:column; width:100%;">
+            <label for="nn_birthdate"
+                style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
+            >
+                Birthdate <span style="color:red;">*</span>
+            </label>
+
+            <input
+                type="text"
+                id="nn_birthdate"
+                name="nn_birthdate"
+                onkeyup = "return NovalnetUtility.isNumericBirthdate(this,event)"
+                style="
+                padding:12px 14px;
+                border:1.5px solid #d4d4d4;
+                border-radius:6px;
+                font-size:15px;
+                transition:all 0.2s ease-in-out;
+                "
+            />
+
+            <span
+                style="
+                display:none;
+                margin-top:4px;
+                font-size:12px;
+                color:#d70000;
+                "
+            >Invalid birthdate</span>
+            </div>
+
             ${payButton}
           </form>
         </div>
