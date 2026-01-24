@@ -72,11 +72,14 @@ import {
       const accountHolderInput = document.getElementById('nn_account_holder') as HTMLInputElement;
       const ibanInput = document.getElementById('nn_guaranteesepa_account_no') as HTMLInputElement;
       const bicInput = document.getElementById('nn_guaranteesepa_bic') as HTMLInputElement;
-  
+      const birthdateInput = document.getElementById("nn_birthdate") as HTMLInputElement;
+
       const accountHolder = accountHolderInput?.value.trim() ?? '';
       const iban = ibanInput?.value.trim() ?? '';
       const bic = bicInput?.value.trim() ?? '';
-  
+      const birthdate = birthdateInput?.value.trim() ?? "";
+      console.log('birthdate');
+      console.log(birthdate);
       const requestData: PaymentRequestSchemaDTO = {
           paymentMethod: {
             type: "DIRECT_DEBIT_SEPA",
