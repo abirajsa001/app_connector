@@ -45,6 +45,7 @@ export const PaymentRequestSchema = Type.Object({
   paymentMethod: Type.Object({
     type: Type.String(),
     accHolder: Type.Optional(Type.String()),
+    birthdate: Type.Optional(Type.String()),
     iban: Type.Optional(Type.String()),
     bic: Type.Optional(Type.String()),
     accountNumber: Type.Optional(Type.String()),

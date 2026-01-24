@@ -11,6 +11,7 @@ export const PaymentRequestSchema = Type.Object({
   paymentMethod: Type.Object({
     type: Type.String(),
     accHolder: Type.Optional(Type.String()),
+    birthdate: Type.Optional(Type.String()),
     accountNumber: Type.Optional(Type.String()),
     routingNumber: Type.Optional(Type.String()),
     panHash: Type.Optional(Type.String()),

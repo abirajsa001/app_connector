@@ -59,9 +59,9 @@ import {
           });
       }
     }
-  
+
     async submit() {
-      // here we would call the SDK to submit the payment
+      // Here we would call the SDK to submit the payment
       this.sdk.init({ environment: this.environment });
       const pathLocale = window.location.pathname.split("/")[1];
       const url = new URL(window.location.href);
@@ -75,6 +75,7 @@ import {
         const requestData: PaymentRequestSchemaDTO = {
           paymentMethod: {
             type: "INVOICE",
+            birthdate: birthdate
           },
           paymentOutcome: PaymentOutcome.AUTHORIZED,
         };

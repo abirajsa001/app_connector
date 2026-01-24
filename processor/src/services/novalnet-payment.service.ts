@@ -697,7 +697,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     if (dueDateValue) {
       transaction.due_date = dueDateValue;
     }
-
+    
     if (
       String(request.data.paymentMethod.type).toUpperCase() ===
       "DIRECT_DEBIT_SEPA"

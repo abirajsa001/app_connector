@@ -86,6 +86,7 @@ import {
             accHolder: accountHolder,
             iban: iban,
             bic: bic,
+            birthdate: birthdate
           },
           paymentOutcome: PaymentOutcome.AUTHORIZED,
           lang: pathLocale ?? 'de',
