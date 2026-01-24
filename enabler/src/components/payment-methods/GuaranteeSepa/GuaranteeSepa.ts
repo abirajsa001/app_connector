@@ -31,19 +31,34 @@ import {
     }
   
     mount(selector: string) {
-      document
-        .querySelector(selector)
-        .insertAdjacentHTML("afterbegin", this._getTemplate());
-  
-      if (this.showPayButton) {
         document
-          .querySelector("#purchaseOrderForm-paymentButton")
-          .addEventListener("click", (e) => {
+          .querySelector(selector)
+          .insertAdjacentHTML("afterbegin", this._getTemplate());
+      
+        // ✅ Birthdate auto-format: DD-MM-YYYY
+        const birthdateInput = document.getElementById("nn_birthdate") as HTMLInputElement;
+      
+        if (birthdateInput) {
+          birthdateInput.addEventListener("input", () => {
+            let value = birthdateInput.value.replace(/\D/g, ""); // numbers only
+      
+            if (value.length > 2) value = value.slice(0, 2) + "-" + value.slice(2);
+            if (value.length > 5) value = value.slice(0, 5) + "-" + value.slice(5, 9);
+      
+            birthdateInput.value = value;
+          });
+        }
+      
+        // Pay button submit
+        if (this.showPayButton) {
+          const payBtn = document.querySelector("#purchaseOrderForm-paymentButton");
+          payBtn?.addEventListener("click", (e) => {
             e.preventDefault();
             this.submit();
           });
+        }
       }
-    }
+      
   
     async submit() {
       // here we would call the SDK to submit the payment
@@ -220,19 +235,20 @@ import {
               >Invalid BIC</span>
             </div>
 
-            <!-- Birthdate -->
+           <!-- Birthdate -->
             <div style="display:flex; flex-direction:column; width:100%;">
             <label for="nn_birthdate"
                 style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
             >
-                Birthdate <span style="color:red;">*</span>
+                Birthdate (DD-MM-YYYY) <span style="color:red;">*</span>
             </label>
 
             <input
                 type="text"
                 id="nn_birthdate"
                 name="nn_birthdate"
-                onkeyup = "return NovalnetUtility.isNumericBirthdate(this,event)"
+                placeholder="DD-MM-YYYY"
+                maxlength="10"
                 style="
                 padding:12px 14px;
                 border:1.5px solid #d4d4d4;
@@ -243,6 +259,7 @@ import {
             />
 
             <span
+                id="nn_birthdate_error"
                 style="
                 display:none;
                 margin-top:4px;
@@ -251,6 +268,7 @@ import {
                 "
             >Invalid birthdate</span>
             </div>
+
 
             ${payButton}
           </form>
