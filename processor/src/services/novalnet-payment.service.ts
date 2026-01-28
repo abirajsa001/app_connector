@@ -707,53 +707,46 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 
     if (["GUARANTEED_DIRECT_DEBIT_SEPA", "GUARANTEED_INVOICE"].includes(String(request.data.paymentMethod.type).toUpperCase())) {
       log.info("if conditions enter", { paymentType: String(request.data.paymentMethod.type).toUpperCase(),});
-      let guaranteePayment = false;
-      log.info("above billingAddress conditions", { billingAddress: billingAddress,});
-      log.info("above deliveryAddress conditions", { deliveryAddress: deliveryAddress,});
-      if (billingAddress == deliveryAddress) {
-        guaranteePayment = true;
-        log.info("into deliveryAddress conditions", { guaranteePayment: guaranteePayment,});
-      }
-      const billingCountry = billingAddress?.country;
-	  const isEuropean = billingCountry ? this.getEuropeanRegionCountryCodes().includes(billingCountry) : false;
-	  log.info("above getEuropeanRegionCountryCodes conditions", { isEuropean, billingCountry });
-	  log.info("above allowb2bCustomers conditions", { allowb2bCustomers: allowb2bCustomers,});
-	  if (allowb2bCustomers && isEuropean) {
-	   guaranteePayment = true;
-	   log.info("into getEuropeanRegionCountryCodes conditions", { guaranteePayment: guaranteePayment,});
-	  }
-      log.info("above currency conditions", { currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),});
-      if (String(parsedCart?.taxedPrice?.totalGross?.currencyCode) == 'EUR') {
-        guaranteePayment = true;
-        log.info("into currency conditions", { guaranteePayment: guaranteePayment,});
-      }
 
+      const sameAddress =
+      billing.city === shipping.city &&
+      billing.country_code === shipping.country_code &&
+      billing.house_no === shipping.house_no &&
+      billing.street === shipping.street &&
+      billing.zip === shipping.zip;
+      log.info("check sameAddress", { sameAddress });
       
-      const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
-      log.info("above orderTotal conditions", { orderTotal: orderTotal,});
-      log.info("above minimumAmount conditions", { minimumAmount: minimumAmount,});
-      if (orderTotal >= minimumAmount) {
-        guaranteePayment = true;
-        log.info("into orderTotal conditions", { guaranteePayment: guaranteePayment,});
-      }    
-
-      const countryCode = billingAddress?.country;
-      log.info("above countryCode conditions", { allowb2bCustomers: allowb2bCustomers,});
-      if (allowb2bCustomers && countryCode && ['DE', 'AT', 'CH'].includes(countryCode)) {
-        guaranteePayment = true;
-        log.info("into countryCode conditions", { guaranteePayment: guaranteePayment,});
-      }
+      const billingCountry = billingAddress?.country;
+      const isEuropean = billingCountry
+        ? this.getEuropeanRegionCountryCodes().includes(billingCountry)
+        : false;
+      log.info("check isEuropean", { isEuropean, billingCountry });
+      
+      const isEur = String(parsedCart?.taxedPrice?.totalGross?.currencyCode) === "EUR";
+      log.info("check currency", { isEur });
+      
+      const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 0);
+      const minAmount = Number(minimumAmount);
+      const amountValid = orderTotal >= minAmount;
+      log.info("check amount", { orderTotal, minAmount, amountValid });
+      
+      const countryAllowed = allowb2bCustomers && billingCountry && ["DE", "AT", "CH"].includes(billingCountry);
+      log.info("check countryAllowed", { countryAllowed });
+      
+      
+      const guaranteePayment = sameAddress && isEuropean && isEur && amountValid && countryAllowed;
+      log.info("FINAL guaranteePayment decision", { guaranteePayment });
 
       log.info("conditions last scenorio", { guaranteePayment: guaranteePayment,});
       log.info("above forceNonGuarantee conditions", { forceNonGuarantee: forceNonGuarantee,});
-      if(forceNonGuarantee && guaranteePayment != true) {
+      if(forceNonGuarantee && guaranteePayment) {
         if(String(request.data.paymentMethod.type).toUpperCase() == "GUARANTEED_DIRECT_DEBIT_SEPA") {
-           transaction.payment_type = "DIRECT_DEBIT_SEPA"; 
+            transaction.payment_type = "DIRECT_DEBIT_SEPA"; 
         }
         if(String(request.data.paymentMethod.type).toUpperCase() == "GUARANTEED_INVOICE") {
           transaction.payment_type = "INVOICE"; 
-       }
-       log.info("into forceNonGuarantee conditions", { paymentType: transaction.payment_type,});
+        }
+        log.info("into forceNonGuarantee conditions", { paymentType: transaction.payment_type,});
       }
     }
 
