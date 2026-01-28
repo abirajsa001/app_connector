@@ -704,51 +704,80 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       transaction.due_date = dueDateValue;
     }
     
+	if (
+	  ["GUARANTEED_DIRECT_DEBIT_SEPA", "GUARANTEED_INVOICE"].includes(
+		String(request.data.paymentMethod.type).toUpperCase()
+	  )
+	) {
+	  const paymentType = String(request.data.paymentMethod.type).toUpperCase();
+	  log.info("if conditions enter", { paymentType });
 
-    if (["GUARANTEED_DIRECT_DEBIT_SEPA", "GUARANTEED_INVOICE"].includes(String(request.data.paymentMethod.type).toUpperCase())) {
-      log.info("if conditions enter", { paymentType: String(request.data.paymentMethod.type).toUpperCase(),});
+	  /* ================= Address check ================= */
+	  const sameAddress =
+		billingAddress?.city === deliveryAddress?.city &&
+		billingAddress?.country === deliveryAddress?.country &&
+		billingAddress?.streetName === deliveryAddress?.streetName &&
+		billingAddress?.postalCode === deliveryAddress?.postalCode;
 
-      const sameAddress =
-      billing.city === shipping.city &&
-      billing.country_code === shipping.country_code &&
-      billing.house_no === shipping.house_no &&
-      billing.street === shipping.street &&
-      billing.zip === shipping.zip;
-      log.info("check sameAddress", { sameAddress });
-      
-      const billingCountry = billingAddress?.country;
-      const isEuropean = billingCountry
-        ? this.getEuropeanRegionCountryCodes().includes(billingCountry)
-        : false;
-      log.info("check isEuropean", { isEuropean, billingCountry });
-      
-      const isEur = String(parsedCart?.taxedPrice?.totalGross?.currencyCode) === "EUR";
-      log.info("check currency", { isEur });
-      
-      const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 0);
-      const minAmount = Number(minimumAmount);
-      const amountValid = orderTotal >= minAmount;
-      log.info("check amount", { orderTotal, minAmount, amountValid });
-      
-      const countryAllowed = allowb2bCustomers && billingCountry && ["DE", "AT", "CH"].includes(billingCountry);
-      log.info("check countryAllowed", { countryAllowed });
-      
-      
-      const guaranteePayment = sameAddress && isEuropean && isEur && amountValid && countryAllowed;
-      log.info("FINAL guaranteePayment decision", { guaranteePayment });
+	  log.info("check sameAddress", { sameAddress });
 
-      log.info("conditions last scenorio", { guaranteePayment: guaranteePayment,});
-      log.info("above forceNonGuarantee conditions", { forceNonGuarantee: forceNonGuarantee,});
-      if(forceNonGuarantee && guaranteePayment) {
-        if(String(request.data.paymentMethod.type).toUpperCase() == "GUARANTEED_DIRECT_DEBIT_SEPA") {
-            transaction.payment_type = "DIRECT_DEBIT_SEPA"; 
-        }
-        if(String(request.data.paymentMethod.type).toUpperCase() == "GUARANTEED_INVOICE") {
-          transaction.payment_type = "INVOICE"; 
-        }
-        log.info("into forceNonGuarantee conditions", { paymentType: transaction.payment_type,});
-      }
-    }
+	  /* ================= Country check ================= */
+	  const billingCountry = billingAddress && billingAddress.country;
+	  const isEuropean = billingCountry
+		? this.getEuropeanRegionCountryCodes().includes(billingCountry)
+		: false;
+
+	  log.info("check isEuropean", { isEuropean, billingCountry });
+
+	  /* ================= Currency check ================= */
+	  const isEur =
+		String(parsedCart?.taxedPrice?.totalGross?.currencyCode) === "EUR";
+
+	  log.info("check currency", { isEur });
+
+	  /* ================= Amount check ================= */
+	  const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 0);
+	  const minAmount = Number(minimumAmount);
+	  const amountValid = orderTotal >= minAmount;
+
+	  log.info("check amount", { orderTotal, minAmount, amountValid });
+
+	  /* ================= B2B country check ================= */
+	  const countryAllowed =
+		allowb2bCustomers &&
+		billingCountry &&
+		["DE", "AT", "CH"].includes(billingCountry);
+
+	  log.info("check countryAllowed", { countryAllowed });
+
+	  /* ================= FINAL DECISION ================= */
+	  const guaranteePayment =
+		sameAddress &&
+		isEuropean &&
+		isEur &&
+		amountValid &&
+		countryAllowed;
+
+	  log.info("FINAL guaranteePayment decision", { guaranteePayment });
+
+	  /* ================= Force non-guarantee ================= */
+	  log.info("above forceNonGuarantee conditions", { forceNonGuarantee });
+
+	  if (forceNonGuarantee && guaranteePayment) {
+		if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
+		  transaction.payment_type = "DIRECT_DEBIT_SEPA";
+		}
+
+		if (paymentType === "GUARANTEED_INVOICE") {
+		  transaction.payment_type = "INVOICE";
+		}
+
+		log.info("into forceNonGuarantee conditions", {
+		  paymentType: transaction.payment_type
+		});
+	  }
+	}
+
 
 
     if (
