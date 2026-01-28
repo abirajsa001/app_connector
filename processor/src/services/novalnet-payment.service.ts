@@ -77,6 +77,8 @@ type NovalnetConfig = {
   minimumAmount: string;
   enforce3d: string;
   displayInline: string;
+  allowb2bCustomers:string;
+  forceNonGuarantee:string;
 };
 
 type TransactionCommentParams = {
@@ -102,6 +104,8 @@ function getNovalnetConfigValues(
     minimumAmount: String(config?.[`novalnet_${upperType}_MinimumAmount`]),
     enforce3d: String(config?.[`novalnet_${upperType}_Enforce3d`]),
     displayInline: String(config?.[`novalnet_${upperType}_DisplayInline`]),
+    allowb2bCustomers: String(config?.[`novalnet_${upperType}_Allowb2bCustomers`]),
+    forceNonGuarantee: String(config?.[`novalnet_${upperType}_ForceNonGuarantee`]),
   };
 }
 
@@ -674,6 +678,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       minimumAmount,
       enforce3d,
       displayInline,
+      allowb2bCustomers,
+      forceNonGuarantee,
     } = getNovalnetConfigValues(type, config);
     await createTransactionCommentsType();
     const ctCart = await this.ctCartService.getCart({
@@ -698,6 +704,58 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       transaction.due_date = dueDateValue;
     }
     
+
+    if (["GUARANTEED_DIRECT_DEBIT_SEPA", "GUARANTEED_INVOICE"].includes(String(request.data.paymentMethod.type).toUpperCase())) {
+      log.info("if conditions enter", { paymentType: String(request.data.paymentMethod.type).toUpperCase(),});
+      let $guaranteePayment = false;
+      log.info("above billingAddress conditions", { billingAddress: billingAddress,});
+      log.info("above deliveryAddress conditions", { deliveryAddress: deliveryAddress,});
+      if (billingAddress == deliveryAddress) {
+        guaranteePayment = true;
+        log.info("into deliveryAddress conditions", { guaranteePayment: guaranteePayment,});
+      }
+      log.info("above getEuropeanRegionCountryCodes conditions", { getEuropeanRegionCountryCodes: this.getEuropeanRegionCountryCodes().includes(billingAddress?.country),});
+      log.info("above allowb2bCustomers conditions", { allowb2bCustomers: allowb2bCustomers,});
+      if (allowb2bCustomers && this.getEuropeanRegionCountryCodes().includes(billingAddress?.country)) {
+        guaranteePayment = true;
+        log.info("into getEuropeanRegionCountryCodes conditions", { guaranteePayment: guaranteePayment,});
+      }
+      log.info("above currency conditions", { currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),});
+      if (String(parsedCart?.taxedPrice?.totalGross?.currencyCode) == 'EUR') {
+        guaranteePayment = true;
+        log.info("into currency conditions", { guaranteePayment: guaranteePayment,});
+      }
+
+      
+      const orderTotal = String(parsedCart?.taxedPrice?.totalGross?.centAmount);
+      log.info("above orderTotal conditions", { orderTotal: orderTotal,});
+      log.info("above minimumAmount conditions", { minimumAmount: minimumAmount,});
+      if (orderTotal >= minimumAmount) {
+        guaranteePayment = true;
+        log.info("into orderTotal conditions", { guaranteePayment: guaranteePayment,});
+      }    
+
+      const countryCode = billingAddress?.country;
+      log.info("above countryCode conditions", { allowb2bCustomers: allowb2bCustomers,});
+      if (allowb2bCustomers && countryCode && ['DE', 'AT', 'CH'].includes(countryCode)) {
+        guaranteePayment = true;
+        log.info("into countryCode conditions", { guaranteePayment: guaranteePayment,});
+      }
+
+      log.info("conditions last scenorio", { guaranteePayment: guaranteePayment,});
+      log.info("above forceNonGuarantee conditions", { forceNonGuarantee: forceNonGuarantee,});
+      if(forceNonGuarantee && guaranteePayment != true) {
+        if(String(request.data.paymentMethod.type).toUpperCase() == "GUARANTEED_DIRECT_DEBIT_SEPA") {
+           transaction.payment_type = "DIRECT_DEBIT_SEPA"; 
+        }
+        if(String(request.data.paymentMethod.type).toUpperCase() == "GUARANTEED_INVOICE") {
+          transaction.payment_type = "INVOICE"; 
+       }
+       log.info("into forceNonGuarantee conditions", { paymentType: transaction.payment_type,});
+      }
+    }
+
+
     if (
       String(request.data.paymentMethod.type).toUpperCase() ===
       "DIRECT_DEBIT_SEPA"
@@ -1008,6 +1066,11 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       transactionStatusText: parsedResponse?.transaction?.status_text,
     };
   }
+
+  getEuropeanRegionCountryCodes(): string[] {
+    return ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI','FR', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT','NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK', 'UK', 'CH'];
+  }
+
 
   public async waitForOrderByPayment(
     paymentId: string,
