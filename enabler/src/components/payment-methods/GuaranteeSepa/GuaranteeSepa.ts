@@ -80,9 +80,10 @@ import {
       const birthdate = birthdateInput?.value.trim() ?? "";
       console.log('birthdate');
       console.log(birthdate);
+      console.log(this.paymentMethod);
       const requestData: PaymentRequestSchemaDTO = {
           paymentMethod: {
-            type: "DIRECT_DEBIT_SEPA",
+            type: "GUARANTEED_DIRECT_DEBIT_SEPA",
             accHolder: accountHolder,
             iban: iban,
             bic: bic,

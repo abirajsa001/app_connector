@@ -61,7 +61,7 @@ import {
     }
 
     async submit() {
-      // Here we would call the SDK to submit the payment
+      // Here we would call the SDK to sumbit the payment
       this.sdk.init({ environment: this.environment });
       const pathLocale = window.location.pathname.split("/")[1];
       const url = new URL(window.location.href);
@@ -72,9 +72,10 @@ import {
         const birthdate = birthdateInput?.value.trim() ?? "";
         console.log('birthdate');
         console.log(birthdate);
+        console.log(this.paymentMethod);
         const requestData: PaymentRequestSchemaDTO = {
           paymentMethod: {
-            type: "INVOICE",
+            type: "GUARANTEED_INVOICE",
             birthdate: birthdate
           },
           paymentOutcome: PaymentOutcome.AUTHORIZED,
