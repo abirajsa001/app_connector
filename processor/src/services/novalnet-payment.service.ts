@@ -707,19 +707,21 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 
     if (["GUARANTEED_DIRECT_DEBIT_SEPA", "GUARANTEED_INVOICE"].includes(String(request.data.paymentMethod.type).toUpperCase())) {
       log.info("if conditions enter", { paymentType: String(request.data.paymentMethod.type).toUpperCase(),});
-      let $guaranteePayment = false;
+      let guaranteePayment = false;
       log.info("above billingAddress conditions", { billingAddress: billingAddress,});
       log.info("above deliveryAddress conditions", { deliveryAddress: deliveryAddress,});
       if (billingAddress == deliveryAddress) {
         guaranteePayment = true;
         log.info("into deliveryAddress conditions", { guaranteePayment: guaranteePayment,});
       }
-      log.info("above getEuropeanRegionCountryCodes conditions", { getEuropeanRegionCountryCodes: this.getEuropeanRegionCountryCodes().includes(billingAddress?.country),});
-      log.info("above allowb2bCustomers conditions", { allowb2bCustomers: allowb2bCustomers,});
-      if (allowb2bCustomers && this.getEuropeanRegionCountryCodes().includes(billingAddress?.country)) {
-        guaranteePayment = true;
-        log.info("into getEuropeanRegionCountryCodes conditions", { guaranteePayment: guaranteePayment,});
-      }
+      const billingCountry = billingAddress?.country;
+	  const isEuropean = billingCountry ? this.getEuropeanRegionCountryCodes().includes(billingCountry) : false;
+	  log.info("above getEuropeanRegionCountryCodes conditions", { isEuropean, billingCountry });
+	  log.info("above allowb2bCustomers conditions", { allowb2bCustomers: allowb2bCustomers,});
+	  if (allowb2bCustomers && isEuropean) {
+	   guaranteePayment = true;
+	   log.info("into getEuropeanRegionCountryCodes conditions", { guaranteePayment: guaranteePayment,});
+	  }
       log.info("above currency conditions", { currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),});
       if (String(parsedCart?.taxedPrice?.totalGross?.currencyCode) == 'EUR') {
         guaranteePayment = true;
