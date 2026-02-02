@@ -744,7 +744,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  const amountValid = orderTotal >= minAmount;
 
 	  log.info("check amount", { orderTotal, minAmount, amountValid });
-
+    log.warn(`[amount] total=${orderTotal}, min=${minAmount}, valid=${amountValid}`);
+    
 	  /* ================= B2B country check ================= */
 	  const countryAllowed =
 		allowb2bCustomers &&
@@ -754,18 +755,21 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  log.info("check countryAllowed", { countryAllowed });
 
 	  /* ================= FINAL DECISION ================= */
-	  const guaranteePayment =
-		sameAddress &&
-		isEuropean &&
-		isEur &&
-		amountValid &&
-		countryAllowed;
+    const guaranteePayment =
+    Boolean(sameAddress) &&
+    Boolean(isEuropean) &&
+    Boolean(isEur) &&
+    Boolean(amountValid) &&
+    Boolean(countryAllowed);
+   
 
 	  log.info("FINAL guaranteePayment decision", { guaranteePayment });
-
+    log.warn(`[FINAL] guaranteePayment=${guaranteePayment}`);
+    
 	  /* ================= Force non-guarantee ================= */
 	  log.info("above forceNonGuarantee conditions", { forceNonGuarantee });
-
+    log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
+    
 	  if (forceNonGuarantee && guaranteePayment) {
       if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
         transaction.payment_type = "DIRECT_DEBIT_SEPA";
