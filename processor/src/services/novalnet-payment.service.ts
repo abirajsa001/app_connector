@@ -719,7 +719,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 		billingAddress?.streetName === deliveryAddress?.streetName &&
 		billingAddress?.postalCode === deliveryAddress?.postalCode;
 
-	  log.info("check sameAddress", { sameAddress });
+	  log.warn(`[sameAddress] ${billingAddress?.city}|${deliveryAddress?.city} => ${sameAddress}`);
+    
 
 	  /* ================= Country check ================= */
 	  const billingCountry = billingAddress && billingAddress.country;
@@ -728,13 +729,15 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 		: false;
 
 	  log.info("check isEuropean", { isEuropean, billingCountry });
-
+    log.warn(`[isEuropean] country=${billingCountry}, result=${isEuropean}`);
+    
 	  /* ================= Currency check ================= */
 	  const isEur =
 		String(parsedCart?.taxedPrice?.totalGross?.currencyCode) === "EUR";
 
 	  log.info("check currency", { isEur });
-
+    log.warn(`[currency] isEur=${isEur}`);
+    
 	  /* ================= Amount check ================= */
 	  const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 0);
 	  const minAmount = Number(minimumAmount);
@@ -764,20 +767,19 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  log.info("above forceNonGuarantee conditions", { forceNonGuarantee });
 
 	  if (forceNonGuarantee && guaranteePayment) {
-		if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
-		  transaction.payment_type = "DIRECT_DEBIT_SEPA";
-		}
+      if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
+        transaction.payment_type = "DIRECT_DEBIT_SEPA";
+      }
 
-		if (paymentType === "GUARANTEED_INVOICE") {
-		  transaction.payment_type = "INVOICE";
-		}
+      if (paymentType === "GUARANTEED_INVOICE") {
+        transaction.payment_type = "INVOICE";
+      }
 
-		log.info("into forceNonGuarantee conditions", {
-		  paymentType: transaction.payment_type
-		});
+      log.info("into forceNonGuarantee conditions", {
+        paymentType: transaction.payment_type
+      });
 	  }
 	}
-
 
 
     if (
