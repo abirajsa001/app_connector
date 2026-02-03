@@ -1,7 +1,7 @@
 import { InvoiceBuilder } from "../components/payment-methods/invoice/invoice";
 import { PrepaymentBuilder } from "../components/payment-methods/prepayment/prepayment";
-import { GuaranteeInvoiceBuilder } from "../components/payment-methods/GuaranteeInvoice/GuaranteeInvoice";
-import { GuaranteeSepaBuilder } from "../components/payment-methods/GuaranteeSepa/GuaranteeSepa";
+import { GuaranteedInvoiceBuilder } from "../components/payment-methods/GuaranteedInvoice/GuaranteedInvoice";
+import { GuaranteedSepaBuilder } from "../components/payment-methods/GuaranteedSepa/GuaranteedSepa";
 import { IdealBuilder } from "../components/payment-methods/ideal/ideal";
 import { PaypalBuilder } from "../components/payment-methods/paypal/paypal";
 import { OnlinebanktransferBuilder } from "../components/payment-methods/onlinebanktransfer/onlinebanktransfer";
@@ -93,8 +93,8 @@ export class NovalnetPaymentEnabler implements PaymentEnabler {
     const supportedMethods = {
       invoice: InvoiceBuilder,
       prepayment: PrepaymentBuilder,
-      GuaranteeInvoice: GuaranteeInvoiceBuilder,
-      GuaranteeSepa: GuaranteeSepaBuilder,
+      GuaranteedInvoice: GuaranteedInvoiceBuilder,
+      GuaranteedSepa: GuaranteedSepaBuilder,
       ideal: IdealBuilder,
       paypal: PaypalBuilder,
       onlinebanktransfer: OnlinebanktransferBuilder,

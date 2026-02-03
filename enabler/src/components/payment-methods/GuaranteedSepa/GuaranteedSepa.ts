@@ -13,20 +13,20 @@ import {
   } from "../../../dtos/novalnet-payment.dto";
   import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
   
-  export class GuaranteeSepaBuilder implements PaymentComponentBuilder {
+  export class GuaranteedSepaBuilder implements PaymentComponentBuilder {
     public componentHasSubmit = true;
     constructor(private baseOptions: BaseOptions) {}
   
     build(config: ComponentOptions): PaymentComponent {
-      return new GuaranteeSepa(this.baseOptions, config);
+      return new GuaranteedSepa(this.baseOptions, config);
     }
   }
   
-  export class GuaranteeSepa extends BaseComponent {
+  export class GuaranteedSepa extends BaseComponent {
     private showPayButton: boolean;
   
     constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-      super(PaymentMethod.GuaranteeSepa, baseOptions, componentOptions);
+      super(PaymentMethod.GuaranteedSepa, baseOptions, componentOptions);
       this.showPayButton = componentOptions?.showPayButton ?? false;
     }
   

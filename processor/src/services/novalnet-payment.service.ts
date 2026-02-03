@@ -191,8 +191,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       components: [
         { type: PaymentMethodType.INVOICE },
         { type: PaymentMethodType.PREPAYMENT },
-        { type: PaymentMethodType.GUARANTEE_INVOICE },
-        { type: PaymentMethodType.GUARANTEE_SEPA },
+        { type: PaymentMethodType.GUARANTEED_INVOICE },
+        { type: PaymentMethodType.GUARANTEED_SEPA },
         { type: PaymentMethodType.IDEAL },
         { type: PaymentMethodType.PAYPAL },
         { type: PaymentMethodType.ONLINE_BANK_TRANSFER },
@@ -783,7 +783,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       log.warn(`[into birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
       if ( birthDateRaw && typeof birthDateRaw === "string" && birthDateRaw.trim() !== "") {
         transaction.birth_date = '01-01-1960';
-        transaction.company = 'test';
         log.warn(`[outto birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
       }
     }

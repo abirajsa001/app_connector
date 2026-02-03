@@ -13,20 +13,20 @@ import {
   } from "../../../dtos/novalnet-payment.dto";
   import { BaseOptions } from "../../../payment-enabler/payment-enabler-mock";
   
-  export class GuaranteeInvoiceBuilder implements PaymentComponentBuilder {
+  export class GuaranteedInvoiceBuilder implements PaymentComponentBuilder {
     public componentHasSubmit = true;
     constructor(private baseOptions: BaseOptions) {}
   
     build(config: ComponentOptions): PaymentComponent {
-      return new GuaranteeInvoice(this.baseOptions, config);
+      return new GuaranteedInvoice(this.baseOptions, config);
     }
   }
   
-  export class GuaranteeInvoice extends BaseComponent {
+  export class GuaranteedInvoice extends BaseComponent {
     private showPayButton: boolean;
   
     constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-      super(PaymentMethod.GuaranteeInvoice, baseOptions, componentOptions);
+      super(PaymentMethod.GuaranteedInvoice, baseOptions, componentOptions);
       this.showPayButton = componentOptions?.showPayButton ?? false;
     }
     
@@ -52,7 +52,7 @@ import {
 
       if (this.showPayButton) {
         document
-          .querySelector("#GuaranteeInvoiceForm-paymentButton")
+          .querySelector("#GuaranteedInvoiceForm-paymentButton")
           .addEventListener("click", (e) => {
             e.preventDefault();
             this.submit();
@@ -109,8 +109,8 @@ import {
     const payButton = this.showPayButton
         ? `
       <div class="${styles.wrapper}">
-        <p>Pay easily with GuaranteeInvoice and transfer the shopping amount within the specified date.</p>
-        <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="GuaranteeInvoiceForm-paymentButton">Pay</button>
+        <p>Pay easily with GuaranteedInvoice and transfer the shopping amount within the specified date.</p>
+        <button class="${buttonStyles.button} ${buttonStyles.fullWidth} ${styles.submitButton}" id="GuaranteedInvoiceForm-paymentButton">Pay</button>
       </div>
       `
         : "";
