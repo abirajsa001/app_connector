@@ -796,10 +796,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       };
     }
     if (
-      String(request.data.paymentMethod.type).toUpperCase() ===
-        "DIRECT_DEBIT_SEPA" &&
-      String(request.data.paymentMethod.bic) != ""
-    ) {
+      String(request.data.paymentMethod.type).toUpperCase() === "DIRECT_DEBIT_SEPA" && String(request.data.paymentMethod.bic) != "") {
       transaction.payment_data = {
         bic: String(request.data.paymentMethod.bic),
       };
