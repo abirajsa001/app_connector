@@ -771,7 +771,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  /* ================= Force non-guarantee ================= */
     log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
     
-	  if (forceNonGuarantee == 1 && guaranteePayment) {
+	  if (forceNonGuarantee == '1' && guaranteePayment) {
       if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
         transaction.payment_type = "DIRECT_DEBIT_SEPA";
       }
