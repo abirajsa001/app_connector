@@ -36,7 +36,7 @@ import {
           .insertAdjacentHTML("afterbegin", this._getTemplate());
       
         // Birthdate auto-format: DD-MM-YYYY
-        const birthdateInput = document.getElementById("nn_birthdate") as HTMLInputElement;
+        const birthdateInput = document.getElementById("nn_sepa_birthdate") as HTMLInputElement;
       
         if (birthdateInput) {
           birthdateInput.addEventListener("input", () => {
@@ -72,7 +72,7 @@ import {
       const accountHolderInput = document.getElementById('nn_account_holder') as HTMLInputElement;
       const ibanInput = document.getElementById('nn_guaranteesepa_account_no') as HTMLInputElement;
       const bicInput = document.getElementById('nn_guaranteesepa_bic') as HTMLInputElement;
-      const birthdateInput = document.getElementById("nn_birthdate") as HTMLInputElement;
+      const birthdateInput = document.getElementById("nn_sepa_birthdate") as HTMLInputElement;
 
       const accountHolder = accountHolderInput?.value.trim() ?? '';
       const iban = ibanInput?.value.trim() ?? '';
@@ -242,7 +242,7 @@ import {
 
            <!-- Birthdate -->
             <div style="display:flex; flex-direction:column; width:100%;">
-            <label for="nn_birthdate"
+            <label for="nn_sepa_birthdate"
                 style="font-size:14px; font-weight:600; color:#333; margin-bottom:6px;"
             >
                 Birthdate (DD-MM-YYYY) <span style="color:red;">*</span>
@@ -250,8 +250,8 @@ import {
 
             <input
                 type="text"
-                id="nn_birthdate"
-                name="nn_birthdate"
+                id="nn_sepa_birthdate"
+                name="nn_sepa_birthdate"
                 placeholder="DD-MM-YYYY"
                 maxlength="10"
                 style="
@@ -264,7 +264,7 @@ import {
             />
 
             <span
-                id="nn_birthdate_error"
+                id="nn_sepa_birthdate_error"
                 style="
                 display:none;
                 margin-top:4px;
