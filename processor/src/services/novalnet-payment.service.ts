@@ -758,9 +758,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     Boolean(isEur) &&
     Boolean(amountValid) &&
     Boolean(countryAllowed);
-    const birthDate = String(request.data.paymentMethod.birthdate);
+
     log.warn(`[FINAL] guaranteePayment=${guaranteePayment}`);
-    log.warn(`[birthDate] birthdate=${birthDate}`);
+
     
 	  /* ================= Force non-guarantee ================= */
     log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
@@ -777,9 +777,13 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       log.warn(`[Into the paymentType] paymentType=${transaction.payment_type}`);
 	  }
     log.warn(`[outTO the paymentType] paymentType=${transaction.payment_type}`);
-    if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
-      if(birthDate) {
-        transaction.birth_date = birthDate;
+    const birthDateRaw = request.data.paymentMethod?.birthdate;
+    log.warn(`[birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
+    if ( paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
+      log.warn(`[into birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
+      if ( birthDateRaw && typeof birthDateRaw === "string" && birthDateRaw.trim() !== "") {
+        transaction.birth_date = birthDateRaw;
+        log.warn(`[outto birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
       }
     }
 	}

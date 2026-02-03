@@ -35,7 +35,7 @@ import {
           .querySelector(selector)
           .insertAdjacentHTML("afterbegin", this._getTemplate());
       
-        // ✅ Birthdate auto-format: DD-MM-YYYY
+        // Birthdate auto-format: DD-MM-YYYY
         const birthdateInput = document.getElementById("nn_birthdate") as HTMLInputElement;
       
         if (birthdateInput) {
