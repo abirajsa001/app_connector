@@ -782,7 +782,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     if ( paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
       log.warn(`[into birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
       if ( birthDateRaw && typeof birthDateRaw === "string" && birthDateRaw.trim() !== "") {
-        transaction.birth_date = birthDateRaw;
+        transaction.birth_date = '01-01-1960';
+        transaction.company = 'test';
         log.warn(`[outto birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
       }
     }
