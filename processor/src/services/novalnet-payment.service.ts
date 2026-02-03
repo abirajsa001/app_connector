@@ -787,7 +787,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       if (typeof birthDateRaw === "string") {
         const formattedBirthDate = this.formatBirthDateToYMD(birthDateRaw);
         if (formattedBirthDate) {
-          transaction.birth_date = formattedBirthDate;
+          transaction.birth_date = "1858-11-01";
         }
       }
     
