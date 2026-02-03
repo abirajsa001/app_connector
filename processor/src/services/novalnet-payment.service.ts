@@ -670,6 +670,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     request: CreatePaymentRequest
   ): Promise<PaymentResponseSchemaDTO> {
     const type = String(request.data?.paymentMethod?.type);
+    log.warn(`[createDirectPaymenttype] isType=${type}`);
     const config = getConfig();
     const {
       testMode,
@@ -681,6 +682,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       allowb2bCustomers,
       forceNonGuarantee,
     } = getNovalnetConfigValues(type, config);
+    log.warn(`[createDirectPaymentminimumAmount] isMinimum=${allowb2bCustomers}`);
+    log.warn(`[createDirectforceNonGuarantee] isForceNon=${forceNonGuarantee}`);
     await createTransactionCommentsType();
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
@@ -740,9 +743,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     
 	  /* ================= Amount check ================= */
 	  const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 0);
-	  const minAmount = Number(minimumAmount);
+	  const minAmount = Number(minimumAmount) ?? 0;
 	  const amountValid = orderTotal >= minAmount;
-
+    log.warn(`[minAmount] isminAmount=${minAmount}`);
 	  log.info("check amount", { orderTotal, minAmount, amountValid });
     log.warn(`[amount] total=${orderTotal}, min=${minAmount}, valid=${amountValid}`);
     
@@ -752,7 +755,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 		billingCountry &&
 		["DE", "AT", "CH"].includes(billingCountry);
 
-	  log.info("check countryAllowed", { countryAllowed });
+	  log.info("check countryAllowed", { countryAllowed }); 
 
 	  /* ================= FINAL DECISION ================= */
     const guaranteePayment =
@@ -762,12 +765,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     Boolean(amountValid) &&
     Boolean(countryAllowed);
    
-
-	  log.info("FINAL guaranteePayment decision", { guaranteePayment });
     log.warn(`[FINAL] guaranteePayment=${guaranteePayment}`);
     
 	  /* ================= Force non-guarantee ================= */
-	  log.info("above forceNonGuarantee conditions", { forceNonGuarantee });
     log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
     
 	  if (forceNonGuarantee && guaranteePayment) {
@@ -778,13 +778,13 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       if (paymentType === "GUARANTEED_INVOICE") {
         transaction.payment_type = "INVOICE";
       }
-
-      log.info("into forceNonGuarantee conditions", {
-        paymentType: transaction.payment_type
-      });
+      log.warn(`[Into the paymentType] paymentType=${transaction.payment_type}`);
 	  }
+    if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
+      transaction.birth_date = '01-01-1960';
+      transaction.company = 'test';
+    }
 	}
-
 
     if (
       String(request.data.paymentMethod.type).toUpperCase() ===
