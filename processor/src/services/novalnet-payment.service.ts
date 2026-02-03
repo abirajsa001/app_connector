@@ -746,17 +746,11 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  const minAmount = Number(minimumAmount) ?? 0;
 	  const amountValid = orderTotal >= minAmount;
     log.warn(`[minAmount] isminAmount=${minAmount}`);
-	  log.info("check amount", { orderTotal, minAmount, amountValid });
     log.warn(`[amount] total=${orderTotal}, min=${minAmount}, valid=${amountValid}`);
-    
 	  /* ================= B2B country check ================= */
-	  const countryAllowed =
-		allowb2bCustomers &&
-		billingCountry &&
-		["DE", "AT", "CH"].includes(billingCountry);
+	  const countryAllowed = allowb2bCustomers && billingCountry && ["DE", "AT", "CH"].includes(billingCountry);
 
 	  log.info("check countryAllowed", { countryAllowed }); 
-
 	  /* ================= FINAL DECISION ================= */
     const guaranteePayment =
     Boolean(sameAddress) &&
@@ -770,8 +764,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     
 	  /* ================= Force non-guarantee ================= */
     log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
-    const isForceNonGuarantee = Number(forceNonGuarantee) !== 0;
-
+    const isForceNonGuarantee = forceNonGuarantee !== undefined && forceNonGuarantee !== null && !Number.isNaN(Number(forceNonGuarantee)) && Number(forceNonGuarantee) !== 0;
+    log.warn(`[isForceNonGuarantee] isForceNonGuarantee=${isForceNonGuarantee}`);
 	  if (isForceNonGuarantee && guaranteePayment) {
       if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
         transaction.payment_type = "DIRECT_DEBIT_SEPA";
@@ -782,6 +776,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       }
       log.warn(`[Into the paymentType] paymentType=${transaction.payment_type}`);
 	  }
+    log.warn(`[outTO the paymentType] paymentType=${transaction.payment_type}`);
     if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
       if(birthDate) {
         transaction.birth_date = birthDate;
