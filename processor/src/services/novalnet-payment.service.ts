@@ -779,11 +779,23 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     log.warn(`[outTO the paymentType] paymentType=${transaction.payment_type}`);
     const birthDateRaw = request.data.paymentMethod?.birthdate;
     log.warn(`[birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
-    if ( paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
-      log.warn(`[into birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
-        transaction.birth_date = String(request.data.paymentMethod.birthdate);
-        log.warn(`[outto birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
+    if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
+      const birthDateRaw = request.data.paymentMethod?.birthdate;
+      log.warn(
+        `[into birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`
+      );
+      if (typeof birthDateRaw === "string") {
+        const formattedBirthDate = this.formatBirthDateToYMD(birthDateRaw);
+        if (formattedBirthDate) {
+          transaction.birth_date = formattedBirthDate;
+        }
+      }
+    
+      log.warn(
+        `[outto birthDate DEBUG] birth_date=${transaction.birth_date}`
+      );
     }
+    
 	}
 
     if (
@@ -1098,7 +1110,23 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     return ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI','FR', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT','NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK', 'UK', 'CH'];
   }
 
+  formatBirthDateToYMD(dateStr: string): string | null {
+    // expecting DD-MM-YYYY
+    const parts = dateStr.split("-");
+    if (parts.length !== 3) {
+      return null;
+    }
+  
+    const [day, month, year] = parts;
+  
+    if (!day || !month || !year) {
+      return null;
+    }
+  
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+  }
 
+  
   public async waitForOrderByPayment(
     paymentId: string,
     retries = 10,
