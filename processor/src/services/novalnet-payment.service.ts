@@ -770,8 +770,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     
 	  /* ================= Force non-guarantee ================= */
     log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
-    
-	  if (forceNonGuarantee == '1' && guaranteePayment) {
+    const isForceNonGuarantee = Number(forceNonGuarantee) !== 0;
+
+	  if (isForceNonGuarantee && guaranteePayment) {
       if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
         transaction.payment_type = "DIRECT_DEBIT_SEPA";
       }
@@ -782,8 +783,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       log.warn(`[Into the paymentType] paymentType=${transaction.payment_type}`);
 	  }
     if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
-      transaction.birth_date = '01-01-1960';
-      transaction.company = 'test';
+      if(birthDate) {
+        transaction.birth_date = birthDate;
+      }
     }
 	}
 
