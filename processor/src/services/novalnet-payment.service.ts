@@ -764,13 +764,14 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     Boolean(isEur) &&
     Boolean(amountValid) &&
     Boolean(countryAllowed);
-   
+    const birthDate = String(request.data.paymentMethod.birthdate);
     log.warn(`[FINAL] guaranteePayment=${guaranteePayment}`);
+    log.warn(`[birthDate] birthdate=${birthDate}`);
     
 	  /* ================= Force non-guarantee ================= */
     log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
     
-	  if (forceNonGuarantee && guaranteePayment) {
+	  if (forceNonGuarantee == 1 && guaranteePayment) {
       if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
         transaction.payment_type = "DIRECT_DEBIT_SEPA";
       }
