@@ -780,10 +780,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 
 	}
 
-
     let formattedBirthDate: string | undefined;
-    if ( paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" ||
-      paymentType === "GUARANTEED_INVOICE"
+    if ( String(request.data.paymentMethod.type).toUpperCase() === "GUARANTEED_DIRECT_DEBIT_SEPA" ||
+    String(request.data.paymentMethod.type).toUpperCase() === "GUARANTEED_INVOICE"
     ) {
       const birthDateRaw = request.data.paymentMethod?.birthdate;
 
@@ -1111,21 +1110,20 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     return ['AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI','FR', 'GR', 'HR', 'HU', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT','NL', 'PL', 'PT', 'RO', 'SE', 'SI', 'SK', 'UK', 'CH'];
   }
 
-  formatBirthDateToYMD(dateStr: string): string | null {
-    // expecting DD-MM-YYYY
-    const parts = dateStr.split("-");
-    if (parts.length !== 3) {
-      return null;
-    }
-  
-    const [day, month, year] = parts;
-  
-    if (!day || !month || !year) {
-      return null;
-    }
-  
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-  }
+   formatBirthDateToYMD(dateStr: string): string | undefined {
+	  const parts = dateStr.split("-");
+	  if (parts.length !== 3) {
+		return undefined;
+	  }
+
+	  const [day, month, year] = parts;
+	  if (!day || !month || !year) {
+		return undefined;
+	  }
+
+	  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+   }
+
 
   
   public async waitForOrderByPayment(
