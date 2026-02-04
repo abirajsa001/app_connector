@@ -909,14 +909,14 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         billing: {
           city: String(billingAddress?.city),
           country_code: String(billingAddress?.country),
-          house_no: '9',
+          house_no: String(billingAddress?.additionalAddressInfo),
           street: String(billingAddress?.streetName),
           zip: String(billingAddress?.postalCode),
         },
         shipping: {
           city: String(deliveryAddress?.city),
           country_code: String(deliveryAddress?.country),
-          house_no: '9',
+          house_no: String(deliveryAddress?.additionalAddressInfo),
           street: String(deliveryAddress?.streetName),
           zip: String(deliveryAddress?.postalCode),
         },
