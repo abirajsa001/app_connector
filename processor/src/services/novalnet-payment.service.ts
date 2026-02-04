@@ -702,7 +702,15 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),
       order_no: String(orderNumber),
     };
-
+    log.warn(`[deliveryAddress] country=${billingAddress}, result=${deliveryAddress}`);
+    log.warn(`[billingAddress] country=${billingAddress}, result=${deliveryAddress}`);
+    log.warn(
+      `[deliveryAddressJSON] country=${deliveryAddress?.country}, address=${JSON.stringify(deliveryAddress)}`
+    );
+    
+    log.warn(
+      `[billingAddressJSON] country=${billingAddress?.country}, address=${JSON.stringify(billingAddress)}`
+    );
     if (dueDateValue) {
       transaction.due_date = dueDateValue;
     }
@@ -883,14 +891,14 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         billing: {
           city: String(billingAddress?.city),
           country_code: String(billingAddress?.country),
-          house_no: String(billingAddress?.streetName),
+          house_no: '9',
           street: String(billingAddress?.streetName),
           zip: String(billingAddress?.postalCode),
         },
         shipping: {
           city: String(deliveryAddress?.city),
           country_code: String(deliveryAddress?.country),
-          house_no: String(deliveryAddress?.streetName),
+          house_no: '9',
           street: String(deliveryAddress?.streetName),
           zip: String(deliveryAddress?.postalCode),
         },
