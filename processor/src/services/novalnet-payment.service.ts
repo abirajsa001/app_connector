@@ -670,7 +670,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     request: CreatePaymentRequest
   ): Promise<PaymentResponseSchemaDTO> {
     const type = String(request.data?.paymentMethod?.type);
-    log.warn(`[createDirectPaymenttype] isType=${type}`);
     const config = getConfig();
     const {
       testMode,
@@ -682,8 +681,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       allowb2bCustomers,
       forceNonGuarantee,
     } = getNovalnetConfigValues(type, config);
-    log.warn(`[createDirectPaymentminimumAmount] isMinimum=${allowb2bCustomers}`);
-    log.warn(`[createDirectforceNonGuarantee] isForceNon=${forceNonGuarantee}`);
     await createTransactionCommentsType();
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
@@ -702,33 +699,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),
       order_no: String(orderNumber),
     };
-    log.warn(`[deliveryAddress] country=${billingAddress}, result=${deliveryAddress}`);
-    log.warn(`[billingAddress] country=${billingAddress}, result=${deliveryAddress}`);
-    log.warn(
-      `[billingAddressJSON] country=${billingAddress?.country}, address=${JSON.stringify(billingAddress)}`
-    );
-    
-    log.warn(
-      `[deliveryAddressJSON] country=${deliveryAddress?.country}, address=${JSON.stringify(deliveryAddress)}`
-    );
-    
-    log.warn("[billingAddressJSONLogin]", {
-      country: billingAddress?.country,
-      address: billingAddress,
-    });
-    
-    log.warn("[deliveryAddressJSONLogin]", {
-      country: deliveryAddress?.country,
-      address: deliveryAddress,
-    });
-    log.warn(
-      `[billingAddressJSONPretty]\n${JSON.stringify(billingAddress, null, 2)}`
-    );
-
-    log.warn(
-      `[deliveryAddressJSONPretty]\n${JSON.stringify(deliveryAddress, null, 2)}`
-    );
-    
+ 
     if (dueDateValue) {
       transaction.due_date = dueDateValue;
     }
@@ -745,11 +716,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  const sameAddress =
 		billingAddress?.city === deliveryAddress?.city &&
 		billingAddress?.country === deliveryAddress?.country &&
+    billingAddress?.additionalAddressInfo === deliveryAddress?.additionalAddressInfo &&
 		billingAddress?.streetName === deliveryAddress?.streetName &&
 		billingAddress?.postalCode === deliveryAddress?.postalCode;
-
-	  log.warn(`[sameAddress] ${billingAddress?.city}|${deliveryAddress?.city} => ${sameAddress}`);
-    
 
 	  /* ================= Country check ================= */
 	  const billingCountry = billingAddress && billingAddress.country;
@@ -757,26 +726,18 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 		? this.getEuropeanRegionCountryCodes().includes(billingCountry)
 		: false;
 
-	  log.info("check isEuropean", { isEuropean, billingCountry });
-    log.warn(`[isEuropean] country=${billingCountry}, result=${isEuropean}`);
-    
 	  /* ================= Currency check ================= */
 	  const isEur =
 		String(parsedCart?.taxedPrice?.totalGross?.currencyCode) === "EUR";
 
-	  log.info("check currency", { isEur });
-    log.warn(`[currency] isEur=${isEur}`);
     
 	  /* ================= Amount check ================= */
 	  const orderTotal = Number(parsedCart?.taxedPrice?.totalGross?.centAmount ?? 0);
 	  const minAmount = Number(minimumAmount) ?? 0;
 	  const amountValid = orderTotal >= minAmount;
-    log.warn(`[minAmount] isminAmount=${minAmount}`);
-    log.warn(`[amount] total=${orderTotal}, min=${minAmount}, valid=${amountValid}`);
 	  /* ================= B2B country check ================= */
 	  const countryAllowed = allowb2bCustomers && billingCountry && ["DE", "AT", "CH"].includes(billingCountry);
 
-	  log.info("check countryAllowed", { countryAllowed }); 
 	  /* ================= FINAL DECISION ================= */
     const guaranteePayment =
     Boolean(sameAddress) &&
@@ -784,14 +745,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     Boolean(isEur) &&
     Boolean(amountValid) &&
     Boolean(countryAllowed);
-
-    log.warn(`[FINAL] guaranteePayment=${guaranteePayment}`);
-
-    
+ 
 	  /* ================= Force non-guarantee ================= */
-    log.warn(`[GUARANTEE_CHECK] ${JSON.stringify({sameAddress, isEuropean, isEur, amountValid, countryAllowed, guaranteePayment})}`);
     const isForceNonGuarantee = forceNonGuarantee !== undefined && forceNonGuarantee !== null && !Number.isNaN(Number(forceNonGuarantee)) && Number(forceNonGuarantee) !== 0;
-    log.warn(`[isForceNonGuarantee] isForceNonGuarantee=${isForceNonGuarantee}`);
 	  if (isForceNonGuarantee && guaranteePayment) {
       if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA") {
         transaction.payment_type = "DIRECT_DEBIT_SEPA";
@@ -800,10 +756,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       if (paymentType === "GUARANTEED_INVOICE") {
         transaction.payment_type = "INVOICE";
       }
-      log.warn(`[Into the paymentType] paymentType=${transaction.payment_type}`);
 	  }
-    log.warn(`[outTO the paymentType] paymentType=${transaction.payment_type}`);
-
 	}
 
     let formattedBirthDate: string | undefined;
@@ -811,11 +764,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     String(request.data.paymentMethod.type).toUpperCase() === "GUARANTEED_INVOICE"
     ) {
       const birthDateRaw = request.data.paymentMethod?.birthdate;
-
-      log.warn(
-        `[birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`
-      );
-
       if (typeof birthDateRaw === "string") {
         formattedBirthDate = this.formatBirthDateToYMD(birthDateRaw);
       }
@@ -842,7 +790,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     ) {
       transaction.payment_data = {
         account_holder: String(request.data.paymentMethod.accHolder),
-        account_number: String(request.data.paymentMethod.accountNumber),
+        account_number: String(request.data.paymentMethod.accountNumber),      
         routing_number: String(request.data.paymentMethod.routingNumber),
       };
     }
@@ -1262,7 +1210,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     let lang = webhook.custom?.lang;
     this.getOrderDetails(webhook);
     if (status !== "SUCCESS") {
-      log.warn("Webhook status is not SUCCESS");
       return { message: "Webhook ignored (non-success)" };
     }
     let transactionComments: string | undefined;
@@ -2364,14 +2311,14 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         billing: {
           city: String(billingAddress?.city),
           country_code: String(billingAddress?.country),
-          house_no: String(billingAddress?.streetName),
+          house_no: String(billingAddress?.additionalAddressInfo),
           street: String(billingAddress?.streetName),
           zip: String(billingAddress?.postalCode),
         },
         shipping: {
           city: String(deliveryAddress?.city),
           country_code: String(deliveryAddress?.country),
-          house_no: String(deliveryAddress?.streetName),
+          house_no: String(deliveryAddress?.additionalAddressInfo),
           street: String(deliveryAddress?.streetName),
           zip: String(deliveryAddress?.postalCode),
         },

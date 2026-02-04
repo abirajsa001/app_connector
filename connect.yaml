@@ -62,34 +62,34 @@ deployAs:
         - key: NOVALNET_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT
           description: Minimum amount for Invoice payment action
         - key: NOVALNET_GUARANTEED_INVOICE_TEST_MODE
-          description: Enable test mode for Invoice payments (0=Live, 1=Test)
+          description: Enable test mode for Guanrantee Invoice payments (0=Live, 1=Test)
           required: false
         - key: NOVALNET_GUARANTEED_INVOICE_ALLOW_B2B_CUSTOMERS
-          description: Enable test mode for Invoice payments (0=Live, 1=Test)
+          description: Enable test mode for Guanrantee Invoice payments (0=Disable, 1=Enable)
           required: false
         - key: NOVALNET_GUARANTEED_INVOICE_FORCE_NON_GUARANTEED_PAYMENT
-          description: Enable test mode for Invoice payments (0=Live, 1=Test)
+          description: Enable test mode for Guanrantee Invoice payments (0=Disable, 1=Enable)
           required: false
         - key: NOVALNET_GUARANTEED_INVOICE_PAYMENT_ACTION
-          description: Payment action for Invoice (payment/authorize)
+          description: Payment action for Guanrantee Invoice (payment/authorize)
           required: true
         - key: NOVALNET_GUARANTEED_INVOICE_PAYMENT_ACTION_MINIMUM_AMOUNT
-          description: Minimum amount for Invoice payment action
+          description: Minimum amount for Guanrantee Invoice payment action
           required: false
         - key: NOVALNET_GUARANTEED_SEPA_TEST_MODE
-          description: Enable test mode for Sepa payments (0=Live, 1=Test)
+          description: Enable test mode for Guanrantee Sepa payments (0=Live, 1=Test)
           required: false
         - key: NOVALNET_GUARANTEED_SEPA_ALLOW_B2B_CUSTOMERS
-          description: Enable test mode for Sepa payments (0=Live, 1=Test)
+          description: Enable test mode for Guanrantee Sepa payments (0=Disable, 1=Enable)
           required: false
         - key: NOVALNET_GUARANTEED_SEPA_FORCE_NON_GUARANTEED_PAYMENT
-          description: Enable test mode for Sepa payments (0=Live, 1=Test)
+          description: Enable test mode for Guanrantee Sepa payments (0=Disable, 1=Enable)
           required: false
         - key: NOVALNET_GUARANTEED_SEPA_PAYMENT_ACTION
-          description: Payment action for Sepa (payment/authorize)
+          description: Payment action for Guanrantee Sepa (payment/authorize)
           required: true
         - key: NOVALNET_GUARANTEED_SEPA_PAYMENT_ACTION_MINIMUM_AMOUNT
-          description: Minimum amount for Sepa payment action
+          description: Minimum amount for Guanrantee Sepa payment action
           required: false
         - key: NOVALNET_PREPAYMENT_TEST_MODE
           description: Enable test mode for Prepayment (0=Live, 1=Test)
