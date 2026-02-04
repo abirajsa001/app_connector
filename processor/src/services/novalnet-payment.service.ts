@@ -777,26 +777,24 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       log.warn(`[Into the paymentType] paymentType=${transaction.payment_type}`);
 	  }
     log.warn(`[outTO the paymentType] paymentType=${transaction.payment_type}`);
-    const birthDateRaw = request.data.paymentMethod?.birthdate;
-    log.warn(`[birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`);
-    if (paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" || paymentType === "GUARANTEED_INVOICE") {
-      const birthDateRaw = request.data.paymentMethod?.birthdate;
-      log.warn(
-        `[into birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`
-      );
-      if (typeof birthDateRaw === "string") {
-        const formattedBirthDate = this.formatBirthDateToYMD(birthDateRaw);
-        if (formattedBirthDate) {
-          transaction.birth_date = "1858-11-01";
-        }
-      }
-    
-      log.warn(
-        `[outto birthDate DEBUG] birth_date=${transaction.birth_date}`
-      );
-    }
-    
+
 	}
+
+
+    let formattedBirthDate: string | undefined;
+    if ( paymentType === "GUARANTEED_DIRECT_DEBIT_SEPA" ||
+      paymentType === "GUARANTEED_INVOICE"
+    ) {
+      const birthDateRaw = request.data.paymentMethod?.birthdate;
+
+      log.warn(
+        `[birthDate DEBUG] raw=${birthDateRaw} type=${typeof birthDateRaw}`
+      );
+
+      if (typeof birthDateRaw === "string") {
+        formattedBirthDate = this.formatBirthDateToYMD(birthDateRaw);
+      }
+    }
 
     if (
       String(request.data.paymentMethod.type).toUpperCase() ===
@@ -900,6 +898,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         first_name: firstName,
         last_name: lastName,
         email: parsedCart.customerEmail,
+        ...(formattedBirthDate && {
+          birth_date: formattedBirthDate,
+        }),
       },
       transaction,
       custom: {
