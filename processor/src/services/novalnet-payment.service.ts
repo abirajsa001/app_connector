@@ -699,8 +699,15 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),
       order_no: String(orderNumber),
     };
-    const { deliveryAddressStreetName, deliveryAddressStreetNumber } = await this.splitStreetSmart( deliveryAddress?.streetName );
-    const { billingAddressStreetName, billingAddressStreetNumber } = await this.splitStreetSmart( billingAddress?.streetName );
+	const deliveryStreet =  this.splitStreetByComma(deliveryAddress?.streetName);
+	const billingStreet =this.splitStreetByComma(billingAddress?.streetName);
+
+	const deliveryAddressStreetName = deliveryStreet.streetName;
+	const deliveryAddressStreetNumber = deliveryStreet.streetNumber;
+
+	const billingAddressStreetName = billingStreet.streetName;
+	const billingAddressStreetNumber = billingStreet.streetNumber;
+
     log.warn(`[deliveryAddress] country=${billingAddress}, result=${deliveryAddress}, deliveryAddressStreetName=${deliveryAddressStreetName}, deliveryAddressStreetNumber=${deliveryAddressStreetNumber}`);
     log.warn(`[billingAddress] country=${billingAddress}, result=${deliveryAddress}, billingAddressStreetName=${billingAddressStreetName}, billingAddressStreetNumber=${billingAddressStreetNumber}`);
     log.warn(
@@ -2251,6 +2258,16 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     const paymentAmount = await this.ctCartService.getPaymentAmount({
       cart: ctCart,
     });
+    
+    	const deliveryStreet = this.splitStreetByComma(deliveryAddress?.streetName);
+	const billingStreet = this.splitStreetByComma(billingAddress?.streetName);
+
+	const deliveryAddressStreetName = deliveryStreet.streetName;
+	const deliveryAddressStreetNumber = deliveryStreet.streetNumber;
+
+	const billingAddressStreetName = billingStreet.streetName;
+	const billingAddressStreetNumber = billingStreet.streetNumber;
+
     const paymentInterface = getPaymentInterfaceFromContext() || "mock";
     const ctPayment = await this.ctPaymentService.createPayment({
       amountPlanned: paymentAmount,
@@ -2557,24 +2574,25 @@ export class NovalnetPaymentService extends AbstractPaymentService {
   }
 
 
- public async splitStreetByComma(
-    street?: string
-  ): { streetName: string; streetNumber: string } {
-    if (!street) {
-      return { streetName: '', streetNumber: '' };
-    }
-  
-    const parts = street.split(',');
-  
-    if (parts.length < 2) {
-      return { streetName: street.trim(), streetNumber: '' };
-    }
-  
-    return {
-      streetName: parts[0].trim(),
-      streetNumber: parts.slice(1).join(',').trim(),
-    };
+public splitStreetByComma(
+  street?: string
+): { streetName: string; streetNumber: string } {
+  if (!street) {
+    return { streetName: '', streetNumber: '' };
   }
+
+  const parts = street.split(',');
+
+  if (parts.length < 2) {
+    return { streetName: street.trim(), streetNumber: '' };
+  }
+
+  return {
+    streetName: parts[0].trim(),
+    streetNumber: parts.slice(1).join(',').trim(),
+  };
+}
+
   
 
 
