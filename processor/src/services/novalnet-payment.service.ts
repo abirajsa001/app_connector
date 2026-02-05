@@ -2574,27 +2574,24 @@ export class NovalnetPaymentService extends AbstractPaymentService {
   }
 
 
-public splitStreetByComma(
-  street?: string
-): { streetName: string; streetNumber: string } {
-  if (!street) {
-    return { streetName: '', streetNumber: '' };
+  public splitStreetByComma(
+    street?: string
+  ): { streetName: string; streetNumber: string } {
+    if (!street) {
+      return { streetName: '', streetNumber: '' };
+    }
+
+    const parts = street.split(',');
+
+    if (parts.length < 2) {
+      return { streetName: street.trim(), streetNumber: '' };
+    }
+
+    return {
+      streetName: parts[0].trim(),
+      streetNumber: parts.slice(1).join(',').trim(),
+    };
   }
-
-  const parts = street.split(',');
-
-  if (parts.length < 2) {
-    return { streetName: street.trim(), streetNumber: '' };
-  }
-
-  return {
-    streetName: parts[0].trim(),
-    streetNumber: parts.slice(1).join(',').trim(),
-  };
-}
-
-  
-
 
 
 }
