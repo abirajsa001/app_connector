@@ -793,12 +793,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  }
 	}
 
-  const company =
-  typeof billingAddress?.additionalAddressInfo === "string" &&
-  billingAddress.additionalAddressInfo.trim() !== ""
-    ? billingAddress.additionalAddressInfo.trim()
-    : undefined;
-
+  const company = billingAddress?.additionalAddressInfo ?? '';
 
     let birthDate: string | undefined;
 
@@ -809,10 +804,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       }
     }
     
-    if( billingAddress?.additionalAddressInfo ) {
-      const company = billingAddress?.additionalAddressInfo;
-    }
-
     if (
       String(request.data.paymentMethod.type).toUpperCase() ===
       "DIRECT_DEBIT_SEPA"
