@@ -699,7 +699,35 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       currency: String(parsedCart?.taxedPrice?.totalGross?.currencyCode),
       order_no: String(orderNumber),
     };
- 
+    const { deliveryAddressStreetName, deliveryAddressStreetNumber } = await this.splitStreetSmart( deliveryAddress?.streetName );
+    const { billingAddressStreetName, billingAddressStreetNumber } = await this.splitStreetSmart( billingAddress?.streetName );
+    log.warn(`[deliveryAddress] country=${billingAddress}, result=${deliveryAddress}, deliveryAddressStreetName=${deliveryAddressStreetName}, deliveryAddressStreetNumber=${deliveryAddressStreetNumber}`);
+    log.warn(`[billingAddress] country=${billingAddress}, result=${deliveryAddress}, billingAddressStreetName=${billingAddressStreetName}, billingAddressStreetNumber=${billingAddressStreetNumber}`);
+    log.warn(
+      `[billingAddressJSON] country=${billingAddress?.country}, address=${JSON.stringify(billingAddress)}`
+    );
+    
+    log.warn(
+      `[deliveryAddressJSON] country=${deliveryAddress?.country}, address=${JSON.stringify(deliveryAddress)}`
+    );
+    
+    log.warn("[billingAddressJSONLogin]", {
+      country: billingAddress?.country,
+      address: billingAddress,
+    });
+    
+    log.warn("[deliveryAddressJSONLogin]", {
+      country: deliveryAddress?.country,
+      address: deliveryAddress,
+    });
+    log.warn(
+      `[billingAddressJSONPretty]\n${JSON.stringify(billingAddress, null, 2)}`
+    );
+
+    log.warn(
+      `[deliveryAddressJSONPretty]\n${JSON.stringify(deliveryAddress, null, 2)}`
+    );
+
     if (dueDateValue) {
       transaction.due_date = dueDateValue;
     }
@@ -710,14 +738,13 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  )
 	) {
 	  const paymentType = String(request.data.paymentMethod.type).toUpperCase();
-	  log.info("if conditions enter", { paymentType });
 
 	  /* ================= Address check ================= */
 	  const sameAddress =
 		billingAddress?.city === deliveryAddress?.city &&
 		billingAddress?.country === deliveryAddress?.country &&
-    billingAddress?.additionalAddressInfo === deliveryAddress?.additionalAddressInfo &&
-		billingAddress?.streetName === deliveryAddress?.streetName &&
+    billingAddressStreetName === deliveryAddressStreetName &&
+		billingAddressStreetNumber === deliveryAddressStreetNumber &&
 		billingAddress?.postalCode === deliveryAddress?.postalCode;
 
 	  /* ================= Country check ================= */
@@ -759,14 +786,24 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 	  }
 	}
 
-    let formattedBirthDate: string | undefined;
-    if ( String(request.data.paymentMethod.type).toUpperCase() === "GUARANTEED_DIRECT_DEBIT_SEPA" ||
-    String(request.data.paymentMethod.type).toUpperCase() === "GUARANTEED_INVOICE"
-    ) {
-      const birthDateRaw = request.data.paymentMethod?.birthdate;
-      if (typeof birthDateRaw === "string") {
-        formattedBirthDate = this.formatBirthDateToYMD(birthDateRaw);
+  const company =
+  typeof billingAddress?.additionalAddressInfo === "string" &&
+  billingAddress.additionalAddressInfo.trim() !== ""
+    ? billingAddress.additionalAddressInfo.trim()
+    : undefined;
+
+
+    let birthDate: string | undefined;
+
+    if (!company) {
+      const rawBirthDate = request.data.paymentMethod?.birthdate;
+      if (typeof rawBirthDate === "string" && rawBirthDate.trim() !== "") {
+        birthDate = this.formatBirthDateToYMD(rawBirthDate);
       }
+    }
+    
+    if( billingAddress?.additionalAddressInfo ) {
+      const company = billingAddress?.additionalAddressInfo;
     }
 
     if (
@@ -857,23 +894,21 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         billing: {
           city: String(billingAddress?.city),
           country_code: String(billingAddress?.country),
-          house_no: String(billingAddress?.additionalAddressInfo),
-          street: String(billingAddress?.streetName),
+          house_no: String(billingAddressStreetNumber),
+          street: String(billingAddressStreetName),
           zip: String(billingAddress?.postalCode),
         },
         shipping: {
           city: String(deliveryAddress?.city),
           country_code: String(deliveryAddress?.country),
-          house_no: String(deliveryAddress?.additionalAddressInfo),
-          street: String(deliveryAddress?.streetName),
+          house_no: String(deliveryAddressStreetNumber),
+          street: String(deliveryAddressStreetName),
           zip: String(deliveryAddress?.postalCode),
         },
         first_name: firstName,
         last_name: lastName,
         email: parsedCart.customerEmail,
-        ...(formattedBirthDate && {
-          birth_date: formattedBirthDate,
-        }),
+        ...(company ? { company: company } : { birth_date: birthDate }),
       },
       transaction,
       custom: {
@@ -2311,15 +2346,15 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         billing: {
           city: String(billingAddress?.city),
           country_code: String(billingAddress?.country),
-          house_no: String(billingAddress?.additionalAddressInfo),
-          street: String(billingAddress?.streetName),
+          house_no: String(billingAddressStreetNumber),
+          street: String(billingAddressStreetName),
           zip: String(billingAddress?.postalCode),
         },
         shipping: {
           city: String(deliveryAddress?.city),
           country_code: String(deliveryAddress?.country),
-          house_no: String(deliveryAddress?.additionalAddressInfo),
-          street: String(deliveryAddress?.streetName),
+          house_no: String(deliveryAddressStreetNumber),
+          street: String(deliveryAddressStreetName),
           zip: String(deliveryAddress?.postalCode),
         },
         first_name: firstName,
@@ -2520,4 +2555,28 @@ export class NovalnetPaymentService extends AbstractPaymentService {
 
     return localizedTransactionComments;
   }
+
+
+ public async splitStreetByComma(
+    street?: string
+  ): { streetName: string; streetNumber: string } {
+    if (!street) {
+      return { streetName: '', streetNumber: '' };
+    }
+  
+    const parts = street.split(',');
+  
+    if (parts.length < 2) {
+      return { streetName: street.trim(), streetNumber: '' };
+    }
+  
+    return {
+      streetName: parts[0].trim(),
+      streetNumber: parts.slice(1).join(',').trim(),
+    };
+  }
+  
+
+
+
 }
