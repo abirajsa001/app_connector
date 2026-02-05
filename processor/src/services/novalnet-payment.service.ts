@@ -895,6 +895,9 @@ export class NovalnetPaymentService extends AbstractPaymentService {
           house_no: String(billingAddressStreetNumber),
           street: String(billingAddressStreetName),
           zip: String(billingAddress?.postalCode),
+          ...(company && {
+            company: company,
+          }),
         },
         shipping: {
           city: String(deliveryAddress?.city),
@@ -906,7 +909,10 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         first_name: firstName,
         last_name: lastName,
         email: parsedCart.customerEmail,
-        ...(company ? { company: company } : { birth_date: birthDate }),
+        ...(birthDate && {
+          birth_date: birthDate,
+        }),
+       
       },
       transaction,
       custom: {
