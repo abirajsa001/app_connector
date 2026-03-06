@@ -4,17 +4,17 @@ exports.projectApiRoot = void 0;
 exports.getApiRoot = getApiRoot;
 const sdk_client_v2_1 = require("@commercetools/sdk-client-v2");
 const platform_sdk_1 = require("@commercetools/platform-sdk");
-const projectKey = 'testkeyproject';
+const projectKey = 'trailprojectkey';
 const authUrl = 'https://auth.europe-west1.gcp.commercetools.com';
 const apiUrl = 'https://api.europe-west1.gcp.commercetools.com';
-const clientId = '4Qov22_iYZi5Z0Ed5_-bVcf3';
-const clientSecret = 'HzP7uITPekVYNp9VTXtFSGjkRllCF-cd';
+const clientId = 'IMYB1nOzGx0dtuShc-hieoG9';
+const clientSecret = 'I-IjzEFDzTu1WFvlixQsD1HKb9S2orfz';
 const authMiddlewareOptions = {
     host: "https://auth.europe-west1.gcp.commercetools.com",
     projectKey,
     credentials: {
-        clientId: '4Qov22_iYZi5Z0Ed5_-bVcf3',
-        clientSecret: 'HzP7uITPekVYNp9VTXtFSGjkRllCF-cd',
+        clientId: 'IMYB1nOzGx0dtuShc-hieoG9',
+        clientSecret: 'I-IjzEFDzTu1WFvlixQsD1HKb9S2orfz',
     },
 };
 const httpMiddlewareOptions = {
