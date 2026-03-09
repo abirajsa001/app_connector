@@ -1003,27 +1003,12 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       id: ctPayment.id,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
-      actions: [
-        {
-          action: "addTransaction",
-          transaction: {
-            type: "Authorization",
-            amount: ctPayment.amountPlanned,
-            interactionId: pspReference,
-            state: state,
-          },
-        },
-        {
-          action: "setCustomType",
-          type: {
-            typeId: "type",
-            key: "novalnet-transaction-comments",
-          },
-          fields: {
-            transactionComments,
-          },
-        },
-      ],
+      transaction: {
+        type: "Authorization",
+        amount: ctPayment.amountPlanned,
+        interactionId: pspReference,
+        state: state
+      }
     });
 
     const raw = await this.ctPaymentService.getPayment({
@@ -2270,28 +2255,14 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       id: ctPayment.id,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
-      actions: [
-        {
-          action: "addTransaction",
-          transaction: {
-            type: "Authorization",
-            amount: ctPayment.amountPlanned,
-            interactionId: pspReference,
-            state: state,
-          },
-        },
-        {
-          action: "setCustomType",
-          type: {
-            typeId: "type",
-            key: "novalnet-transaction-comments",
-          },
-          fields: {
-            transactionComments,
-          },
-        },
-      ],
+      transaction: {
+        type: "Authorization",
+        amount: ctPayment.amountPlanned,
+        interactionId: pspReference,
+        state: state
+      }
     });
+    
     const paymentRef = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
     const orderNumber = getFutureOrderNumberFromContext() ?? "";
