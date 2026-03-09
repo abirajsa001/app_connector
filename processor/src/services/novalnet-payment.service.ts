@@ -2252,7 +2252,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     const transactionComments = `Novalnet Transaction ID: ${"N/A"}\nPayment Type: ${"N/A"}\nStatus: ${"N/A"}`;
     const pspReference = randomUUID().toString();
 
-    await this.ctPaymentService.updatePayment({
+    const updatedPayment = await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
@@ -2260,7 +2260,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: state,
+        state: 'SUCCESS',
       } as unknown as any,
     } as any);
 
