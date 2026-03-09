@@ -46,7 +46,7 @@ export const createTransactionCommentsType = async () => {
     body: {
       key: "novalnet-transaction-comments",
       name: { en: "Novalnet Transaction Comments" },
-      resourceTypeIds: ["payment"],
+      resourceTypeIds: ["payment-transaction"],
       fieldDefinitions: [
         {
           name: "transactionComments",
