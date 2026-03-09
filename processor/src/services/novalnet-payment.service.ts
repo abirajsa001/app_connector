@@ -1007,9 +1007,10 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: state
-      }
-    });
+        state: state,
+      } as unknown as any,
+    } as any);
+
 
     const raw = await this.ctPaymentService.getPayment({
       id: ctPayment.id,
@@ -2259,10 +2260,11 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: state
-      }
-    });
-    
+        state: state,
+      } as unknown as any,
+    } as any);
+
+
     const paymentRef = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
     const orderNumber = getFutureOrderNumberFromContext() ?? "";
