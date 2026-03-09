@@ -1003,12 +1003,18 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       id: ctPayment.id,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
-      transaction: {
-        type: "Authorization",
-        amount: ctPayment.amountPlanned,
-        interactionId: pspReference,
-        state: state,
-        custom: {
+      actions: [
+        {
+          action: "addTransaction",
+          transaction: {
+            type: "Authorization",
+            amount: ctPayment.amountPlanned,
+            interactionId: pspReference,
+            state: state,
+          },
+        },
+        {
+          action: "setCustomType",
           type: {
             typeId: "type",
             key: "novalnet-transaction-comments",
@@ -1017,8 +1023,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
             transactionComments,
           },
         },
-      } as unknown as any,
-    } as any);
+      ],
+    });
 
     const raw = await this.ctPaymentService.getPayment({
       id: ctPayment.id,
@@ -2260,16 +2266,22 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     const transactionComments = `Novalnet Transaction ID: ${"N/A"}\nPayment Type: ${"N/A"}\nStatus: ${"N/A"}`;
     const pspReference = randomUUID().toString();
 
-    const updatedPayment = await this.ctPaymentService.updatePayment({
+    await this.ctPaymentService.updatePayment({
       id: ctPayment.id,
       pspReference,
       paymentMethod: request.data.paymentMethod.type,
-      transaction: {
-        type: "Authorization",
-        amount: ctPayment.amountPlanned,
-        interactionId: pspReference,
-        state: "Pending",
-        custom: {
+      actions: [
+        {
+          action: "addTransaction",
+          transaction: {
+            type: "Authorization",
+            amount: ctPayment.amountPlanned,
+            interactionId: pspReference,
+            state: state,
+          },
+        },
+        {
+          action: "setCustomType",
           type: {
             typeId: "type",
             key: "novalnet-transaction-comments",
@@ -2278,9 +2290,8 @@ export class NovalnetPaymentService extends AbstractPaymentService {
             transactionComments,
           },
         },
-      } as unknown as any,
-    } as any);
-
+      ],
+    });
     const paymentRef = (updatedPayment as any)?.id ?? ctPayment.id;
     const paymentCartId = ctCart.id;
     const orderNumber = getFutureOrderNumberFromContext() ?? "";
