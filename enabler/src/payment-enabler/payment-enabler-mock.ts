@@ -92,7 +92,7 @@ export class NovalnetPaymentEnabler implements PaymentEnabler {
 
     const supportedMethods = {
       invoice: InvoiceBuilder,
-      prepayment: PrepaymentBuilder,
+      Prepayment: PrepaymentBuilder,
       GuaranteedInvoice: GuaranteedInvoiceBuilder,
       GuaranteedSepa: GuaranteedSepaBuilder,
       ideal: IdealBuilder,

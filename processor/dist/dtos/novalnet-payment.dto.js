@@ -11,7 +11,7 @@ var PaymentMethodType;
 (function (PaymentMethodType) {
     PaymentMethodType["CARD"] = "card";
     PaymentMethodType["INVOICE"] = "invoice";
-    PaymentMethodType["PREPAYMENT"] = "prepayment";
+    PaymentMethodType["PREPAYMENT"] = "Prepayment";
     PaymentMethodType["GUARANTEED_INVOICE"] = "GuaranteedInvoice";
     PaymentMethodType["GUARANTEED_SEPA"] = "GuaranteedSepa";
     PaymentMethodType["IDEAL"] = "ideal";
