@@ -188,7 +188,7 @@ export enum PaymentMethod {
   /* TWINT */
   twint = "twint",
   /* SEPA */
-  sepa = "sepa",
+  sepa = "Direct Debit SEPA",
   /* ACH */
   ach = "ach",
   /* CREDIT CARD */

@@ -26,7 +26,7 @@ export enum PaymentMethodType {
   TRUSTLY = "trustly",
   TWINT = "twint",
   WECHATPAY = "wechatpay",
-  SEPA = "sepa",
+  SEPA = "Direct Debit SEPA",
   ACH = "ach",
   CREDITCARD = "creditcard",
 }
