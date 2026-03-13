@@ -2230,7 +2230,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       cart: ctCart,
     });
     
-    	const deliveryStreet = this.splitStreetByComma(deliveryAddress?.streetName);
+  const deliveryStreet = this.splitStreetByComma(deliveryAddress?.streetName);
 	const billingStreet = this.splitStreetByComma(billingAddress?.streetName);
 
 	const deliveryAddressStreetName = deliveryStreet.streetName;
