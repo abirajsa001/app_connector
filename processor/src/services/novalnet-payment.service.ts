@@ -2269,7 +2269,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
         type: "Authorization",
         amount: ctPayment.amountPlanned,
         interactionId: pspReference,
-        state: 'SUCCESS',
+        state: 'Pending',
         custom: {
           type: {
             typeId: "type",
