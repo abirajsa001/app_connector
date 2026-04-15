@@ -830,9 +830,6 @@ export class NovalnetPaymentService extends AbstractPaymentService {
       throw new Error("Payment processing failed");
     }
     const parsedResponse = JSON.parse(responseString);
-    log.info("Payment response done", {
-      parsedResponsedata: parsedResponse,
-    });
     const statusCode = parsedResponse?.transaction?.status_code;
     const testModeText =
       parsedResponse?.transaction?.test_mode == 0 ? "Test Order" : "";
