@@ -1,7 +1,7 @@
 {
   "name": "payment-integration-novalnet",
   "version": "4.1.0",
-  "description": "Payment provider integration template",
+  "description": "Payment provider integration novalnet",
   "main": "dist/main.js",
   "scripts": {
     "start": "node dist/main.js",
