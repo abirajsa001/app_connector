@@ -77,7 +77,7 @@ import {
           },
           paymentOutcome: PaymentOutcome.AUTHORIZED,
         };
-       
+        
         const response = await fetch(this.processorUrl + "/directPayment", {
           method: "POST",
           headers: {

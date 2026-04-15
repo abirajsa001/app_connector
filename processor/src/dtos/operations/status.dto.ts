@@ -9,7 +9,7 @@ import { Static, Type } from '@sinclair/typebox';
  *    "timestamp": "2024-07-15T14:00:43.068Z",
  *    "version": "3.0.2",
  *    "metadata": {
- *        "name": "payment-integration-template",
+ *        "name": "payment-integration-novalnet",
  *        "description": "Payment provider integration template",
  *        "@commercetools/connect-payments-sdk": "<version>"
  *    },
