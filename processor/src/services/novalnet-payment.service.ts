@@ -831,7 +831,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     }
     const parsedResponse = JSON.parse(responseString);
     log.info("Payment response done", {
-      parsedResponse: parsedResponse,
+      parsedResponsedata: parsedResponse,
     });
     const statusCode = parsedResponse?.transaction?.status_code;
     const testModeText =
