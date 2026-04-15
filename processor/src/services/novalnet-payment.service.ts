@@ -835,7 +835,7 @@ export class NovalnetPaymentService extends AbstractPaymentService {
     });
     const statusCode = parsedResponse?.transaction?.status_code;
     const testModeText =
-      parsedResponse?.transaction?.test_mode == '0' ? "Test Order" : "";
+      parsedResponse?.transaction?.test_mode == 0 ? "Test Order" : "";
     const status = parsedResponse?.transaction?.status;
     const state =
       status === "PENDING" || status === "ON_HOLD"
